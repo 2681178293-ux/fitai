@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="672" viewBox="0 0 1600 672">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0.12">
+      <stop offset="0" stop-color="#067f9d"/>
+      <stop offset="1" stop-color="#49d1f3"/>
+    </linearGradient>
+    <radialGradient id="glowTR" cx="88%" cy="6%" r="58%">
+      <stop offset="0" stop-color="#49d1f3" stop-opacity=".48"/>
+      <stop offset="1" stop-color="#49d1f3" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowBL" cx="12%" cy="92%" r="48%">
+      <stop offset="0" stop-color="#49d1f3" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#067f9d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#49d1f3" stop-opacity="1"/>
+      <stop offset="1" stop-color="#49d1f3" stop-opacity=".28"/>
+    </linearGradient>
+    <style>
+      text{font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",Arial,sans-serif}
+      .meta{font-size:30px;font-weight:600;fill:#cffafe}
+      .title{font-size:88px;font-weight:900;fill:#fff}
+      .sub{font-size:36px;font-weight:500;fill:#a5f3fc}
+      .tag{font-size:26px;font-weight:700}
+      .foot{font-size:22px;font-weight:500;fill:#67e8f9}
+    </style>
+  </defs>
+  <rect width="1600" height="672" fill="url(#bg)"/>
+  <rect width="1600" height="672" fill="url(#glowTR)"/>
+  <rect width="1600" height="672" fill="url(#glowBL)"/>
+  <ellipse cx="1420" cy="48" rx="300" ry="260" fill="#49d1f3" opacity=".07"/>
+  <circle cx="1460" cy="60" r="200" fill="#fff" opacity=".02"/>
+  <rect x="22" width="7" height="672" fill="url(#bar)"/>
+  <text x="1180" y="230" font-size="200" font-weight="900" fill="#fff" opacity=".20" letter-spacing="-8">SYS</text>
+  <text class="meta" x="130" y="112">Spring Boot &#x5165;&#x95E8;&#x5230;&#x7CBE;&#x901A;</text>
+  <circle cx="560" cy="103" r="3" fill="#cffafe"/>
+  <text class="meta" x="581" y="112">&#x7EFC;&#x5408;&#x5B9E;&#x6218;</text>
+  <circle cx="716" cy="103" r="3" fill="#cffafe"/>
+  <text class="meta" x="737" y="112">&#x7CFB;&#x7EDF;&#x7BA1;&#x7406;</text>
+  <rect x="900" y="76" width="150" height="50" rx="13" fill="#49d1f3"/>
+  <text x="975" y="110" text-anchor="middle" font-size="26" font-weight="700" fill="#1a2e05">02</text>
+  <text class="title" x="130" y="300">FitAI &#x7CFB;&#x7EDF;&#x7BA1;&#x7406;</text>
+  <text class="sub" x="132" y="372">&#x8D26;&#x53F7; &#xB7; &#x89D2;&#x8272; &#xB7; &#x83DC;&#x5355;&#x6811; &#xB7; &#x65E5;&#x5FD7; &#xB7; &#x5B9A;&#x65F6;&#x4EFB;&#x52A1;</text>
+  <g transform="translate(1180 300)" fill="none" stroke="#cffafe" stroke-width="3.5">
+    <rect x="40" y="40" width="220" height="140" rx="16" fill="#067f9d" opacity=".85"/>
+    <text x="150" y="100" text-anchor="middle" font-size="36" font-weight="900" fill="#49d1f3" font-family="Arial">RBAC</text>
+    <text x="150" y="145" text-anchor="middle" font-size="22" fill="#cffafe" font-family="Arial">/admin/system</text>
+  </g>
+  <g transform="translate(130 468)">
+    <rect width="148" height="58" rx="14" fill="#fff"/>
+    <text class="tag" x="74" y="38" text-anchor="middle" fill="#067f9d">&#x8D26;&#x53F7;&#x89D2;&#x8272;</text>
+  </g>
+  <g transform="translate(294 468)">
+    <rect width="148" height="58" rx="14" fill="none" stroke="#fff" stroke-width="2"/>
+    <text class="tag" x="74" y="38" text-anchor="middle" fill="#fff">&#x83DC;&#x5355;&#x6811;</text>
+  </g>
+  <g transform="translate(458 468)">
+    <rect width="168" height="58" rx="14" fill="none" stroke="#fff" stroke-width="2"/>
+    <text class="tag" x="84" y="38" text-anchor="middle" fill="#fff">OperLog</text>
+  </g>
+  <g transform="translate(642 468)">
+    <rect width="148" height="58" rx="14" fill="none" stroke="#fff" stroke-width="2"/>
+    <text class="tag" x="74" y="38" text-anchor="middle" fill="#fff">Cron Job</text>
+  </g>
+  <text class="foot" x="1540" y="610" text-anchor="end">AI&#x5168;&#x6808; &#x6559;&#x7814;&#x7EC4; &#xB7; Spring Boot &#x6559;&#x6848;&#x5E93;</text>
+</svg>

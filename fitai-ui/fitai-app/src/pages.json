@@ -1,0 +1,315 @@
+{
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "IconifyIcon": "@/components/IconifyIcon.vue",
+      "ElIcon": "@/components/ElIcon.vue"
+    }
+  },
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "FitAI",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/course/index",
+      "style": {
+        "navigationBarTitleText": "课程"
+      }
+    },
+    {
+      "path": "pages/course/detail",
+      "style": {
+        "navigationBarTitleText": "课程详情"
+      }
+    },
+    {
+      "path": "pages/training/index",
+      "style": {
+        "navigationBarTitleText": "训练"
+      }
+    },
+    {
+      "path": "pages/training/plan",
+      "style": {
+        "navigationBarTitleText": "训练计划"
+      }
+    },
+    {
+      "path": "pages/ai/index",
+      "style": {
+        "navigationBarTitleText": "AI助手"
+      }
+    },
+    {
+      "path": "pages/shop/index",
+      "style": {
+        "navigationBarTitleText": "商城"
+      }
+    },
+    {
+      "path": "pages/shop/detail",
+      "style": {
+        "navigationBarTitleText": "商品详情"
+      }
+    },
+    {
+      "path": "pages/shop/cart",
+      "style": {
+        "navigationBarTitleText": "购物车"
+      }
+    },
+    {
+      "path": "pages/order/confirm",
+      "style": {
+        "navigationBarTitleText": "确认订单"
+      }
+    },
+    {
+      "path": "pages/order/pay",
+      "style": {
+        "navigationBarTitleText": "支付"
+      }
+    },
+    {
+      "path": "pages/order/result",
+      "style": {
+        "navigationBarTitleText": "支付结果"
+      }
+    },
+    {
+      "path": "pages/order/list",
+      "style": {
+        "navigationBarTitleText": "我的订单"
+      }
+    },
+    {
+      "path": "pages/my/index",
+      "style": {
+        "navigationBarTitleText": "我的",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/my/profile",
+      "style": {
+        "navigationBarTitleText": "个人资料"
+      }
+    },
+    {
+      "path": "pages/my/member",
+      "style": {
+        "navigationBarTitleText": "会员中心"
+      }
+    },
+    {
+      "path": "pages/my/member-orders",
+      "style": {
+        "navigationBarTitleText": "会员订单"
+      }
+    },
+    {
+      "path": "pages/my/coupon",
+      "style": {
+        "navigationBarTitleText": "我的优惠券"
+      }
+    },
+    {
+      "path": "pages/my/points",
+      "style": {
+        "navigationBarTitleText": "我的积分"
+      }
+    },
+    {
+      "path": "pages/my/badge",
+      "style": {
+        "navigationBarTitleText": "我的徽章"
+      }
+    },
+    {
+      "path": "pages/my/checkin",
+      "style": {
+        "navigationBarTitleText": "签到"
+      }
+    },
+    {
+      "path": "pages/my/favorite",
+      "style": {
+        "navigationBarTitleText": "我的收藏"
+      }
+    },
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/login/register",
+      "style": {
+        "navigationBarTitleText": "注册"
+      }
+    },
+    {
+      "path": "pages/seckill/index",
+      "style": {
+        "navigationBarTitleText": "秒杀"
+      }
+    },
+    {
+      "path": "pages/seckill/detail",
+      "style": {
+        "navigationBarTitleText": "秒杀详情"
+      }
+    },
+    {
+      "path": "pages/training/exercise-list",
+      "style": {
+        "navigationBarTitleText": "动作库"
+      }
+    },
+    {
+      "path": "pages/training/exercise-detail",
+      "style": {
+        "navigationBarTitleText": "动作详情"
+      }
+    },
+    {
+      "path": "pages/community/index",
+      "style": {
+        "navigationBarTitleText": "社区"
+      }
+    },
+    {
+      "path": "pages/diet/index",
+      "style": {
+        "navigationBarTitleText": "饮食"
+      }
+    },
+    {
+      "path": "pages/challenge/index",
+      "style": {
+        "navigationBarTitleText": "挑战"
+      }
+    },
+    {
+      "path": "pages/challenge/detail",
+      "style": {
+        "navigationBarTitleText": "挑战详情"
+      }
+    },
+    {
+      "path": "pages/ranking/index",
+      "style": {
+        "navigationBarTitleText": "排行榜"
+      }
+    },
+    {
+      "path": "pages/course/history",
+      "style": {
+        "navigationBarTitleText": "学习记录"
+      }
+    },
+    {
+      "path": "pages/training/history",
+      "style": {
+        "navigationBarTitleText": "训练记录"
+      }
+    },
+    {
+      "path": "pages/order/detail",
+      "style": {
+        "navigationBarTitleText": "订单详情"
+      }
+    },
+    {
+      "path": "pages/my/address",
+      "style": {
+        "navigationBarTitleText": "收货地址"
+      }
+    },
+    {
+      "path": "pages/my/settings",
+      "style": {
+        "navigationBarTitleText": "账号设置"
+      }
+    },
+    {
+      "path": "pages/my/message",
+      "style": {
+        "navigationBarTitleText": "消息中心"
+      }
+    },
+    {
+      "path": "pages/coach/index",
+      "style": {
+        "navigationBarTitleText": "私教教练"
+      }
+    },
+    {
+      "path": "pages/coach/detail",
+      "style": {
+        "navigationBarTitleText": "教练详情"
+      }
+    },
+    {
+      "path": "pages/coach/booking",
+      "style": {
+        "navigationBarTitleText": "预约教练"
+      }
+    },
+    {
+      "path": "pages/coach/my-booking",
+      "style": {
+        "navigationBarTitleText": "我的预约"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "FitAI",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f5f5f5"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#3b82f6",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "iconPath": "/static/tabbar/home.png",
+        "selectedIconPath": "/static/tabbar/home-active.png",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/course/index",
+        "iconPath": "/static/tabbar/course.png",
+        "selectedIconPath": "/static/tabbar/course-active.png",
+        "text": "课程"
+      },
+      {
+        "pagePath": "pages/ai/index",
+        "iconPath": "/static/tabbar/ai.png",
+        "selectedIconPath": "/static/tabbar/ai-active.png",
+        "text": "AI助手"
+      },
+      {
+        "pagePath": "pages/shop/index",
+        "iconPath": "/static/tabbar/shop.png",
+        "selectedIconPath": "/static/tabbar/shop-active.png",
+        "text": "商城"
+      },
+      {
+        "pagePath": "pages/my/index",
+        "iconPath": "/static/tabbar/my.png",
+        "selectedIconPath": "/static/tabbar/my-active.png",
+        "text": "我的"
+      }
+    ]
+  }
+}

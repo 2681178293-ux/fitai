@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="672" viewBox="0 0 1600 672">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0.12">
+      <stop offset="0" stop-color="#067f9d"/>
+      <stop offset="1" stop-color="#49d1f3"/>
+    </linearGradient>
+    <radialGradient id="glowTR" cx="88%" cy="6%" r="58%">
+      <stop offset="0" stop-color="#49d1f3" stop-opacity=".48"/>
+      <stop offset="1" stop-color="#49d1f3" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowBL" cx="12%" cy="92%" r="48%">
+      <stop offset="0" stop-color="#49d1f3" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#067f9d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#49d1f3" stop-opacity="1"/>
+      <stop offset="1" stop-color="#49d1f3" stop-opacity=".28"/>
+    </linearGradient>
+    <style>
+      text{font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",Arial,sans-serif}
+      .meta{font-size:30px;font-weight:600;fill:#cffafe}
+      .title{font-size:88px;font-weight:900;fill:#fff}
+      .sub{font-size:36px;font-weight:500;fill:#a5f3fc}
+      .tag{font-size:26px;font-weight:700}
+      .foot{font-size:22px;font-weight:500;fill:#67e8f9}
+    </style>
+  </defs>
+  <rect width="1600" height="672" fill="url(#bg)"/>
+  <rect width="1600" height="672" fill="url(#glowTR)"/>
+  <rect width="1600" height="672" fill="url(#glowBL)"/>
+  <ellipse cx="1420" cy="48" rx="300" ry="260" fill="#49d1f3" opacity=".07"/>
+  <circle cx="1460" cy="60" r="200" fill="#fff" opacity=".02"/>
+  <rect x="22" width="7" height="672" fill="url(#bar)"/>
+  <text x="1080" y="230" font-size="180" font-weight="900" fill="#fff" opacity=".20" letter-spacing="-8">TRAIN</text>
+  <text class="meta" x="130" y="112">Spring Boot &#x5165;&#x95E8;&#x5230;&#x7CBE;&#x901A;</text>
+  <circle cx="560" cy="103" r="3" fill="#cffafe"/>
+  <text class="meta" x="581" y="112">&#x7EFC;&#x5408;&#x5B9E;&#x6218;</text>
+  <circle cx="716" cy="103" r="3" fill="#cffafe"/>
+  <text class="meta" x="737" y="112">&#x8BAD;&#x7EC3;&#x7BA1;&#x7406;</text>
+  <rect x="900" y="76" width="150" height="50" rx="13" fill="#49d1f3"/>
+  <text x="975" y="110" text-anchor="middle" font-size="26" font-weight="700" fill="#1a2e05">08</text>
+  <text class="title" x="130" y="300">FitAI &#x8BAD;&#x7EC3;&#x7BA1;&#x7406;</text>
+  <text class="sub" x="132" y="372">&#x52A8;&#x4F5C;&#x5E93; &#xB7; &#x8BAD;&#x7EC3;&#x8BA1;&#x5212; &#xB7; &#x8BAD;&#x7EC3;&#x8BB0;&#x5F55; &#xB7; &#x7A7F;&#x6234;&#x8BBE;&#x5907;</text>
+  <g transform="translate(1120 270)" fill="none" stroke="#cffafe" stroke-width="3.5">
+    <rect x="40" y="40" width="260" height="180" rx="16" fill="#067f9d" opacity=".85"/>
+    <circle cx="110" cy="120" r="36" fill="#49d1f3" opacity=".35"/>
+    <path d="M90 120 L105 135 L135 100" stroke="#a5f3fc" stroke-width="5" fill="none" opacity=".95"/>
+    <rect x="170" y="78" width="100" height="14" rx="4" fill="#a5f3fc" opacity=".9"/>
+    <rect x="170" y="106" width="70" height="12" rx="4" fill="#67e8f9" opacity=".7"/>
+    <rect x="170" y="130" width="90" height="12" rx="4" fill="#cffafe" opacity=".55"/>
+    <text x="170" y="190" text-anchor="middle" font-size="20" fill="#cffafe" font-family="Arial">/admin/exercise</text>
+  </g>
+  <g transform="translate(130 468)">
+    <rect width="128" height="58" rx="14" fill="#fff"/>
+    <text class="tag" x="64" y="38" text-anchor="middle" fill="#067f9d">Action</text>
+  </g>
+  <g transform="translate(274 468)">
+    <rect width="128" height="58" rx="14" fill="none" stroke="#fff" stroke-width="2"/>
+    <text class="tag" x="64" y="38" text-anchor="middle" fill="#fff">Plan</text>
+  </g>
+  <g transform="translate(418 468)">
+    <rect width="128" height="58" rx="14" fill="none" stroke="#fff" stroke-width="2"/>
+    <text class="tag" x="64" y="38" text-anchor="middle" fill="#fff">Record</text>
+  </g>
+  <g transform="translate(562 468)">
+    <rect width="128" height="58" rx="14" fill="none" stroke="#fff" stroke-width="2"/>
+    <text class="tag" x="64" y="38" text-anchor="middle" fill="#fff">Device</text>
+  </g>
+  <text class="foot" x="1540" y="610" text-anchor="end">AI&#x5168;&#x6808; &#x6559;&#x7814;&#x7EC4; &#xB7; Spring Boot &#x6559;&#x6848;&#x5E93;</text>
+</svg>

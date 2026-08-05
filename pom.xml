@@ -1,0 +1,128 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>net.wanho</groupId>
+  <artifactId>fitai-parent</artifactId>
+  <version>1.0.0</version>
+
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>fitai-server</module>
+  </modules>
+
+  <properties>
+    <java.version>21</java.version>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <hutool.version>5.8.42</hutool.version>
+    <spring-boot.version>4.1.0</spring-boot.version>
+    <mybatis-plus.version>3.5.17</mybatis-plus.version>
+    <sa-token.version>1.45.0</sa-token.version>
+    <mybatis-plus-join.version>1.5.9</mybatis-plus-join.version>
+    <knife4j.version>4.5.0</knife4j.version>
+    <mapstruct-plus.version>1.5.0</mapstruct-plus.version>
+    <lombok.version>1.18.46</lombok.version>
+    <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+
+      <!-- mapstruct-plus -->
+      <dependency>
+        <groupId>io.github.linpeilie</groupId>
+        <artifactId>mapstruct-plus-spring-boot-starter</artifactId>
+        <version>${mapstruct-plus.version}</version>
+      </dependency>
+
+      <!-- knife4j -->
+      <dependency>
+        <groupId>com.github.xiaoymin</groupId>
+        <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+        <version>${knife4j.version}</version>
+      </dependency>
+
+      <!-- Sa-Token 整合 jwt -->
+      <dependency>
+        <groupId>cn.dev33</groupId>
+        <artifactId>sa-token-jwt</artifactId>
+        <version>${sa-token.version}</version>
+      </dependency>
+
+      <!-- Sa-Token 整合 RedisTemplate -->
+      <dependency>
+        <groupId>cn.dev33</groupId>
+        <artifactId>sa-token-redis-template</artifactId>
+        <version>${sa-token.version}</version>
+      </dependency>
+
+      <!-- Sa-Token -->
+      <dependency>
+        <groupId>cn.dev33</groupId>
+        <artifactId>sa-token-spring-boot4-starter</artifactId>
+        <version>${sa-token.version}</version>
+      </dependency>
+
+      <!-- mybatis-plus-join -->
+      <dependency>
+        <groupId>com.github.yulichang</groupId>
+        <artifactId>mybatis-plus-join-boot-starter</artifactId>
+        <version>${mybatis-plus-join.version}</version>
+      </dependency>
+
+      <!-- mybatis-plus -->
+      <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+        <version>${mybatis-plus.version}</version>
+      </dependency>
+
+      <!-- mybatis-plus-jsqlparser -->
+      <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus-jsqlparser</artifactId>
+        <version>${mybatis-plus.version}</version>
+      </dependency>
+
+      <!-- hutool -->
+      <dependency>
+        <groupId>cn.hutool</groupId>
+        <artifactId>hutool-all</artifactId>
+        <version>${hutool.version}</version>
+      </dependency>
+
+      <!-- spring-boot-dependencies -->
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.13.0</version>
+          <configuration>
+            <release>${maven.compiler.release}</release>
+            <encoding>${project.build.sourceEncoding}</encoding>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+          <version>${spring-boot.version}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+</project>
