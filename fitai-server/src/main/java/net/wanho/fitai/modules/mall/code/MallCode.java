@@ -19,7 +19,8 @@ public enum MallCode implements ExceptionResult {
     ORDER_EXPIRED(6011, "订单已超时"),
     NOT_FOUND(6012, "资源不存在"),
     /** 已开启商城 ES 时，C 端搜索仅走 ES；ES 不可用或查询失败时返回，不回落 MySQL */
-    PRODUCT_SEARCH_UNAVAILABLE(6013, "商品搜索服务暂不可用，请稍后重试");
+    PRODUCT_SEARCH_UNAVAILABLE(6013, "商品搜索服务暂不可用，请稍后重试"),
+    CATEGORY_HAS_CHILDREN(6014, "存在子分类，无法删除");
 
     private final int code;
     private final String msg;

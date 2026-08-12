@@ -250,6 +250,7 @@ const handleSubmit = async () => {
   } catch (e) {
     if (e !== false) {
       console.error(e);
+      ElMessage.error(e?.response?.data?.msg || e?.message || "操作失败");
     }
   } finally {
     submitLoading.value = false;

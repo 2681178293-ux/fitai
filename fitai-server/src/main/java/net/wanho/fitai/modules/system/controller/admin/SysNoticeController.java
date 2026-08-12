@@ -9,10 +9,14 @@ import lombok.RequiredArgsConstructor;
 import net.wanho.fitai.infra.result.AjaxResult;
 import net.wanho.fitai.modules.system.model.dto.SysNoticeAddDTO;
 import net.wanho.fitai.modules.system.model.dto.SysNoticeQueryDTO;
+import net.wanho.fitai.modules.system.model.dto.SysNoticeReadDTO;
 import net.wanho.fitai.modules.system.model.dto.SysNoticeUpdateDTO;
+import net.wanho.fitai.modules.system.model.po.SysNoticeRead;
 import net.wanho.fitai.modules.system.model.vo.SysNoticeVO;
 import net.wanho.fitai.modules.system.service.SysNoticeServiceI;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController("AdminSysNoticeController")
 @RequestMapping("/admin/system/notice")
@@ -35,6 +39,61 @@ public class SysNoticeController {
     public AjaxResult<SysNoticeVO> findById(@PathVariable("noticeId") Long noticeId) {
         return AjaxResult.success(sysNoticeService.findById(noticeId));
     }
+
+    @GetMapping("/{noticeId}/read-stats")
+    @Operation(summary = "查询阅读统计")
+    @SaCheckPermission("system:notice:query")
+    public AjaxResult<Long> readStats(@PathVariable("noticeId") Long noticeId) {
+        return AjaxResult.success(  sysNoticeService.readStats(noticeId));
+    }
+
+    @GetMapping("/{noticeId}/read-list")
+    @Operation(summary = "阅读详情")
+    @SaCheckPermission("system:notice:query")
+    public AjaxResult<List<SysNoticeRead>> readList(@PathVariable("noticeId") Long noticeId) {
+        return AjaxResult.success( sysNoticeService.readList(noticeId));
+    }
+
+    @PostMapping("/{noticeId}/read")
+    @Operation(summary = "标记已读")
+    private AjaxResult<Void> markRead(@PathVariable("noticeId") Long noticeId) {
+        sysNoticeService.markRead(noticeId);
+        return AjaxResult.success();
+    }
+
+    @GetMapping("/my-read-ids")
+    @Operation(summary = "我的已读")
+    @SaCheckPermission("system:notice:query")
+    public AjaxResult<List<Long>> myReadIds() {
+        return AjaxResult.success(sysNoticeService.myReadIds());
+    }
+
+    @PostMapping("/read-batch")
+    @Operation(summary = "批量阅读")
+    @SaCheckPermission("system:notice:update")
+    public AjaxResult<Void> readBatch(@RequestBody SysNoticeReadDTO readDTO) {
+        sysNoticeService.readBatch(readDTO.getNoticeIds());
+        return AjaxResult.success();
+    }
+
+
+    @PutMapping("/{noticeId}/publish")
+    @Operation(summary = "发布")
+    @SaCheckPermission("system:notice:update")
+    public AjaxResult<Void> publish(@PathVariable("noticeId") Long noticeId) {
+        sysNoticeService.publish(noticeId);
+        return AjaxResult.success();
+    }
+
+    @PutMapping("/{noticeId}/revoke")
+    @Operation(summary = "撤回")
+    @SaCheckPermission("system:notice:update")
+    public AjaxResult<Void> revoke(@PathVariable("noticeId") Long noticeId) {
+        sysNoticeService.revoke(noticeId);
+        return AjaxResult.success();
+    }
+
+
 
     @PostMapping
     @Operation(summary = "添加")

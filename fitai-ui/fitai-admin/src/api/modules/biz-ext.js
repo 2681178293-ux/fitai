@@ -9,7 +9,7 @@ import http from "@/api";
 // ========== 课程 - 学习进度 /admin/course/progress ==========
 
 /** 分页查询学习进度 */
-export const getLearnProgressPageApi = params => http.get("/admin/course/progress/list", params);
+export const getLearnProgressPageApi = params => http.get("/admin/course/progress/page", params);
 
 /** 完成率统计（courseId 可空=全部） */
 export const getLearnProgressStatsApi = courseId =>

@@ -44,6 +44,15 @@ public class SysUserController {
         return AjaxResult.success();
     }
 
+    @PutMapping("/resetPwd")
+    @Operation(summary = "重置密码")
+    @SaCheckPermission("system:user:update")
+    public AjaxResult<Void> resetPwd(@RequestParam("userId") Long userId){
+        sysUserService.resetPwd(userId);
+        return AjaxResult.success();
+    }
+
+
     @PutMapping
     @Operation(summary = "修改")
     @SaCheckPermission("system:user:update")

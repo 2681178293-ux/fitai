@@ -6,9 +6,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import net.wanho.fitai.infra.auth.helper.StpKit;
 import net.wanho.fitai.infra.result.AjaxResult;
-import net.wanho.fitai.modules.auth.dto.AdminLoginDTO;
+import net.wanho.fitai.modules.auth.model.dto.AdminLoginDTO;
+import net.wanho.fitai.modules.auth.model.dto.AdminProfileUpdateDTO;
 import net.wanho.fitai.modules.auth.service.AdminAuthServiceI;
-import net.wanho.fitai.modules.auth.vo.AdminLoginVO;
+import net.wanho.fitai.modules.auth.model.vo.AdminLoginVO;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -35,6 +36,13 @@ public class AdminAuthController {
     @Operation(summary = "管理员登出")
     public AjaxResult<Void> logout() {
         StpKit.ADMIN.logout();
+        return AjaxResult.success();
+    }
+
+    @PutMapping("/profile")
+    @Operation(summary = "修改管理员信息")
+    public AjaxResult<Void> updateProfile(@RequestBody @Valid AdminProfileUpdateDTO updateDto) {
+        adminAuthService.updateProfile(updateDto);
         return AjaxResult.success();
     }
 }

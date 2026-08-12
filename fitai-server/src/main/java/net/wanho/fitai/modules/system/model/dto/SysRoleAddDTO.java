@@ -13,6 +13,7 @@ import java.util.List;
 @Schema(description = "新增角色参数")
 @AutoMapper(target = SysRole.class)
 public class SysRoleAddDTO implements Serializable {
+
     @Schema(description = "角色名称")
     @NotBlank(message = "角色名称不能为空")
     private String roleName;
@@ -30,6 +31,7 @@ public class SysRoleAddDTO implements Serializable {
     private String remark;
     @Schema(description = "菜单ID列表")
     private List<Long> menuIds;
-    @Schema(description = "部门ID列表")
-    private List<Long> deptIds;
+    @Schema(description = "角色ID列表")
+    private List<Long> roleIds;
+
 }

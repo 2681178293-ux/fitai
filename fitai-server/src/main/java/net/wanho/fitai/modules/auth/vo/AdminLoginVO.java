@@ -14,4 +14,6 @@ public class AdminLoginVO {
     private String avatar;
     private List<String> roles;
     private List<String> permissions;
+    private String email;
+    private String phoneNumber;
 }

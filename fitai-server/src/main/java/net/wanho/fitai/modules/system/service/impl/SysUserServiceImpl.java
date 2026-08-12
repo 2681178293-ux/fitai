@@ -1,6 +1,7 @@
 package net.wanho.fitai.modules.system.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.crypto.digest.BCrypt;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -9,6 +10,7 @@ import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import io.github.linpeilie.Converter;
 import lombok.RequiredArgsConstructor;
 import net.wanho.fitai.infra.auth.constant.CommonConstant;
+import net.wanho.fitai.modules.system.mapper.SysConfigMapper;
 import net.wanho.fitai.modules.system.mapper.SysMenuMapper;
 import net.wanho.fitai.modules.system.mapper.SysRoleMapper;
 import net.wanho.fitai.modules.system.mapper.SysUserMapper;
@@ -33,6 +35,7 @@ public class SysUserServiceImpl extends MPJBaseServiceImpl<SysUserMapper, SysUse
     private final SysUserRoleServiceI sysUserRoleService;
     private final SysMenuMapper sysMenuMapper;
     private final SysRoleMapper sysRoleMapper;
+    private final SysConfigMapper sysConfigMapper;
 
     @Override
     public SysUser getByUserName(String userName) {
@@ -116,7 +119,9 @@ public class SysUserServiceImpl extends MPJBaseServiceImpl<SysUserMapper, SysUse
     @Transactional(rollbackFor = Exception.class)
     public void add(SysUserAddDTO addDto) {
         SysUser entity = converter.convert(addDto, SysUser.class);
+        entity.setPassword(BCrypt.hashpw(addDto.getPassword()));
         this.save(entity);
+
         sysUserRoleService.replaceByUserId(entity.getUserId(), addDto.getRoleIds());
     }
 
@@ -125,6 +130,7 @@ public class SysUserServiceImpl extends MPJBaseServiceImpl<SysUserMapper, SysUse
     public void update(SysUserUpdateDTO updateDto) {
         SysUser entity = converter.convert(updateDto, SysUser.class);
         this.updateById(entity);
+
         if (updateDto.getRoleIds() != null) {
             sysUserRoleService.replaceByUserId(updateDto.getUserId(), updateDto.getRoleIds());
         }
@@ -148,5 +154,16 @@ public class SysUserServiceImpl extends MPJBaseServiceImpl<SysUserMapper, SysUse
             vo.setRoleIds(sysUserRoleService.listRoleIdsByUserId(userId));
         }
         return vo;
+    }
+
+    @Override
+    public void resetPwd(Long userId) {
+
+        SysConfig sysConfig = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, "sys.user.initPassword"));
+
+        SysUser sysUser = new SysUser();
+        sysUser.setUserId(userId);
+        sysUser.setPassword(BCrypt.hashpw(sysConfig.getConfigValue()));
+        this.updateById(sysUser);
     }
 }

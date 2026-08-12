@@ -1,7 +1,6 @@
 package net.wanho.fitai.modules.system.controller.admin;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -28,8 +27,8 @@ public class SysMenuController {
     @GetMapping("/list")
     @Operation(summary = "分页查询")
     @SaCheckPermission("system:menu:list")
-    public AjaxResult<IPage<SysMenuVO>> findByPage(SysMenuQueryDTO queryDto) {
-        return AjaxResult.success(sysMenuService.findByPage(queryDto));
+    public AjaxResult<List<SysMenuVO>> listTree(SysMenuQueryDTO queryDto) {
+        return AjaxResult.success(sysMenuService.listTree(queryDto));
     }
 
     @GetMapping("/routers")

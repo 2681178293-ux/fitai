@@ -12,4 +12,6 @@ public interface SysOperLogServiceI extends MPJBaseService<SysOperLog> {
     void delete(String id);
 
     SysOperLogVO findById(Long id);
+
+    void recordOperLog(SysOperLog sysOperLog);
 }

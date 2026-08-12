@@ -9,9 +9,10 @@ import net.wanho.fitai.infra.auth.helper.AdminLoginHelper;
 import net.wanho.fitai.infra.auth.helper.StpKit;
 import net.wanho.fitai.infra.auth.model.LoginUser;
 import net.wanho.fitai.infra.exception.CustomException;
-import net.wanho.fitai.modules.auth.dto.AdminLoginDTO;
+import net.wanho.fitai.modules.auth.model.dto.AdminLoginDTO;
+import net.wanho.fitai.modules.auth.model.dto.AdminProfileUpdateDTO;
 import net.wanho.fitai.modules.auth.service.AdminAuthServiceI;
-import net.wanho.fitai.modules.auth.vo.AdminLoginVO;
+import net.wanho.fitai.modules.auth.model.vo.AdminLoginVO;
 import net.wanho.fitai.modules.system.code.SystemCode;
 import net.wanho.fitai.modules.system.model.po.SysDept;
 import net.wanho.fitai.modules.system.model.po.SysUser;
@@ -36,22 +37,25 @@ public class AdminAuthServiceImpl implements AdminAuthServiceI {
     @Transactional(rollbackFor = Exception.class)
     public AdminLoginVO login(AdminLoginDTO loginDto) {
         SysUser user = sysUserService.getByUserName(loginDto.getUsername());
-
+        //判断用户是否存在
         if (ObjectUtil.isNull(user)) {
             loginLogService.recordLoginLog(loginDto.getUsername(), "admin","admin","0", SystemCode.USER_NOT_FOUND.msg());
             throw new CustomException(SystemCode.USER_NOT_FOUND);
         }
+        //判断用户状态
         if (!CommonConstant.STATUS_NORMAL.equals(user.getStatus())) {
             loginLogService.recordLoginLog(loginDto.getUsername(), "admin","admin","0", SystemCode.USER_DISABLED.msg());
             throw new CustomException(SystemCode.USER_DISABLED);
         }
+        //判断密码是否正确
         if (!BCrypt.checkpw(loginDto.getPassword(), user.getPassword())) {
             loginLogService.recordLoginLog(loginDto.getUsername(), "admin","admin","0", SystemCode.PASSWORD_ERROR.msg());
             throw new CustomException(SystemCode.PASSWORD_ERROR);
         }
-
+        //登录  默认是管理员登录，所以这里写死了StpKit.ADMIN
         StpKit.ADMIN.login(user.getUserId());
         LoginUser loginUser = buildLoginUser(user);
+        //将用户信息写入Session
         StpKit.ADMIN.getSession().set(SaSession.USER, loginUser);
         updateLoginInfo(user);
         loginLogService.recordLoginLog(user.getUserName(), "admin","admin","1", "登录成功");
@@ -75,6 +79,25 @@ public class AdminAuthServiceImpl implements AdminAuthServiceI {
             StpKit.ADMIN.getSession().set(SaSession.USER, loginUser);
         }
         return buildUserInfo(sysUser, StpKit.ADMIN.getTokenValue());
+    }
+
+    @Override
+    public void updateProfile(AdminProfileUpdateDTO updateDto) {
+
+        Long userId = AdminLoginHelper.getUserId();
+        SysUser sysUser = sysUserService.getById(userId);
+        String nickName = sysUser.getNickName();
+        sysUser.setNickName(updateDto.getNickname());
+        sysUser.setAvatar(updateDto.getAvatar());
+        sysUser.setEmail(updateDto.getEmail());
+        sysUser.setPhonenumber(updateDto.getPhonenumber());
+        sysUser.setSex(updateDto.getSex());
+        sysUserService.updateById(sysUser);
+
+        if(!nickName.equals(updateDto.getNickname())) {
+            LoginUser loginUser = buildLoginUser(sysUser);
+            StpKit.ADMIN.getSession().set(SaSession.USER, loginUser);
+        }
     }
 
     private LoginUser buildLoginUser(SysUser user) {
@@ -127,6 +150,8 @@ public class AdminAuthServiceImpl implements AdminAuthServiceI {
         vo.setNickname(user.getNickName());
         vo.setAvatar(user.getAvatar());
         vo.setRoles(roles);
+        vo.setEmail(user.getEmail());
+        vo.setPhonenumber(user.getPhonenumber());
         vo.setPermissions(permissions);
         return vo;
     }

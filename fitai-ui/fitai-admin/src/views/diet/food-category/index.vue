@@ -6,7 +6,7 @@
         <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
       </template>
       <template #status="{ row }">
-        <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? "启用" : "禁用" }}</el-tag>
+        <el-tag :type="row.status === '0' ? 'success' : 'info'" size="small">{{ row.status === '0' ? "启用" : "禁用" }}</el-tag>
       </template>
       <template #action="{ row }">
         <el-button type="primary" link :icon="Edit" @click="handleEdit(row)">编辑</el-button>
@@ -16,16 +16,16 @@
 
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑分类' : '新增分类'" width="440px" destroy-on-close>
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="formData.name" placeholder="展示名称，唯一" />
+        <el-form-item label="名称" prop="categoryName">
+          <el-input v-model="formData.categoryName" placeholder="展示名称，唯一" />
         </el-form-item>
-        <el-form-item label="排序" prop="sortOrder">
-          <el-input-number v-model="formData.sortOrder" :min="0" :max="99999" class="w-full" />
+        <el-form-item label="排序" prop="orderNum">
+          <el-input-number v-model="formData.orderNum" :min="0" :max="99999" class="w-full" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="formData.status">
-            <el-radio :label="1">启用</el-radio>
-            <el-radio :label="0">禁用</el-radio>
+            <el-radio label="0">启用</el-radio>
+            <el-radio label="1">禁用</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -55,15 +55,15 @@ const isEdit = ref(false);
 const submitLoading = ref(false);
 
 const formData = reactive({
-  id: null,
-  name: "",
-  sortOrder: 0,
-  status: 1
+  categoryId: null,
+  categoryName: "",
+  orderNum: 0,
+  status: "0"
 });
 
 const formRules = {
-  name: [{ required: true, message: "请输入名称", trigger: "blur" }],
-  sortOrder: [{ required: true, message: "请输入排序", trigger: "blur" }],
+  categoryName: [{ required: true, message: "请输入名称", trigger: "blur" }],
+  orderNum: [{ required: true, message: "请输入排序", trigger: "blur" }],
   status: [{ required: true, message: "请选择状态", trigger: "change" }]
 };
 
@@ -106,15 +106,11 @@ const gridOptions = reactive({
     form: true,
     response: { result: "list", total: "total" },
     ajax: {
-      query: async ({ page, form }) => {
-        const params = {
-          pageNum: page.currentPage,
-          pageSize: page.pageSize,
-          ...form
-        };
+      query: async ({ form }) => {
         try {
-          const res = await getDietFoodCategoryPageApi(params);
-          return { list: res.data?.records || [], total: res.data?.total || 0 };
+          const res = await getDietFoodCategoryPageApi(form);
+          const list = Array.isArray(res.data) ? res.data : [];
+          return { list, total: list.length };
         } catch (e) {
           console.error(e);
           return { list: [], total: 0 };
@@ -124,9 +120,9 @@ const gridOptions = reactive({
   },
   columns: [
     { type: "seq", width: 60, title: "序号" },
-    { field: "id", title: "ID", width: 170 },
-    { field: "name", title: "名称", minWidth: 140 },
-    { field: "sortOrder", title: "排序", width: 90 },
+    { field: "categoryId", title: "ID", width: 170 },
+    { field: "categoryName", title: "名称", minWidth: 140 },
+    { field: "orderNum", title: "排序", width: 90 },
     { field: "status", title: "状态", width: 90, slots: { default: "status" } },
     { field: "createTime", title: "创建时间", width: 170 },
     { title: "操作", width: 140, fixed: "right", slots: { default: "action" } }
@@ -139,10 +135,10 @@ const handleRefresh = () => {
 
 function resetForm() {
   Object.assign(formData, {
-    id: null,
-    name: "",
-    sortOrder: 0,
-    status: 1
+    categoryId: null,
+    categoryName: "",
+    orderNum: 0,
+    status: "0"
   });
 }
 
@@ -155,10 +151,10 @@ const handleAdd = () => {
 const handleEdit = row => {
   isEdit.value = true;
   Object.assign(formData, {
-    id: row.id,
-    name: row.name || "",
-    sortOrder: row.sortOrder ?? 0,
-    status: row.status === 0 ? 0 : 1
+    categoryId: row.categoryId,
+    categoryName: row.categoryName || "",
+    orderNum: row.orderNum ?? 0,
+    status: row.status ?? "0"
   });
   dialogVisible.value = true;
 };
@@ -168,12 +164,12 @@ const handleSubmit = async () => {
     await formRef.value?.validate();
     submitLoading.value = true;
     const payload = {
-      name: formData.name.trim(),
-      sortOrder: formData.sortOrder,
+      categoryName: formData.categoryName.trim(),
+      orderNum: formData.orderNum,
       status: formData.status
     };
     if (isEdit.value) {
-      await updateDietFoodCategoryApi(formData.id, payload);
+      await updateDietFoodCategoryApi(formData.categoryId, payload);
       ElMessage.success("已更新");
     } else {
       await addDietFoodCategoryApi(payload);
@@ -191,9 +187,9 @@ const handleSubmit = async () => {
 };
 
 const handleDelete = row => {
-  ElMessageBox.confirm(`确定删除「${row.name}」？若分类下仍有食物将无法删除。`, "提示", { type: "warning" })
+  ElMessageBox.confirm(`确定删除「${row.categoryName}」？若分类下仍有食物将无法删除。`, "提示", { type: "warning" })
     .then(async () => {
-      await deleteDietFoodCategoryApi(row.id);
+      await deleteDietFoodCategoryApi(row.categoryId);
       ElMessage.success("已删除");
       handleRefresh();
     })

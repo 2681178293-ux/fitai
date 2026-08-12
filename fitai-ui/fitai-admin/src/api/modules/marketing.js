@@ -35,20 +35,20 @@ export const getCouponUsersApi = (id, params) => {
 
 // 获取轮播图列表
 export const getBannerListApi = params => {
-  return http.get(`/admin/marketing/banners`, params);
+  return http.get(`/admin/marketing/banner/list`, params);
 };
 
 // 新增轮播图
 export const addBannerApi = data => {
-  return http.post(`/admin/marketing/banners`, data);
+  return http.post(`/admin/marketing/banner`, data);
 };
 
 // 编辑轮播图
 export const updateBannerApi = (id, data) => {
-  return http.put(`/admin/marketing/banners/${id}`, data);
+  return http.put(`/admin/marketing/banner`, data);
 };
 
 // 删除轮播图
 export const deleteBannerApi = id => {
-  return http.delete(`/admin/marketing/banners/${id}`);
+  return http.delete(`/admin/marketing/banner/${id}`);
 };

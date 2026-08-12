@@ -12,7 +12,6 @@ import net.wanho.fitai.modules.system.model.vo.SysMenuVO;
 import java.util.List;
 
 public interface SysMenuServiceI extends MPJBaseService<SysMenu> {
-    IPage<SysMenuVO> findByPage(SysMenuQueryDTO queryDto);
 
     void add(SysMenuAddDTO addDto);
 
@@ -23,4 +22,6 @@ public interface SysMenuServiceI extends MPJBaseService<SysMenu> {
     SysMenuVO findById(Long id);
 
     List<RouterVO> buildRoutersForCurrentUser();
+
+    List<SysMenuVO> listTree(SysMenuQueryDTO queryDto);
 }

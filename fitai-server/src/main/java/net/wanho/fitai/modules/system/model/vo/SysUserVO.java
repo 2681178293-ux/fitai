@@ -1,5 +1,6 @@
 package net.wanho.fitai.modules.system.model.vo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.github.linpeilie.annotations.AutoMapper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -39,4 +40,7 @@ public class SysUserVO implements Serializable {
     private LocalDateTime loginDate;
     @Schema(description = "角色ID列表")
     private List<Long> roleIds;
+    @Schema(description = "创建时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private LocalDateTime createTime;
 }

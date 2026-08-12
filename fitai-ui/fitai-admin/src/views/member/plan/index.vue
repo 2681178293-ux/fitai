@@ -242,7 +242,7 @@ const handleSubmit = async () => {
       price: formData.price,
       originalPrice: formData.originalPrice,
       description: formData.description,
-      benefits: parseBenefits(benefitsText.value),
+      benefits: benefitsText.value,
       aiTokenQuotaMonthly: formData.aiTokenQuotaMonthly,
       sortOrder: formData.sortOrder,
       status: formData.status

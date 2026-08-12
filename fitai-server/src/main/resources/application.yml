@@ -10,13 +10,19 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/fitai_all?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true
     username: root
-    password: root
+    password: dinghao
   data:
     redis:
       host: localhost
       port: 6379
       password:
       database: 6
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 20MB
+      file-size-threshold: 1MB
 
 # mybatis-plus
 mybatis-plus:
@@ -61,3 +67,11 @@ knife4j:
     username: admin
     password: admin
   production: false
+
+# 阿里云 OSS（配置方式对齐 boot-parent 14_springboot_oss）
+aliyun:
+  oss:
+    region: cn-shanghai
+    bucket: full1522-bucket
+    access-key-id: LTAI5t7YmFZ2Xx8wg7HYqkqY
+    access-key-secret: cUIP3iGegqK3PBVtrdsZqmBwObeu3U

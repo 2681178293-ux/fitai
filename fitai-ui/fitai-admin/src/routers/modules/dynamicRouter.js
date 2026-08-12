@@ -49,28 +49,20 @@ export const initDynamicRouter = async () => {
       return Promise.reject("No permission");
     }
 
-    // 3.添加动态路由（仅注册能解析到组件的菜单页；目录节点 path 可能为占位，扁平化后不再注册）
+    // 3.添加动态路由
     authStore.flatMenuListGet.forEach(item => {
       item.children && delete item.children;
-      if (!item.path) {
-        console.warn("Dynamic Router - Skip route without path:", item.name);
-        return;
-      }
       if (item.component && typeof item.component == "string") {
+        // 使用 normalizedModules 查找组件
         const component = normalizedModules[item.component];
         console.log("Dynamic Router - Loading component:", item.component, "exists:", !!component);
         if (component) {
           item.component = component;
         } else {
           console.warn("Dynamic Router - Component not found:", item.component);
-          return;
         }
       }
-      // 目录节点无 component，扁平化后无需 addRoute（侧栏用树形 authMenuList）
-      if (typeof item.component !== "function") {
-        return;
-      }
-      if (item.meta?.isFull) {
+      if (item.meta.isFull) {
         router.addRoute(item);
       } else {
         router.addRoute("layout", item);

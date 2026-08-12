@@ -1,11 +1,11 @@
 package net.wanho.fitai.modules.system.controller.admin;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import net.wanho.fitai.infra.auth.constant.CommonConstant;
 import net.wanho.fitai.infra.result.AjaxResult;
 import net.wanho.fitai.modules.system.model.dto.SysDeptAddDTO;
 import net.wanho.fitai.modules.system.model.dto.SysDeptQueryDTO;
@@ -13,6 +13,8 @@ import net.wanho.fitai.modules.system.model.dto.SysDeptUpdateDTO;
 import net.wanho.fitai.modules.system.model.vo.SysDeptVO;
 import net.wanho.fitai.modules.system.service.SysDeptServiceI;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController("AdminSysDeptController")
 @RequestMapping("/admin/system/dept")
@@ -25,14 +27,30 @@ public class SysDeptController {
     @GetMapping("/list")
     @Operation(summary = "分页查询")
     @SaCheckPermission("system:dept:list")
-    public AjaxResult<IPage<SysDeptVO>> findByPage(SysDeptQueryDTO queryDto) {
-        return AjaxResult.success(sysDeptService.findByPage(queryDto));
+    public AjaxResult<List<SysDeptVO>> listTree(SysDeptQueryDTO queryDto) {
+        return AjaxResult.success(sysDeptService.listTree(queryDto));
+    }
+
+    @GetMapping("/select")
+    @Operation(summary = "下拉列表")
+    @SaCheckPermission("system:dept:list")
+    public AjaxResult<List<SysDeptVO>> select() {
+        SysDeptQueryDTO queryDto = new SysDeptQueryDTO();
+        queryDto.setStatus(CommonConstant.STATUS_NORMAL);
+        return AjaxResult.success(sysDeptService.listTree(queryDto));
     }
 
     @GetMapping("/{deptId}")
     @Operation(summary = "查询")
     @SaCheckPermission("system:dept:query")
     public AjaxResult<SysDeptVO> findById(@PathVariable("deptId") Long deptId) {
+        return AjaxResult.success(sysDeptService.findById(deptId));
+    }
+
+    @GetMapping("/info/{deptId}")
+    @Operation(summary = "查询")
+    @SaCheckPermission("system:dept:query")
+    public AjaxResult<SysDeptVO> info(@PathVariable("deptId") Long deptId) {
         return AjaxResult.success(sysDeptService.findById(deptId));
     }
 

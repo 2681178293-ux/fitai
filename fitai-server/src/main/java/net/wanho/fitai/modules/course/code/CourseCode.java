@@ -7,10 +7,12 @@ import net.wanho.fitai.infra.exception.ExceptionResult;
  */
 public enum CourseCode implements ExceptionResult {
     COURSE_NOT_FOUND(5001, "课程不存在"),
-    VIDEO_NOT_FOUND(5002, "视频不存在");
+    VIDEO_NOT_FOUND(5002, "视频不存在"),
+    CATEGORY_HAS_CHILDREN(5003, "存在子分类，不允许删除");
 
     private final int code;
     private final String msg;
+
 
     CourseCode(int code, String msg) {
         this.code = code;

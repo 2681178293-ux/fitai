@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.yulichang.base.MPJBaseServiceImpl;
 import io.github.linpeilie.Converter;
 import lombok.RequiredArgsConstructor;
+import net.wanho.fitai.modules.system.async.OperLogAsyncWriter;
 import net.wanho.fitai.modules.system.mapper.SysOperLogMapper;
 import net.wanho.fitai.modules.system.model.dto.SysOperLogQueryDTO;
 import net.wanho.fitai.modules.system.model.po.SysOperLog;
@@ -21,6 +22,7 @@ import java.util.Arrays;
 public class SysOperLogServiceImpl extends MPJBaseServiceImpl<SysOperLogMapper, SysOperLog> implements SysOperLogServiceI {
 
     private final Converter converter;
+    private final OperLogAsyncWriter operLogAsyncWriter;
 
     @Override
     public IPage<SysOperLogVO> findByPage(SysOperLogQueryDTO queryDto) {
@@ -44,5 +46,10 @@ public class SysOperLogServiceImpl extends MPJBaseServiceImpl<SysOperLogMapper, 
     public SysOperLogVO findById(Long id) {
         SysOperLog entity = this.getById(id);
         return converter.convert(entity, SysOperLogVO.class);
+    }
+
+    @Override
+    public void recordOperLog(SysOperLog sysOperLog) {
+        operLogAsyncWriter.write(sysOperLog);
     }
 }

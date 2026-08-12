@@ -16,8 +16,9 @@ public class SysNoticeReadAddDTO implements Serializable {
     @NotNull(message = "公告ID不能为空")
     private Long noticeId;
     @Schema(description = "用户ID")
-    @NotNull(message = "用户ID不能为空")
     private Long customerId;
+    @Schema(description = "用户ID")
+    private Long userId;
     @Schema(description = "阅读时间")
     private LocalDateTime readTime;
 

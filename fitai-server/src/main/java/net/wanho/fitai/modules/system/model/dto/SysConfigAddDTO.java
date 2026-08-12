@@ -25,7 +25,6 @@ public class SysConfigAddDTO implements Serializable {
     @NotBlank(message = "系统配置类型不能为空")
     private String configType;
     @Schema(description = "系统配置状态")
-    @NotBlank(message = "系统配置状态不能为空")
     private String status;
     @Schema(description = "系统配置备注")
     private String remark;

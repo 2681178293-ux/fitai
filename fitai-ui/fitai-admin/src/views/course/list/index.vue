@@ -50,7 +50,7 @@
           <el-cascader
             v-model="formData.categoryId"
             :options="categoryOptions"
-            :props="{ value: 'id', label: 'name', checkStrictly: true }"
+            :props="{ value: 'id', label: 'name', checkStrictly: true, emitPath: false }"
             placeholder="请选择分类"
             clearable
             style="width: 100%"

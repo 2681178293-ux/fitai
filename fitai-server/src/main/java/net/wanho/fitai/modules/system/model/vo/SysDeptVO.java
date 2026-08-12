@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import net.wanho.fitai.modules.system.model.po.SysDept;
 import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Schema(description = "SysDept视图")
@@ -28,5 +30,10 @@ public class SysDeptVO implements Serializable {
     private String email;
     @Schema(description = "状态")
     private String status;
+    @Schema(description = "创建时间")
+    private LocalDateTime createTime;
+
+    @Schema(description = "子部门")
+    private List<SysDeptVO> children;
 
 }

@@ -12,7 +12,7 @@ import net.wanho.fitai.modules.system.service.SysLoginLogServiceI;
 import org.springframework.web.bind.annotation.*;
 
 @RestController("AdminSysLoginLogController")
-@RequestMapping("/admin/system/log/login")
+@RequestMapping("/admin/system/login-log")
 @RequiredArgsConstructor
 @Tag(name = "登录日志接口")
 public class SysLoginLogController {

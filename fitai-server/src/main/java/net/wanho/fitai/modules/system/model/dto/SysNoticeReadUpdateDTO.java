@@ -5,9 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import net.wanho.fitai.modules.system.model.po.SysNoticeRead;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.time.LocalDate;
 
 @Data
 @Schema(description = "修改SysNoticeRead参数")
@@ -20,6 +20,8 @@ public class SysNoticeReadUpdateDTO implements Serializable {
     private Long noticeId;
     @Schema(description = "用户ID")
     private Long customerId;
+    @Schema(description = "管理员ID")
+    private Long userID;
     @Schema(description = "阅读时间")
     private LocalDateTime readTime;
 

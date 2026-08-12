@@ -15,6 +15,12 @@
 
     <dependencies>
 
+        <!-- spring-boot-starter-aspectj -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
+        </dependency>
+
         <!-- mapstruct-plus -->
         <dependency>
             <groupId>io.github.linpeilie</groupId>
@@ -85,6 +91,13 @@
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
+        </dependency>
+
+        <!-- 阿里云 OSS Java SDK v2（与 boot-parent 14_springboot_oss 一致） -->
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>alibabacloud-oss-v2</artifactId>
+            <version>0.5.1</version>
         </dependency>
 
         <!-- spring-boot -->

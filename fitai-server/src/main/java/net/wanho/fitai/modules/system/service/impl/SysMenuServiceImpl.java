@@ -2,6 +2,7 @@ package net.wanho.fitai.modules.system.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -114,17 +115,6 @@ public class SysMenuServiceImpl extends MPJBaseServiceImpl<SysMenuMapper, SysMen
     private final Converter converter;
 
     @Override
-    public IPage<SysMenuVO> findByPage(SysMenuQueryDTO queryDto) {
-        IPage<SysMenu> page = new Page<>(queryDto.getPageNum(), queryDto.getPageSize());
-        LambdaQueryWrapper<SysMenu> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(StrUtil.isNotEmpty(queryDto.getMenuName()), SysMenu::getMenuName, queryDto.getMenuName());
-        wrapper.eq(StrUtil.isNotEmpty(queryDto.getStatus()), SysMenu::getStatus, queryDto.getStatus());
-        wrapper.eq(StrUtil.isNotEmpty(queryDto.getMenuType()), SysMenu::getMenuType, queryDto.getMenuType());
-        IPage<SysMenu> result = this.page(page, wrapper);
-        return result.convert(item -> converter.convert(item, SysMenuVO.class));
-    }
-
-    @Override
     public void add(SysMenuAddDTO addDto) {
         SysMenu entity = converter.convert(addDto, SysMenu.class);
         this.save(entity);
@@ -181,6 +171,16 @@ public class SysMenuServiceImpl extends MPJBaseServiceImpl<SysMenuMapper, SysMen
                 .map(item -> converter.convert(item, SysMenuVO.class))
                 .toList());
         return buildRouterTree(tree);
+    }
+
+    @Override
+    public List<SysMenuVO> listTree(SysMenuQueryDTO queryDto) {
+        LambdaQueryWrapper<SysMenu> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(StrUtil.isNotEmpty(queryDto.getMenuName()), SysMenu::getMenuName, queryDto.getMenuName());
+        wrapper.eq(StrUtil.isNotEmpty(queryDto.getStatus()), SysMenu::getStatus, queryDto.getStatus());
+        wrapper.orderByAsc(SysMenu::getParentId).orderByAsc(SysMenu::getOrderNum);
+        List<SysMenuVO> sysMenuVOList = this.list(wrapper).stream().map(item -> converter.convert(item, SysMenuVO.class)).toList();
+        return buildTree(0L, sysMenuVOList);
     }
 
     private List<RouterVO> buildRouterTree(List<SysMenuVO> menuTree) {

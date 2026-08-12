@@ -21,7 +21,7 @@
       <template #action="{ row }">
         <el-button type="primary" link :icon="Edit" @click="handleEdit(row)">编辑</el-button>
         <el-button
-          v-if="row.status !== 1"
+          v-if="row.status != 1"
           type="success"
           link
           :icon="Promotion"

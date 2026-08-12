@@ -28,8 +28,7 @@ public class SysRoleUpdateDTO implements Serializable {
     private String status;
     @Schema(description = "备注")
     private String remark;
-    @Schema(description = "菜单ID列表")
+    @Schema(description = "菜单列表")
     private List<Long> menuIds;
-    @Schema(description = "部门ID列表")
-    private List<Long> deptIds;
+
 }

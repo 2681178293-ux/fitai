@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import net.wanho.fitai.infra.result.AjaxResult;
+import net.wanho.fitai.modules.system.log.OperLog;
 import net.wanho.fitai.modules.system.model.dto.SysConfigAddDTO;
 import net.wanho.fitai.modules.system.model.dto.SysConfigQueryDTO;
 import net.wanho.fitai.modules.system.model.dto.SysConfigUpdateDTO;
@@ -36,6 +37,7 @@ public class SysConfigController {
 
     @PostMapping
     @Operation(summary = "添加")
+    @OperLog(title = "添加系统参数")
     public AjaxResult add(@Valid @RequestBody SysConfigAddDTO addDto) {
         sysConfigService.add(addDto);
         return AjaxResult.success();
@@ -43,6 +45,7 @@ public class SysConfigController {
 
     @PutMapping
     @Operation(summary = "修改")
+    @OperLog(title = "修改系统参数")
     public AjaxResult update(@Valid @RequestBody SysConfigUpdateDTO updateDto) {
         sysConfigService.update(updateDto);
         return AjaxResult.success();
@@ -50,6 +53,7 @@ public class SysConfigController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除")
+    @OperLog(title = "删除系统参数")
     public AjaxResult delete(@PathVariable("id") String id) {
         sysConfigService.delete(id);
         return AjaxResult.success();

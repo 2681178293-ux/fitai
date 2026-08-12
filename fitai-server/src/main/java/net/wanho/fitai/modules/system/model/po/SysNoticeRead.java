@@ -13,5 +13,6 @@ public class SysNoticeRead implements Serializable {
     private Long readId;
     private Long noticeId;
     private Long customerId;
+    private Long userId;
     private LocalDateTime readTime;
 }

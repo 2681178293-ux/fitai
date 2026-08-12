@@ -8,6 +8,8 @@ import net.wanho.fitai.modules.system.model.dto.SysRoleUpdateDTO;
 import net.wanho.fitai.modules.system.model.po.SysRole;
 import net.wanho.fitai.modules.system.model.vo.SysRoleVO;
 
+import java.util.List;
+
 public interface SysRoleServiceI extends MPJBaseService<SysRole> {
     IPage<SysRoleVO> findByPage(SysRoleQueryDTO queryDto);
 
@@ -18,4 +20,6 @@ public interface SysRoleServiceI extends MPJBaseService<SysRole> {
     void delete(String id);
 
     SysRoleVO findById(Long roleId);
+
+    List<SysRoleVO> listAll();
 }

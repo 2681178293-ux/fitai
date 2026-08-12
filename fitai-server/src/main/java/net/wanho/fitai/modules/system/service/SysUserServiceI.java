@@ -37,4 +37,6 @@ public interface SysUserServiceI extends MPJBaseService<SysUser> {
     void delete(String id);
 
     SysUserVO findById(Long userId);
+
+    void resetPwd(Long userId);
 }

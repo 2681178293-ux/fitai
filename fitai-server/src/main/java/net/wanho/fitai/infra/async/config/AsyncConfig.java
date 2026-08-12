@@ -17,6 +17,7 @@ public class AsyncConfig {
 
     /** 登录日志异步写入线程池 Bean 名称（与 {@code @Async} 的 value 对应） */
     public static final String LOGIN_LOG_EXECUTOR = "loginLogExecutor";
+    public static final String OPER_LOG_EXECUTOR = "operLogExecutor";
 
     @Bean(name = LOGIN_LOG_EXECUTOR)
     public Executor loginLogExecutor() {
@@ -25,6 +26,19 @@ public class AsyncConfig {
         executor.setMaxPoolSize(4);
         executor.setQueueCapacity(200);
         executor.setThreadNamePrefix("login-log-");
+        // 队列满时由提交线程自己跑，避免直接丢弃登录日志
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = OPER_LOG_EXECUTOR)
+    public Executor operLogExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(8);
+        executor.setQueueCapacity(500);
+        executor.setThreadNamePrefix("oper-log-");
         // 队列满时由提交线程自己跑，避免直接丢弃登录日志
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();

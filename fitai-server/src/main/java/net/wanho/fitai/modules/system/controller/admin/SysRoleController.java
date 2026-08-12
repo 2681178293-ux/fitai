@@ -14,6 +14,8 @@ import net.wanho.fitai.modules.system.model.vo.SysRoleVO;
 import net.wanho.fitai.modules.system.service.SysRoleServiceI;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController("AdminSysRoleController")
 @RequestMapping("/admin/system/role")
 @RequiredArgsConstructor
@@ -27,6 +29,13 @@ public class SysRoleController {
     @SaCheckPermission("system:role:list")
     public AjaxResult<IPage<SysRoleVO>> findByPage(SysRoleQueryDTO queryDto) {
         return AjaxResult.success(sysRoleService.findByPage(queryDto));
+    }
+
+    @GetMapping("/all")
+    @Operation(summary = "查询所有")
+    @SaCheckPermission("system:role:list")
+    public AjaxResult<List<SysRoleVO>> listAll() {
+        return AjaxResult.success(sysRoleService.listAll());
     }
 
     @GetMapping("/{roleId}")

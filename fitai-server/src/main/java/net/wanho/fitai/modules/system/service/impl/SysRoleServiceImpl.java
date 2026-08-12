@@ -7,11 +7,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.yulichang.base.MPJBaseServiceImpl;
 import io.github.linpeilie.Converter;
 import lombok.RequiredArgsConstructor;
+import net.wanho.fitai.infra.auth.constant.CommonConstant;
 import net.wanho.fitai.modules.system.mapper.SysRoleMapper;
 import net.wanho.fitai.modules.system.model.dto.SysRoleAddDTO;
 import net.wanho.fitai.modules.system.model.dto.SysRoleQueryDTO;
 import net.wanho.fitai.modules.system.model.dto.SysRoleUpdateDTO;
 import net.wanho.fitai.modules.system.model.po.SysRole;
+import net.wanho.fitai.modules.system.model.po.SysRoleMenu;
 import net.wanho.fitai.modules.system.model.vo.SysRoleVO;
 import net.wanho.fitai.modules.system.service.SysRoleDeptServiceI;
 import net.wanho.fitai.modules.system.service.SysRoleMenuServiceI;
@@ -44,10 +46,21 @@ public class SysRoleServiceImpl extends MPJBaseServiceImpl<SysRoleMapper, SysRol
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void add(SysRoleAddDTO addDto) {
+
         SysRole entity = converter.convert(addDto, SysRole.class);
         this.save(entity);
-        sysRoleMenuService.replaceByRoleId(entity.getRoleId(), addDto.getMenuIds());
-        sysRoleDeptService.replaceByRoleId(entity.getRoleId(), addDto.getDeptIds());
+
+     /*   Long roleId = entity.getRoleId();
+        List<Long> roleIds = addDto.getRoleIds();
+        // 维护sys_role_menu表
+        List<SysRoleMenu> sysRoleMenuList = menuIds.stream().map(item -> {
+            SysRoleMenu sysRoleMenu = new SysRoleMenu();
+            sysRoleMenu.setRoleId(roleId);
+            sysRoleMenu.setMenuId(item);
+            return sysRoleMenu;
+        }).toList();
+        sysRoleMenuService.saveBatch(sysRoleMenuList);*/
+
     }
 
     @Override
@@ -55,12 +68,22 @@ public class SysRoleServiceImpl extends MPJBaseServiceImpl<SysRoleMapper, SysRol
     public void update(SysRoleUpdateDTO updateDto) {
         SysRole entity = converter.convert(updateDto, SysRole.class);
         this.updateById(entity);
-        if (updateDto.getMenuIds() != null) {
-            sysRoleMenuService.replaceByRoleId(updateDto.getRoleId(), updateDto.getMenuIds());
-        }
-        if (updateDto.getDeptIds() != null) {
-            sysRoleDeptService.replaceByRoleId(updateDto.getRoleId(), updateDto.getDeptIds());
-        }
+
+
+
+        Long roleId = entity.getRoleId();
+        List<Long> menuIds = updateDto.getMenuIds();
+        // 先删除表关系
+        sysRoleMenuService.remove(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, roleId));
+
+        // 维护sys_role_menu表
+        List<SysRoleMenu> sysRoleMenuList = menuIds.stream().map(item -> {
+            SysRoleMenu sysRoleMenu = new SysRoleMenu();
+            sysRoleMenu.setRoleId(roleId);
+            sysRoleMenu.setMenuId(item);
+            return sysRoleMenu;
+        }).toList();
+        sysRoleMenuService.saveBatch(sysRoleMenuList);
     }
 
     @Override
@@ -78,6 +101,16 @@ public class SysRoleServiceImpl extends MPJBaseServiceImpl<SysRoleMapper, SysRol
     @Override
     public SysRoleVO findById(Long roleId) {
         return toVo(this.getById(roleId));
+    }
+
+    @Override
+    public List<SysRoleVO> listAll() {
+
+        List<SysRole> list = this.list(new LambdaQueryWrapper<SysRole>()
+                .eq(SysRole::getStatus, CommonConstant.STATUS_NORMAL)
+                .orderByDesc(SysRole::getRoleSort)
+        ).stream().toList();
+        return list.stream().map(item -> converter.convert(item, SysRoleVO.class)).toList();
     }
 
     private SysRoleVO toVo(SysRole entity) {

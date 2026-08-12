@@ -11,8 +11,8 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="searchForm.status" placeholder="请选择" clearable style="width: 120px">
-            <el-option label="正常" :value="1" />
-            <el-option label="禁用" :value="0" />
+            <el-option label="正常" value="0" />
+            <el-option label="禁用" value="1" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -29,8 +29,8 @@
       </template>
 
       <template #status_default="{ row }">
-        <el-tag :type="row.status === 1 ? 'success' : 'danger'">
-          {{ row.status === 1 ? "正常" : "禁用" }}
+        <el-tag :type="row.status === '0' ? 'success' : 'danger'">
+          {{ row.status === '0' ? "正常" : "禁用" }}
         </el-tag>
       </template>
 
@@ -39,7 +39,7 @@
         <el-button type="primary" link :icon="Setting" @click="handlePermission(row)">权限</el-button>
         <el-popconfirm title="确定删除该角色吗?" @confirm="handleDelete(row)">
           <template #reference>
-            <el-button type="danger" link :icon="Delete" :disabled="row.id === 1">删除</el-button>
+            <el-button type="danger" link :icon="Delete" :disabled="row.roleId === 1">删除</el-button>
           </template>
         </el-popconfirm>
       </template>
@@ -69,18 +69,18 @@
           <el-input v-model="formData.roleKey" placeholder="请输入角色标识" />
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="formData.sortOrder" :min="0" :max="999" />
+          <el-input-number v-model="formData.roleSort" :min="0" :max="999" />
         </el-form-item>
         <el-form-item label="数据范围">
           <el-select v-model="formData.dataScope" placeholder="请选择" class="w-full">
-            <el-option label="全部数据" :value="1" />
-            <el-option label="本部门数据" :value="2" />
-            <el-option label="本部门及以下" :value="3" />
-            <el-option label="仅本人数据" :value="4" />
+            <el-option label="全部数据" value="1" />
+            <el-option label="本部门数据" value="2" />
+            <el-option label="本部门及以下" value="3" />
+            <el-option label="仅本人数据" value="4" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-switch v-model="formData.status" :active-value="1" :inactive-value="0" />
+          <el-switch v-model="formData.status" active-value="0" inactive-value="1" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="formData.remark" type="textarea" rows="3" placeholder="请输入备注" />
@@ -98,8 +98,8 @@
         ref="treeRef"
         :data="menuTree"
         show-checkbox
-        node-key="id"
-        :default-checked-keys="checkedKeys"
+        node-key="menuId"
+        check-strictly
         :props="{ label: 'menuName', children: 'children' }"
         default-expand-all
       />
@@ -112,7 +112,7 @@
 </template>
 
 <script setup name="role">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, nextTick } from "vue";
 import { ElMessage } from "element-plus";
 import { Plus, Edit, Delete, Setting, Search, Refresh } from "@element-plus/icons-vue";
 import {
@@ -175,7 +175,7 @@ const gridOptions = reactive({
   height: 645,
   keepSource: true,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "roleId", isHover: true },
   columnConfig: { resizable: true },
   checkboxConfig: { highlight: true },
   toolbarConfig: {
@@ -192,7 +192,7 @@ const gridOptions = reactive({
     { type: "seq", title: "序号", width: 60 },
     { field: "roleName", title: "角色名称", width: 150 },
     { field: "roleKey", title: "角色标识", width: 120 },
-    { field: "sortOrder", title: "排序", width: 80 },
+    { field: "roleSort", title: "排序", width: 80 },
     { field: "status", title: "状态", width: 80, slots: { default: "status_default" } },
     { field: "remark", title: "备注", minWidth: 200 },
     { field: "createTime", title: "创建时间", width: 160 },
@@ -239,15 +239,15 @@ const handleCurrentChange = page => {
 
 const handleAdd = () => {
   dialogTitle.value = "新增角色";
-  formData.value = { status: 1, sortOrder: 0, dataScope: 1, menuIds: [] };
+  formData.value = { status: "0", roleSort: 0, dataScope: "1", menuIds: [] };
   dialogVisible.value = true;
 };
 
 const handleEdit = async row => {
   dialogTitle.value = "编辑角色";
   try {
-    const res = await getSysRoleById(row.id);
-    formData.value = { ...(res.data?.role || {}), menuIds: res.data?.menuIds || [] };
+    const res = await getSysRoleById(row.roleId);
+    formData.value = { ...(res.data || {}), menuIds: res.data?.menuIds || [] };
     dialogVisible.value = true;
   } catch (error) {
     ElMessage.error("获取角色信息失败");
@@ -256,7 +256,7 @@ const handleEdit = async row => {
 
 const handleDelete = async row => {
   try {
-    await deleteSysRole(row.id);
+    await deleteSysRole(row.roleId);
     ElMessage.success("删除成功");
     loadData();
   } catch (error) {
@@ -270,7 +270,7 @@ const handleBatchDelete = async () => {
     ElMessage.warning("请选择要删除的数据");
     return;
   }
-  const ids = records.filter(r => r.id !== 1).map(r => r.id);
+  const ids = records.filter(r => r.roleId !== 1).map(r => r.roleId);
   if (ids.length === 0) {
     ElMessage.warning("超级管理员角色不允许删除");
     return;
@@ -287,9 +287,14 @@ const handleBatchDelete = async () => {
 const handlePermission = async row => {
   currentRole.value = row;
   try {
-    const res = await getSysRoleById(row.id);
-    checkedKeys.value = res.data?.menuIds || [];
+    const res = await getSysRoleById(row.roleId);
+    const menuIds = res.data?.menuIds || [];
+    checkedKeys.value = menuIds;
     permissionVisible.value = true;
+    await nextTick();
+    if (treeRef.value) {
+      treeRef.value.setCheckedKeys(menuIds);
+    }
   } catch (error) {
     ElMessage.error("获取权限信息失败");
   }
@@ -299,9 +304,7 @@ const handleSavePermission = async () => {
   permLoading.value = true;
   try {
     const checkedNodes = treeRef.value.getCheckedKeys();
-    const halfCheckedNodes = treeRef.value.getHalfCheckedKeys();
-    const menuIds = [...checkedNodes, ...halfCheckedNodes];
-    await updateSysRole({ id: currentRole.value.id, menuIds });
+    await updateSysRole({ roleId: currentRole.value.roleId, menuIds: checkedNodes });
     ElMessage.success("权限配置保存成功");
     permissionVisible.value = false;
   } catch (error) {
@@ -323,7 +326,7 @@ const handleSubmit = async () => {
 
   submitLoading.value = true;
   try {
-    if (formData.value.id) {
+    if (formData.value.roleId) {
       await updateSysRole(formData.value);
       ElMessage.success("编辑成功");
     } else {
@@ -333,7 +336,7 @@ const handleSubmit = async () => {
     dialogVisible.value = false;
     loadData();
   } catch (error) {
-    ElMessage.error(formData.value.id ? "编辑失败" : "新增失败");
+    ElMessage.error(formData.value.roleId ? "编辑失败" : "新增失败");
   } finally {
     submitLoading.value = false;
   }

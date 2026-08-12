@@ -6,6 +6,7 @@ import lombok.Data;
 import net.wanho.fitai.modules.system.model.po.SysRole;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -30,4 +31,6 @@ public class SysRoleVO implements Serializable {
     private List<Long> menuIds;
     @Schema(description = "部门ID列表")
     private List<Long> deptIds;
+    @Schema(description = "创建时间")
+    private LocalDateTime createTime;
 }
