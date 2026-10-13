@@ -59,8 +59,12 @@ public class SysMenuServiceImpl extends MPJBaseServiceImpl<SysMenuMapper, SysMen
         PATH_COMPONENT_MAP.put("/course/category", "/course/category/index");
         PATH_COMPONENT_MAP.put("/course/list", "/course/list/index");
         PATH_COMPONENT_MAP.put("/course/video", "/course/video/index");
+        PATH_COMPONENT_MAP.put("/course/progress", "/course/progress/index");
+        PATH_COMPONENT_MAP.put("/media/library", "/media/library/index");
         PATH_COMPONENT_MAP.put("/community/feed", "/community/post/index");
+        PATH_COMPONENT_MAP.put("/community/post", "/community/post/index");
         PATH_COMPONENT_MAP.put("/community/moderation", "/community/moderation/index");
+        PATH_COMPONENT_MAP.put("/community/comment", "/community/comment/index");
         PATH_COMPONENT_MAP.put("/train/action-lib", "/training/exercise/index");
         PATH_COMPONENT_MAP.put("/train/plan", "/training/plan/index");
         PATH_COMPONENT_MAP.put("/train/record", "/training/record/index");

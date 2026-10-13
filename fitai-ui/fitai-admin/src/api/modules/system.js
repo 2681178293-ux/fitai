@@ -6,7 +6,7 @@ import http from "@/api";
  * 分页查询用户
  */
 export const getSysUserList = params => {
-  return http.get("/admin/system/user/list", params);
+  return http.get("/admin/system/user/page", params);
 };
 
 /**
@@ -57,7 +57,7 @@ export const changeSysUserStatus = (userId, status) => {
  * 分页查询角色
  */
 export const getSysRoleList = params => {
-  return http.get("/admin/system/role/list", params);
+  return http.get("/admin/system/role/page", params);
 };
 
 /**
@@ -107,22 +107,22 @@ export const changeSysRoleStatus = (roleId, status) => {
 /**
  * 获取菜单列表（树形）
  */
-export const getSysMenuList = () => {
-  return http.get("/admin/system/menu/list");
+export const getSysMenuList = params => {
+  return http.get("/admin/system/menu/page", params);
 };
 
 /**
- * 获取当前用户菜单
+ * 获取当前用户菜单（前端路由）
  */
 export const getSysMenuUser = () => {
-  return http.get("/admin/system/menu/user");
+  return http.get("/admin/system/menu/routers");
 };
 
 /**
  * 获取菜单下拉树
  */
-export const getSysMenuSelect = () => {
-  return http.get("/admin/system/menu/select");
+export const getSysMenuSelect = params => {
+  return http.get("/admin/system/menu/page", params);
 };
 
 /**
@@ -165,8 +165,8 @@ export const invalidateSysMenuPermCache = () => {
 /**
  * 获取部门列表（树形）
  */
-export const getSysDeptList = () => {
-  return http.get("/admin/system/dept/list");
+export const getSysDeptList = params => {
+  return http.get("/admin/system/dept/page", params);
 };
 
 /**
@@ -210,7 +210,7 @@ export const deleteSysDept = id => {
  * 分页查询字典类型
  */
 export const getSysDictTypeList = params => {
-  return http.get("/admin/system/dict/type/list", params);
+  return http.get("/admin/system/dict/type/page", params);
 };
 
 /**
@@ -252,7 +252,7 @@ export const deleteSysDictType = ids => {
  * 分页查询字典数据
  */
 export const getSysDictDataList = params => {
-  return http.get("/admin/system/dict/data/list", params);
+  return http.get("/admin/system/dict/data/page", params);
 };
 
 /**
@@ -296,7 +296,7 @@ export const deleteSysDictData = ids => {
  * 分页查询系统配置
  */
 export const getSysConfigList = params => {
-  return http.get("/admin/system/config/list", params);
+  return http.get("/admin/system/config/page", params);
 };
 
 /**
@@ -340,28 +340,21 @@ export const deleteSysConfig = ids => {
  * 分页查询操作日志
  */
 export const getSysOperLogList = params => {
-  return http.get("/admin/system/log/oper/list", params);
+  return http.get("/admin/system/oper-log/page", params);
 };
 
 /**
  * 获取操作日志详情
  */
 export const getSysOperLogById = id => {
-  return http.get(`/admin/system/log/oper/${id}`);
+  return http.get(`/admin/system/oper-log/${id}`);
 };
 
 /**
  * 删除操作日志
  */
 export const deleteSysOperLog = ids => {
-  return http.delete(`/admin/system/log/oper/${ids}`);
-};
-
-/**
- * 清空操作日志
- */
-export const cleanSysOperLog = () => {
-  return http.delete("/admin/system/log/oper/clean");
+  return http.delete(`/admin/system/oper-log/${ids}`);
 };
 
 // ========== 登录日志 ==========
@@ -370,19 +363,12 @@ export const cleanSysOperLog = () => {
  * 分页查询登录日志
  */
 export const getSysLoginLogList = params => {
-  return http.get("/admin/system/log/login/list", params);
+  return http.get("/admin/system/login-log/page", params);
 };
 
 /**
  * 删除登录日志
  */
 export const deleteSysLoginLog = ids => {
-  return http.delete(`/admin/system/log/login/${ids}`);
-};
-
-/**
- * 清空登录日志
- */
-export const cleanSysLoginLog = () => {
-  return http.delete("/admin/system/log/login/clean");
+  return http.delete(`/admin/system/login-log/${ids}`);
 };

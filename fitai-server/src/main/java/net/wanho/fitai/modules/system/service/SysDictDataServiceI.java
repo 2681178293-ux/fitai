@@ -8,6 +8,8 @@ import net.wanho.fitai.modules.system.model.dto.SysDictDataUpdateDTO;
 import net.wanho.fitai.modules.system.model.po.SysDictData;
 import net.wanho.fitai.modules.system.model.vo.SysDictDataVO;
 
+import java.util.List;
+
 public interface SysDictDataServiceI extends MPJBaseService<SysDictData> {
     IPage<SysDictDataVO> findByPage(SysDictDataQueryDTO queryDto);
 
@@ -18,4 +20,6 @@ public interface SysDictDataServiceI extends MPJBaseService<SysDictData> {
     void delete(String id);
 
     SysDictDataVO findById(Long id);
+
+    List<SysDictDataVO> findByDictType(String dictType);
 }

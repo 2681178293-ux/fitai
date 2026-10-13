@@ -9,9 +9,9 @@
 
       <template #icon="{ row }">
         <el-image
-          v-if="row.icon"
-          :src="row.icon"
-          :preview-src-list="[row.icon]"
+          v-if="row.iconUrl"
+          :src="row.iconUrl"
+          :preview-src-list="[row.iconUrl]"
           :preview-teleported="true"
           fit="cover"
           class="level-icon"
@@ -20,7 +20,7 @@
       </template>
 
       <template #exp="{ row }">
-        <span>{{ row.minExp ?? 0 }} ~ {{ row.maxExp != null ? row.maxExp : "不限" }}</span>
+        <span>{{ row.growthMin ?? 0 }} ~ {{ row.growthMax != null ? row.growthMax : "不限" }}</span>
       </template>
 
       <template #benefitNames="{ row }">
@@ -31,7 +31,7 @@
       </template>
 
       <template #status="{ row }">
-        <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? "启用" : "停用" }}</el-tag>
+        <el-tag :type="row.status == 0 ? 'success' : 'info'">{{ row.status == 0 ? "启用" : "停用" }}</el-tag>
       </template>
 
       <template #action="{ row }">
@@ -42,20 +42,23 @@
 
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑会员等级' : '新增会员等级'" width="680px" destroy-on-close>
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="110px">
-        <el-form-item label="等级值" prop="level">
-          <el-input-number v-model="formData.level" :min="0" :max="999" style="width: 100%" />
+        <el-form-item label="等级编码" prop="levelCode">
+          <el-input v-model="formData.levelCode" placeholder="如：gold" />
         </el-form-item>
-        <el-form-item label="等级名称" prop="name">
-          <el-input v-model="formData.name" placeholder="如：青铜会员" />
+        <el-form-item label="等级名称" prop="levelName">
+          <el-input v-model="formData.levelName" placeholder="如：黄金会员" />
         </el-form-item>
-        <el-form-item label="最小经验值" prop="minExp">
-          <el-input-number v-model="formData.minExp" :min="0" style="width: 100%" />
+        <el-form-item label="排序" prop="levelSort">
+          <el-input-number v-model="formData.levelSort" :min="0" :max="999" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="最大经验值" prop="maxExp">
-          <el-input-number v-model="formData.maxExp" :min="0" style="width: 100%" placeholder="留空表示不限" />
+        <el-form-item label="成长值下限" prop="growthMin">
+          <el-input-number v-model="formData.growthMin" :min="0" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="成长值上限" prop="growthMax">
+          <el-input-number v-model="formData.growthMax" :min="0" style="width: 100%" placeholder="留空表示不限" />
         </el-form-item>
         <el-form-item label="等级图标">
-          <ImageLibrary v-model="formData.icon" folder="level" upload-action="/file/upload/image" width="120px" height="120px" />
+          <ImageLibrary v-model="formData.iconUrl" folder="level" upload-action="/file/upload/image" width="120px" height="120px" />
         </el-form-item>
         <el-form-item label="关联权益">
           <el-select
@@ -67,16 +70,18 @@
             placeholder="请选择该等级享有的权益"
             style="width: 100%"
           >
-            <el-option v-for="item in benefitOptions" :key="item.id" :label="item.name" :value="item.id" />
+            <el-option
+              v-for="item in benefitOptions"
+              :key="item.benefitId"
+              :label="item.benefitName"
+              :value="item.benefitId"
+            />
           </el-select>
-        </el-form-item>
-        <el-form-item label="权益说明">
-          <el-input v-model="formData.benefits" type="textarea" :rows="3" placeholder="等级权益文字说明" />
         </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="formData.status">
-            <el-radio :value="1">启用</el-radio>
-            <el-radio :value="0">停用</el-radio>
+            <el-radio value="0">启用</el-radio>
+            <el-radio value="1">停用</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -95,7 +100,6 @@ import { Plus, Refresh, Edit, Delete } from "@element-plus/icons-vue";
 import ImageLibrary from "@/components/ImageLibrary/index.vue";
 import {
   getLevelPageApi,
-  getLevelDetailApi,
   createLevelApi,
   updateLevelApi,
   deleteLevelApi,
@@ -110,23 +114,23 @@ const submitLoading = ref(false);
 const benefitOptions = ref([]);
 
 const defaultForm = {
-  id: null,
-  level: 1,
-  name: "",
-  minExp: 0,
-  maxExp: null,
-  icon: "",
-  benefits: "",
+  levelId: null,
+  levelCode: "",
+  levelName: "",
+  levelSort: 0,
+  growthMin: 0,
+  growthMax: null,
+  iconUrl: "",
   benefitIds: [],
-  status: 1
+  status: "0"
 };
 
 const formData = reactive({ ...defaultForm });
 
 const formRules = {
-  level: [{ required: true, message: "请输入等级值", trigger: "blur" }],
-  name: [{ required: true, message: "请输入等级名称", trigger: "blur" }],
-  minExp: [{ required: true, message: "请输入最小经验值", trigger: "blur" }]
+  levelCode: [{ required: true, message: "请输入等级编码", trigger: "blur" }],
+  levelName: [{ required: true, message: "请输入等级名称", trigger: "blur" }],
+  growthMin: [{ required: true, message: "请输入成长值下限", trigger: "blur" }]
 };
 
 const gridOptions = reactive({
@@ -134,7 +138,7 @@ const gridOptions = reactive({
   showOverflow: true,
   height: 600,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "levelId", isHover: true },
   columnConfig: { resizable: true },
   checkboxConfig: { highlight: true },
   toolbarConfig: {
@@ -174,10 +178,10 @@ const gridOptions = reactive({
   columns: [
     { type: "checkbox", width: 50 },
     { type: "seq", title: "序号", width: 60 },
-    { field: "level", title: "等级值", width: 90 },
-    { field: "name", title: "等级名称", minWidth: 140 },
-    { field: "minExp", title: "经验区间", width: 160, slots: { default: "exp" } },
-    { field: "icon", title: "图标", width: 80, slots: { default: "icon" } },
+    { field: "levelCode", title: "等级编码", width: 120 },
+    { field: "levelName", title: "等级名称", minWidth: 140 },
+    { field: "growthMin", title: "经验区间", width: 160, slots: { default: "exp" } },
+    { field: "iconUrl", title: "图标", width: 80, slots: { default: "icon" } },
     { field: "benefitNames", title: "关联权益", minWidth: 200, slots: { default: "benefitNames" } },
     { field: "status", title: "状态", width: 90, slots: { default: "status" } },
     { title: "操作", width: 150, fixed: "right", slots: { default: "action" } }
@@ -204,48 +208,38 @@ const handleAdd = () => {
   dialogVisible.value = true;
 };
 
-const handleEdit = async row => {
+const handleEdit = row => {
   isEdit.value = true;
   Object.assign(formData, {
-    id: row.id,
-    level: row.level ?? 1,
-    name: row.name || "",
-    minExp: row.minExp ?? 0,
-    maxExp: row.maxExp ?? null,
-    icon: row.icon || "",
-    benefits: row.benefits || "",
+    levelId: row.levelId,
+    levelCode: row.levelCode || "",
+    levelName: row.levelName || "",
+    levelSort: row.levelSort ?? 0,
+    growthMin: row.growthMin ?? 0,
+    growthMax: row.growthMax ?? null,
+    iconUrl: row.iconUrl || "",
     benefitIds: Array.isArray(row.benefitIds) ? [...row.benefitIds] : [],
-    status: row.status ?? 1
+    status: row.status != null ? String(row.status) : "0"
   });
   dialogVisible.value = true;
-  try {
-    const res = await getLevelDetailApi(row.id);
-    const detail = res?.data;
-    if (detail) {
-      formData.benefitIds = Array.isArray(detail.benefitIds) ? [...detail.benefitIds] : [];
-      formData.benefits = detail.benefits || formData.benefits;
-    }
-  } catch (e) {
-    console.error(e);
-  }
 };
 
 const handleSubmit = async () => {
   try {
     await formRef.value.validate();
     submitLoading.value = true;
+    // 后端 Add/Update DTO 字段名为 icon、levelSort
     const payload = {
-      level: formData.level,
-      name: formData.name,
-      minExp: formData.minExp,
-      maxExp: formData.maxExp,
-      icon: formData.icon,
-      benefits: formData.benefits,
-      benefitIds: formData.benefitIds,
+      levelName: formData.levelName,
+      levelCode: formData.levelCode,
+      levelSort: formData.levelSort,
+      growthMin: formData.growthMin,
+      growthMax: formData.growthMax,
+      icon: formData.iconUrl,
       status: formData.status
     };
     if (isEdit.value) {
-      await updateLevelApi(formData.id, payload);
+      await updateLevelApi({ ...payload, levelId: formData.levelId });
       ElMessage.success("更新成功");
     } else {
       await createLevelApi(payload);
@@ -259,9 +253,9 @@ const handleSubmit = async () => {
 };
 
 const handleDelete = row => {
-  ElMessageBox.confirm(`确定删除等级「${row.name}」吗？`, "提示", { type: "warning" })
+  ElMessageBox.confirm(`确定删除等级「${row.levelName}」吗？`, "提示", { type: "warning" })
     .then(async () => {
-      await deleteLevelApi(row.id);
+      await deleteLevelApi(row.levelId);
       ElMessage.success("已删除");
       handleRefresh();
     })
@@ -274,7 +268,7 @@ const handleBatchDelete = () => {
     ElMessage.warning("请选择要删除的数据");
     return;
   }
-  const ids = records.map(r => r.id).join(",");
+  const ids = records.map(r => r.levelId).join(",");
   ElMessageBox.confirm(`确定删除选中的 ${records.length} 个等级吗？`, "提示", { type: "warning" })
     .then(async () => {
       await deleteLevelApi(ids);

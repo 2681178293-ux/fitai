@@ -21,21 +21,21 @@
         <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
       </template>
 
-      <template #amount="{ row }">
-        <span class="text-red-500 font-medium">¥{{ row.amount != null ? Number(row.amount).toFixed(2) : "-" }}</span>
+      <template #price="{ row }">
+        <span class="text-red-500 font-medium">¥{{ row.price != null ? Number(row.price).toFixed(2) : "-" }}</span>
       </template>
 
       <template #startTime="{ row }">
         <span>{{ row.startTime ? dayjs(row.startTime).format("YYYY-MM-DD HH:mm") : "-" }}</span>
       </template>
 
-      <template #endTime="{ row }">
-        <span>{{ row.endTime ? dayjs(row.endTime).format("YYYY-MM-DD HH:mm") : "-" }}</span>
+      <template #expireTime="{ row }">
+        <span>{{ row.expireTime ? dayjs(row.expireTime).format("YYYY-MM-DD HH:mm") : "-" }}</span>
       </template>
 
-      <template #subscriptionStatus="{ row }">
-        <el-tag :type="statusMap[row.subscriptionStatus]?.type || 'info'">
-          {{ statusMap[row.subscriptionStatus]?.label ?? row.subscriptionStatus ?? "-" }}
+      <template #status="{ row }">
+        <el-tag :type="statusMap[row.status]?.type || 'info'">
+          {{ statusMap[row.status]?.label ?? row.status ?? "-" }}
         </el-tag>
       </template>
 
@@ -44,7 +44,7 @@
           type="danger"
           link
           :icon="CircleClose"
-          :disabled="row.subscriptionStatus !== 1"
+          :disabled="String(row.status) !== '0'"
           @click="handleCancel(row)"
         >
           取消订阅
@@ -74,10 +74,14 @@ const kpi = reactive({
   expiringCount: 0
 });
 
+// 与后端 MemSubscriptionVO 一致：0有效 1已过期 2已取消
 const statusMap = {
-  1: { label: "生效中", type: "success" },
-  2: { label: "已过期", type: "info" },
-  3: { label: "已取消", type: "danger" }
+  0: { label: "生效中", type: "success" },
+  "0": { label: "生效中", type: "success" },
+  1: { label: "已过期", type: "info" },
+  "1": { label: "已过期", type: "info" },
+  2: { label: "已取消", type: "danger" },
+  "2": { label: "已取消", type: "danger" }
 };
 
 const gridOptions = reactive({
@@ -85,7 +89,7 @@ const gridOptions = reactive({
   showOverflow: true,
   height: 560,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "subscriptionId", isHover: true },
   columnConfig: { resizable: true },
   toolbarConfig: {
     slots: { buttons: "toolbar_buttons" },
@@ -99,9 +103,9 @@ const gridOptions = reactive({
   },
   formConfig: {
     items: [
-      { field: "userId", title: "用户ID", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
+      { field: "customerId", title: "用户ID", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
       {
-        field: "planId",
+        field: "packageName",
         title: "套餐",
         span: 6,
         itemRender: {
@@ -118,9 +122,9 @@ const gridOptions = reactive({
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "生效中", value: 1 },
-            { label: "已过期", value: 2 },
-            { label: "已取消", value: 3 }
+            { label: "生效中", value: "0" },
+            { label: "已过期", value: "1" },
+            { label: "已取消", value: "2" }
           ],
           props: { placeholder: "全部" }
         }
@@ -153,8 +157,8 @@ const gridOptions = reactive({
           const res = await getSubscriptionPageApi({
             pageNum: page.currentPage,
             pageSize: page.pageSize,
-            userId: form.userId ? Number(form.userId) : undefined,
-            planId: form.planId !== "" && form.planId !== undefined && form.planId !== null ? form.planId : undefined,
+            customerId: form.customerId ? Number(form.customerId) : undefined,
+            packageName: form.packageName || undefined,
             status: form.status !== "" && form.status !== undefined && form.status !== null ? form.status : undefined
           });
           const pageData = res.data || {};
@@ -168,14 +172,14 @@ const gridOptions = reactive({
   },
   columns: [
     { type: "seq", title: "序号", width: 60 },
-    { field: "orderNo", title: "订单号", minWidth: 180 },
-    { field: "userId", title: "用户ID", width: 100 },
-    { field: "userNickname", title: "用户昵称", minWidth: 130 },
-    { field: "planName", title: "套餐名称", minWidth: 130 },
-    { field: "amount", title: "金额", width: 110, slots: { default: "amount" } },
+    { field: "memberOrderId", title: "订单ID", minWidth: 120 },
+    { field: "customerId", title: "用户ID", width: 100 },
+    { field: "nickname", title: "用户昵称", minWidth: 130 },
+    { field: "packageName", title: "套餐名称", minWidth: 130 },
+    { field: "price", title: "金额", width: 110, slots: { default: "price" } },
     { field: "startTime", title: "开始时间", minWidth: 160, slots: { default: "startTime" } },
-    { field: "endTime", title: "到期时间", minWidth: 160, slots: { default: "endTime" } },
-    { field: "subscriptionStatus", title: "订阅状态", width: 110, slots: { default: "subscriptionStatus" } },
+    { field: "expireTime", title: "到期时间", minWidth: 160, slots: { default: "expireTime" } },
+    { field: "status", title: "订阅状态", width: 110, slots: { default: "status" } },
     { title: "操作", width: 130, fixed: "right", slots: { default: "action" } }
   ]
 });
@@ -201,11 +205,11 @@ const loadPlanOptions = async () => {
   try {
     const res = await getMemberPlansApi();
     const list = Array.isArray(res?.data) ? res.data : [];
-    const planItem = gridOptions.formConfig.items.find(i => i.field === "planId");
+    const planItem = gridOptions.formConfig.items.find(i => i.field === "packageName");
     if (planItem) {
       planItem.itemRender.options = [
         { label: "全部", value: "" },
-        ...list.map(p => ({ label: p.name, value: p.id }))
+        ...list.map(p => ({ label: p.name, value: p.name }))
       ];
     }
   } catch (e) {
@@ -214,9 +218,9 @@ const loadPlanOptions = async () => {
 };
 
 const handleCancel = row => {
-  ElMessageBox.confirm(`确定取消用户「${row.userNickname || row.userId}」的会员订阅吗？`, "提示", { type: "warning" })
+  ElMessageBox.confirm(`确定取消用户「${row.nickname || row.customerId}」的会员订阅吗？`, "提示", { type: "warning" })
     .then(async () => {
-      await cancelSubscriptionApi(row.id);
+      await cancelSubscriptionApi(row.subscriptionId);
       ElMessage.success("已取消订阅");
       handleRefresh();
     })

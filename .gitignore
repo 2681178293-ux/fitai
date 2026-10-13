@@ -64,6 +64,9 @@ logs/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+# Vite admin 构建辅助脚本（勿与 Maven/Gradle build 产物混淆）
+!fitai-ui/fitai-admin/build/
+!fitai-ui/fitai-admin/build/**
 
 ### VS Code ###
 .vscode/

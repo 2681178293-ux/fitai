@@ -34,48 +34,52 @@
           <div class="sidebar-title">分类</div>
           <div class="folder-list">
             <div
-              v-for="folder in folders"
-              :key="folder.key"
+              v-for="cat in categories"
+              :key="cat.categoryId"
               class="folder-item"
-              :class="{ active: currentFolder === folder.key }"
-              @click="editingFolderKey === folder.key ? null : selectFolder(folder.key)"
+              :class="{ active: currentCategoryId === cat.categoryId }"
+              :style="{ paddingLeft: 12 + cat.depth * 12 + 'px' }"
+              @click="editingCategoryId === cat.categoryId ? null : selectCategory(cat.categoryId)"
             >
               <el-icon class="folder-icon">
-                <Folder v-if="currentFolder !== folder.key" />
+                <Folder v-if="currentCategoryId !== cat.categoryId" />
                 <FolderOpened v-else />
               </el-icon>
               <el-input
-                v-if="editingFolderKey === folder.key"
+                v-if="editingCategoryId === cat.categoryId"
                 ref="folderEditInputRef"
-                v-model="editingFolderName"
+                v-model="editingCategoryName"
                 size="small"
                 class="folder-edit-input"
-                @keyup.enter="handleSaveFolderName"
-                @blur="handleSaveFolderName"
+                @keyup.enter="handleSaveCategoryName"
+                @blur="handleSaveCategoryName"
               />
-              <span v-else class="folder-name">{{ folder.label }}</span>
-              <span class="folder-count">{{ folder.count }}</span>
-              <div class="folder-actions" :class="{ 'folder-actions-hidden': folder.key === '' }" @click.stop>
-                <el-icon v-if="editingFolderKey !== folder.key" class="folder-action" @click="handleEditFolder(folder)">
+              <span v-else class="folder-name">{{ cat.categoryName }}</span>
+              <span class="folder-count">{{ cat.imageCount || 0 }}</span>
+              <div class="folder-actions" @click.stop>
+                <el-icon
+                  v-if="editingCategoryId !== cat.categoryId"
+                  class="folder-action"
+                  @click="handleEditCategory(cat)"
+                >
                   <Edit />
                 </el-icon>
                 <el-icon v-else class="folder-action" @click="handleCancelEdit"><Close /></el-icon>
-                <el-icon class="folder-action folder-action-delete" @click="handleDeleteFolder(folder)">
+                <el-icon class="folder-action folder-action-delete" @click="handleDeleteCategory(cat)">
                   <Delete />
                 </el-icon>
               </div>
             </div>
           </div>
           <div class="sidebar-footer">
-            <el-button type="primary" link :icon="Plus" @click="openNewFolderDialog">
-              新建文件夹
+            <el-button type="primary" link :icon="Plus" @click="openNewCategoryDialog">
+              新建分类
             </el-button>
           </div>
         </div>
 
         <!-- 右侧内容 -->
         <div class="library-content">
-          <!-- 工具栏 -->
           <div class="library-toolbar">
             <div class="toolbar-left">
               <el-checkbox
@@ -86,13 +90,13 @@
                 全选
               </el-checkbox>
               <el-button
-                v-if="selectedUrls.length > 0"
+                v-if="selectedIds.length > 0"
                 type="danger"
                 size="small"
                 @click="handleBatchDelete"
               >
                 <el-icon><Delete /></el-icon>
-                删除 ({{ selectedUrls.length }})
+                删除 ({{ selectedIds.length }})
               </el-button>
             </div>
             <div class="toolbar-right">
@@ -101,13 +105,14 @@
                 :headers="uploadHeaders"
                 :data="uploadData"
                 :show-file-list="false"
+                :disabled="!currentCategoryId"
                 :on-success="handleUploadSuccess"
                 :on-error="handleUploadError"
                 :before-upload="beforeUpload"
                 accept="image/*"
                 multiple
               >
-                <el-button type="success">
+                <el-button type="success" :disabled="!currentCategoryId">
                   <el-icon><Upload /></el-icon>
                   上传图片
                 </el-button>
@@ -116,38 +121,38 @@
             </div>
           </div>
 
-          <!-- 图片网格 -->
           <div v-loading="loading" class="image-grid-container">
-            <el-empty v-if="!loading && images.length === 0" description="暂无图片，请上传" />
+            <el-empty v-if="!loading && !currentCategoryId" description="请先选择分类" />
+            <el-empty v-else-if="!loading && images.length === 0" description="暂无图片，请上传" />
             <div v-else class="image-grid">
               <div
                 v-for="img in images"
-                :key="img.url"
+                :key="img.ossId"
                 class="image-card"
                 :class="[
-                  { selected: multiple ? selectedUrls.includes(img.url) : pickUrl === img.url },
-                  { 'image-card-banner': currentFolder === 'banner' }
+                  { selected: multiple ? selectedIds.includes(img.ossId) : pickUrl === img.ossUrl },
+                  { 'image-card-banner': isBannerCategory }
                 ]"
               >
                 <div class="image-checkbox">
                   <el-checkbox
-                    :model-value="selectedUrls.includes(img.url)"
-                    @change="toggleSelect(img.url)"
+                    :model-value="selectedIds.includes(img.ossId)"
+                    @change="toggleSelect(img.ossId)"
                   />
                 </div>
                 <el-image
-                  :src="img.url"
-                  :fit="currentFolder === 'banner' ? 'contain' : 'cover'"
+                  :src="img.ossUrl"
+                  :fit="isBannerCategory ? 'contain' : 'cover'"
                   class="grid-image"
                   :preview-src-list="previewList"
-                  :initial-index="images.findIndex(i => i.url === img.url)"
+                  :initial-index="images.findIndex(i => i.ossId === img.ossId)"
                   @click.stop
                 />
                 <div class="image-info">
-                  <span class="image-name" :title="img.name">{{ img.name }}</span>
+                  <span class="image-name" :title="img.ossName">{{ img.ossName }}</span>
                 </div>
                 <div class="image-overlay" @click="handleImageClick(img)">
-                  <el-icon v-if="!multiple && pickUrl === img.url" class="check-icon"><Check /></el-icon>
+                  <el-icon v-if="!multiple && pickUrl === img.ossUrl" class="check-icon"><Check /></el-icon>
                   <span v-else class="pick-text">点击选择</span>
                 </div>
                 <el-button
@@ -156,7 +161,7 @@
                   size="small"
                   circle
                   :icon="Delete"
-                  @click.stop="handleDeleteSingle(img.url)"
+                  @click.stop="handleDeleteSingle(img)"
                 />
               </div>
             </div>
@@ -166,184 +171,185 @@
 
       <template #footer>
         <div class="dialog-footer">
-          <span class="selected-info" v-if="pickUrl">
-            已选择 1 张图片
-          </span>
+          <span class="selected-info" v-if="pickUrl">已选择 1 张图片</span>
           <el-button @click="showLibrary = false">取消</el-button>
-          <el-button type="primary" :disabled="!pickUrl" @click="handleConfirm">
-            确定选择
-          </el-button>
+          <el-button type="primary" :disabled="!pickUrl" @click="handleConfirm">确定选择</el-button>
         </div>
       </template>
     </el-dialog>
 
-    <!-- 新建分类：独立模态框，避免侧栏过窄挤压表单 -->
     <el-dialog
-      v-model="showNewFolderDialog"
+      v-model="showNewCategoryDialog"
       title="新建分类"
       width="440px"
       append-to-body
       destroy-on-close
       class="new-folder-dialog"
-      @closed="resetNewFolderForm"
+      @closed="resetNewCategoryForm"
     >
       <el-form label-position="top" class="new-folder-form" @submit.prevent>
-        <el-form-item label="存储路径" required>
+        <el-form-item label="分类名称" required>
           <el-input
-            v-model="newFolderKey"
-            clearable
-            placeholder="例如 brand/logos"
-            @keyup.enter="handleCreateFolder"
-          />
-          <p class="form-item-hint">对应 MinIO 目录前缀，仅英文、数字、/、_、-，勿含空格</p>
-        </el-form-item>
-        <el-form-item label="显示名称" required>
-          <el-input
-            v-model="newFolderLabel"
+            v-model="newCategoryName"
             clearable
             placeholder="侧栏展示用，可用中文"
-            @keyup.enter="handleCreateFolder"
+            @keyup.enter="handleCreateCategory"
           />
+        </el-form-item>
+        <el-form-item label="父分类">
+          <el-select v-model="newCategoryParentId" clearable placeholder="不选则为顶级分类" style="width: 100%">
+            <el-option
+              v-for="cat in categories"
+              :key="cat.categoryId"
+              :label="cat.categoryName"
+              :value="cat.categoryId"
+            />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="cancelCreateFolder">取消</el-button>
-        <el-button type="primary" @click="handleCreateFolder">创建</el-button>
+        <el-button @click="cancelCreateCategory">取消</el-button>
+        <el-button type="primary" @click="handleCreateCategory">创建</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from "vue";
+import { ref, computed, nextTick } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Picture, Delete, FolderOpened, Upload, Check, Folder, Refresh, Plus, Edit, Close } from "@element-plus/icons-vue";
 import { useUserStore } from "@/stores/modules/user";
-import { getImageLibrary, getImageFolders, addFolderApi, deleteFile, deleteFileBatch, renameFolderApi, deleteFolderApi } from "@/api/modules/upload";
+import {
+  getMediaOssPageApi,
+  getMediaOssCategoryTreeApi,
+  addMediaOssCategoryApi,
+  updateMediaOssCategoryNameApi,
+  deleteMediaOssCategoryApi,
+  deleteMediaOssApi
+} from "@/api/modules/media";
+
+/** folder 业务别名 → 优先匹配的分类名 */
+const FOLDER_HINT_MAP = {
+  course: ["课程封面", "课程图片", "课时封面"],
+  exercise: ["动作图片"],
+  product: ["商品封面", "商品图片", "商品相关"],
+  banner: ["轮播图片"],
+  seckill: ["秒杀商品"],
+  coach: ["人物头像"],
+  level: ["人物头像"],
+  benefit: ["人物头像"],
+  badge: ["人物头像"]
+};
 
 const props = defineProps({
-  modelValue: {
-    type: String,
-    default: ""
-  },
-  // 默认文件夹
-  folder: {
-    type: String,
-    default: ""
-  },
-  // 上传接口
-  uploadAction: {
-    type: String,
-    default: "/file/upload/image"
-  },
-  // 是否多选
-  multiple: {
-    type: Boolean,
-    default: false
-  },
-  // 预览尺寸
-  width: {
-    type: String,
-    default: "200px"
-  },
-  height: {
-    type: String,
-    default: "120px"
-  }
+  modelValue: { type: String, default: "" },
+  /** 业务别名，用于打开时定位默认分类 */
+  folder: { type: String, default: "" },
+  uploadAction: { type: String, default: "/file/upload/image" },
+  multiple: { type: Boolean, default: false },
+  width: { type: String, default: "200px" },
+  height: { type: String, default: "120px" }
 });
 
 const emit = defineEmits(["update:modelValue"]);
-
 const userStore = useUserStore();
-// 图片库内上传使用专用接口，支持指定文件夹
-const libraryUploadUrl = computed(() => import.meta.env.VITE_API_URL + "/file/upload/library");
-const uploadHeaders = computed(() => ({
-  Authorization: userStore.token
-}));
-// 上传时携带当前文件夹参数
-const uploadData = computed(() => ({
-  folder: currentFolder.value || props.folder || "images"
-}));
 
-// 状态
+const libraryUploadUrl = computed(() => import.meta.env.VITE_API_URL + "/admin/media/oss/upload");
+const uploadHeaders = computed(() => ({ Authorization: userStore.token }));
+const uploadData = computed(() => ({ categoryId: currentCategoryId.value }));
+
 const showLibrary = ref(false);
 const loading = ref(false);
-const folders = ref([]);
+const categories = ref([]);
 const images = ref([]);
-const currentFolder = ref("");
-const selectedUrls = ref([]);  // 用于批量删除
-const pickUrl = ref("");       // 用于选择图片
+const currentCategoryId = ref(null);
+const selectedIds = ref([]);
+const pickUrl = ref("");
 
-// 新建文件夹（folder_key 对应 MinIO 前缀，label 为侧边栏展示名）
-const showNewFolderDialog = ref(false);
-const newFolderKey = ref("");
-const newFolderLabel = ref("");
+const showNewCategoryDialog = ref(false);
+const newCategoryName = ref("");
+const newCategoryParentId = ref(null);
 
-const openNewFolderDialog = () => {
-  newFolderKey.value = "";
-  newFolderLabel.value = "";
-  showNewFolderDialog.value = true;
-};
-
-const resetNewFolderForm = () => {
-  newFolderKey.value = "";
-  newFolderLabel.value = "";
-};
-
-/** 去掉首尾斜杠，避免 MinIO 路径异常 */
-const normalizeFolderKey = (raw) => {
-  if (!raw || typeof raw !== "string") return "";
-  return raw.trim().replace(/^\/+|\/+$/g, "");
-};
-
-const isValidStorageFolderKey = (key) => {
-  if (!key) return false;
-  if (key.includes(" ")) return false;
-  return /^[a-zA-Z0-9/_-]+$/.test(key);
-};
-
-// 编辑分类
-const editingFolderKey = ref(null);
-const editingFolderName = ref("");
+const editingCategoryId = ref(null);
+const editingCategoryName = ref("");
 const folderEditInputRef = ref();
 
-// 计算属性
-const previewList = computed(() => images.value.map(img => img.url));
+const previewList = computed(() => images.value.map(img => img.ossUrl));
+const isBannerCategory = computed(() => {
+  const cat = categories.value.find(c => c.categoryId === currentCategoryId.value);
+  return cat?.categoryName?.includes("轮播");
+});
 const selectAll = computed({
-  get: () => selectedUrls.value.length === images.value.length && images.value.length > 0,
+  get: () => selectedIds.value.length === images.value.length && images.value.length > 0,
   set: () => {}
 });
-const isIndeterminate = computed(() => 
-  selectedUrls.value.length > 0 && selectedUrls.value.length < images.value.length
+const isIndeterminate = computed(
+  () => selectedIds.value.length > 0 && selectedIds.value.length < images.value.length
 );
 
-// 打开图片库
-const openLibrary = () => {
-  showLibrary.value = true;
-  currentFolder.value = props.folder || "";
-  pickUrl.value = props.modelValue || "";
-  selectedUrls.value = [];
-  loadFolders();
-  loadLibrary();
+const flattenTree = (nodes, depth = 0, list = []) => {
+  (nodes || []).forEach(n => {
+    list.push({ ...n, depth, children: undefined });
+    if (n.children?.length) flattenTree(n.children, depth + 1, list);
+  });
+  return list;
 };
 
-// 加载分类
-const loadFolders = async () => {
+const resolveDefaultCategoryId = flat => {
+  if (!flat.length) return null;
+  const hints = FOLDER_HINT_MAP[props.folder] || [];
+  for (const hint of hints) {
+    const found = flat.find(c => c.categoryName === hint);
+    if (found) return found.categoryId;
+  }
+  for (const hint of hints) {
+    const found = flat.find(c => c.categoryName?.includes(hint) || hint.includes(c.categoryName));
+    if (found) return found.categoryId;
+  }
+  if (props.folder) {
+    const byName = flat.find(c => c.categoryName?.toLowerCase().includes(props.folder.toLowerCase()));
+    if (byName) return byName.categoryId;
+  }
+  return flat[0].categoryId;
+};
+
+const openLibrary = () => {
+  showLibrary.value = true;
+  pickUrl.value = props.modelValue || "";
+  selectedIds.value = [];
+  loadCategories().then(() => loadLibrary());
+};
+
+const loadCategories = async () => {
   try {
-    const res = await getImageFolders();
-    folders.value = res.data || [];
+    const res = await getMediaOssCategoryTreeApi({ loading: false });
+    categories.value = flattenTree(res.data || []);
+    if (!currentCategoryId.value || !categories.value.some(c => c.categoryId === currentCategoryId.value)) {
+      currentCategoryId.value = resolveDefaultCategoryId(categories.value);
+    }
   } catch (error) {
     console.error("加载分类失败:", error);
-    folders.value = [{ key: "", label: "全部", count: 0 }];
+    categories.value = [];
   }
 };
 
-// 加载图片
 const loadLibrary = async () => {
+  if (!currentCategoryId.value) {
+    images.value = [];
+    return;
+  }
   loading.value = true;
   try {
-    const res = await getImageLibrary(currentFolder.value, 200);
-    images.value = res.data || [];
+    const res = await getMediaOssPageApi(
+      {
+        categoryId: currentCategoryId.value,
+        pageNum: 1,
+        pageSize: 200
+      },
+      { loading: false }
+    );
+    images.value = res.data?.records || [];
   } catch (error) {
     console.error("加载图片库失败:", error);
     images.value = [];
@@ -352,162 +358,146 @@ const loadLibrary = async () => {
   }
 };
 
-// 选择分类
-const selectFolder = (key) => {
-  currentFolder.value = key;
-  selectedUrls.value = [];
+const selectCategory = id => {
+  currentCategoryId.value = id;
+  selectedIds.value = [];
   loadLibrary();
 };
 
-// 新建文件夹（调用后端持久化到 file_folder 表）
-const handleCreateFolder = async () => {
-  const folderKey = normalizeFolderKey(newFolderKey.value);
-  const label = (newFolderLabel.value || "").trim();
-  if (!folderKey || !label) {
-    ElMessage.warning("请填写存储路径和显示名称");
-    return;
-  }
-  if (!isValidStorageFolderKey(folderKey)) {
-    ElMessage.warning("存储路径仅允许英文、数字、/、_、-，且不能含空格");
-    return;
-  }
+const openNewCategoryDialog = () => {
+  newCategoryName.value = "";
+  newCategoryParentId.value = currentCategoryId.value;
+  showNewCategoryDialog.value = true;
+};
 
-  const exists = folders.value.some(f => f.key === folderKey || f.label === label);
-  if (exists) {
-    ElMessage.warning("同路径或同名称的分类已存在");
+const resetNewCategoryForm = () => {
+  newCategoryName.value = "";
+  newCategoryParentId.value = null;
+};
+
+const handleCreateCategory = async () => {
+  const name = (newCategoryName.value || "").trim();
+  if (!name) {
+    ElMessage.warning("请填写分类名称");
     return;
   }
-
   try {
-    await addFolderApi(folderKey, label);
-    await loadFolders();
-    currentFolder.value = folderKey;
-    selectedUrls.value = [];
-    loadLibrary();
-    showNewFolderDialog.value = false;
-    ElMessage.success("文件夹已创建");
+    await addMediaOssCategoryApi({
+      categoryName: name,
+      parentId: newCategoryParentId.value || 0
+    });
+    await loadCategories();
+    const created = categories.value.find(c => c.categoryName === name);
+    if (created) {
+      currentCategoryId.value = created.categoryId;
+      selectedIds.value = [];
+      loadLibrary();
+    }
+    showNewCategoryDialog.value = false;
+    ElMessage.success("分类已创建");
   } catch (error) {
-    const msg = error?.response?.data?.msg || error?.message || "创建失败";
-    ElMessage.error(msg);
+    // 全局已提示
   }
 };
 
-const cancelCreateFolder = () => {
-  showNewFolderDialog.value = false;
+const cancelCreateCategory = () => {
+  showNewCategoryDialog.value = false;
 };
 
-// 编辑分类
-const handleEditFolder = async folder => {
-  editingFolderKey.value = folder.key;
-  editingFolderName.value = folder.label;
+const handleEditCategory = async cat => {
+  editingCategoryId.value = cat.categoryId;
+  editingCategoryName.value = cat.categoryName;
   await nextTick();
   const el = Array.isArray(folderEditInputRef.value) ? folderEditInputRef.value[0] : folderEditInputRef.value;
   el?.focus?.();
 };
 
-// 保存分类名称
-const handleSaveFolderName = async () => {
-  if (editingFolderKey.value == null) return;
-  const name = editingFolderName.value.trim();
+const handleSaveCategoryName = async () => {
+  if (editingCategoryId.value == null) return;
+  const name = editingCategoryName.value.trim();
   if (!name) {
     handleCancelEdit();
     return;
   }
-  if (name === folders.value.find(f => f.key === editingFolderKey.value)?.label) {
+  const old = categories.value.find(c => c.categoryId === editingCategoryId.value);
+  if (name === old?.categoryName) {
     handleCancelEdit();
     return;
   }
   try {
-    await renameFolderApi(editingFolderKey.value, name);
+    await updateMediaOssCategoryNameApi({
+      categoryId: editingCategoryId.value,
+      categoryName: name
+    });
     ElMessage.success("重命名成功");
-    loadFolders();
+    loadCategories();
     handleCancelEdit();
   } catch (error) {
-    ElMessage.error(error.message || "重命名失败");
+    // 全局已提示
   }
 };
 
-// 取消编辑
 const handleCancelEdit = () => {
-  editingFolderKey.value = null;
-  editingFolderName.value = "";
+  editingCategoryId.value = null;
+  editingCategoryName.value = "";
 };
 
-// 删除分类
-const handleDeleteFolder = async folder => {
-  if (folder.key === "") return;
+const handleDeleteCategory = async cat => {
   try {
     await ElMessageBox.confirm(
-      folder.count > 0
-        ? `确定删除分类「${folder.label}」？该分类下有 ${folder.count} 张图片，删除后无法恢复`
-        : `确定删除分类「${folder.label}」？`,
+      cat.imageCount > 0
+        ? `确定删除分类「${cat.categoryName}」？该分类下有 ${cat.imageCount} 张图片统计，有子分类时无法删除。`
+        : `确定删除分类「${cat.categoryName}」？`,
       "删除分类",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning"
-      }
+      { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" }
     );
-    await deleteFolderApi(folder.key);
+    await deleteMediaOssCategoryApi(cat.categoryId);
     ElMessage.success("删除成功");
-    if (currentFolder.value === folder.key) {
-      currentFolder.value = "";
-    }
-    loadFolders();
+    if (currentCategoryId.value === cat.categoryId) currentCategoryId.value = null;
+    await loadCategories();
     loadLibrary();
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error(error.message || "删除失败");
+      // ignore
     }
   }
 };
 
-// 点击图片选择
-const handleImageClick = (img) => {
-  pickUrl.value = img.url;
+const handleImageClick = img => {
+  pickUrl.value = img.ossUrl;
 };
 
-// 全选/取消全选
-const handleSelectAll = (val) => {
-  if (val) {
-    selectedUrls.value = images.value.map(img => img.url);
-  } else {
-    selectedUrls.value = [];
-  }
+const handleSelectAll = val => {
+  selectedIds.value = val ? images.value.map(img => img.ossId) : [];
 };
 
-// 切换选择
-const toggleSelect = (url) => {
-  const index = selectedUrls.value.indexOf(url);
-  if (index > -1) {
-    selectedUrls.value.splice(index, 1);
-  } else {
-    selectedUrls.value.push(url);
-  }
+const toggleSelect = ossId => {
+  const index = selectedIds.value.indexOf(ossId);
+  if (index > -1) selectedIds.value.splice(index, 1);
+  else selectedIds.value.push(ossId);
 };
 
-// 确认选择
 const handleConfirm = () => {
   emit("update:modelValue", pickUrl.value);
   showLibrary.value = false;
   ElMessage.success("已选择图片");
 };
 
-// 清除图片
 const handleClear = () => {
   emit("update:modelValue", "");
 };
 
-// 批量上传：el-upload 对每个文件各触发一次 success，合并为一条提示、一次刷新
 const uploadPendingCount = ref(0);
 const uploadBatchOk = ref(0);
 const uploadBatchFail = ref(0);
 
-// 上传前校验
-const beforeUpload = (file) => {
+const beforeUpload = file => {
+  if (!currentCategoryId.value) {
+    ElMessage.warning("请先选择分类");
+    return false;
+  }
   const isImage = file.type.startsWith("image/");
   const isLt5M = file.size / 1024 / 1024 < 5;
-
   if (!isImage) {
     ElMessage.error("只能上传图片文件");
     return false;
@@ -526,11 +516,9 @@ const beforeUpload = (file) => {
 
 const finishUploadBatch = () => {
   loadLibrary();
-  loadFolders();
+  loadCategories();
   if (uploadBatchFail.value === 0) {
-    ElMessage.success(
-      uploadBatchOk.value <= 1 ? "上传成功" : `成功上传 ${uploadBatchOk.value} 张图片`
-    );
+    ElMessage.success(uploadBatchOk.value <= 1 ? "上传成功" : `成功上传 ${uploadBatchOk.value} 张图片`);
   } else if (uploadBatchOk.value === 0) {
     ElMessage.error("上传失败，请重试");
   } else {
@@ -538,91 +526,65 @@ const finishUploadBatch = () => {
   }
 };
 
-// 上传成功
-const handleUploadSuccess = (response) => {
+const handleUploadSuccess = response => {
   uploadPendingCount.value--;
   if (uploadPendingCount.value < 0) uploadPendingCount.value = 0;
-
-  if (response.code === 200) {
-    uploadBatchOk.value++;
-  } else {
-    uploadBatchFail.value++;
-  }
-
-  if (uploadPendingCount.value === 0) {
-    finishUploadBatch();
-  }
+  if (response?.code === 200) uploadBatchOk.value++;
+  else uploadBatchFail.value++;
+  if (uploadPendingCount.value === 0) finishUploadBatch();
 };
 
-// 上传失败
 const handleUploadError = () => {
   uploadPendingCount.value--;
   if (uploadPendingCount.value < 0) uploadPendingCount.value = 0;
   uploadBatchFail.value++;
-
-  if (uploadPendingCount.value === 0) {
-    finishUploadBatch();
-  }
+  if (uploadPendingCount.value === 0) finishUploadBatch();
 };
 
-// 单个删除
-const handleDeleteSingle = async (url) => {
+const handleDeleteSingle = async img => {
   try {
     await ElMessageBox.confirm("确定删除此图片？", "提示", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning"
     });
-    await deleteFile(url);
+    await deleteMediaOssApi([img.ossId]);
     ElMessage.success("删除成功");
     loadLibrary();
-    loadFolders();
-    // 如果删除的是当前选中的图片，清空选择
-    if (pickUrl.value === url) {
-      pickUrl.value = "";
-    }
+    loadCategories();
+    if (pickUrl.value === img.ossUrl) pickUrl.value = "";
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("删除失败");
+      // ignore
     }
   }
 };
 
-// 外部调用打开图片库（不绑定 v-model 时使用）
 const open = () => {
   showLibrary.value = true;
-  currentFolder.value = props.folder || "";
   pickUrl.value = "";
-  selectedUrls.value = [];
-  loadFolders();
-  loadLibrary();
+  selectedIds.value = [];
+  loadCategories().then(() => loadLibrary());
 };
 
-// 暴露方法
 defineExpose({ open });
 
-// 批量删除
 const handleBatchDelete = async () => {
-  if (selectedUrls.value.length === 0) return;
-  
+  if (selectedIds.value.length === 0) return;
   try {
-    await ElMessageBox.confirm(
-      `确定删除选中的 ${selectedUrls.value.length} 张图片？`,
-      "批量删除",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning"
-      }
-    );
-    await deleteFileBatch(selectedUrls.value);
-    ElMessage.success(`成功删除 ${selectedUrls.value.length} 张图片`);
-    selectedUrls.value = [];
+    await ElMessageBox.confirm(`确定删除选中的 ${selectedIds.value.length} 张图片？`, "批量删除", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning"
+    });
+    await deleteMediaOssApi([...selectedIds.value]);
+    ElMessage.success(`成功删除 ${selectedIds.value.length} 张图片`);
+    selectedIds.value = [];
     loadLibrary();
-    loadFolders();
+    loadCategories();
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("批量删除失败");
+      // ignore
     }
   }
 };
@@ -699,7 +661,6 @@ const handleBatchDelete = async () => {
   gap: 8px;
 }
 
-/* 弹窗样式 */
 .library-container {
   display: flex;
   height: 550px;
@@ -797,11 +758,7 @@ const handleBatchDelete = async () => {
   min-width: 36px;
 }
 
-.folder-actions-hidden {
-  visibility: hidden;
-}
-
-.folder-item:hover .folder-actions:not(.folder-actions-hidden) {
+.folder-item:hover .folder-actions {
   opacity: 1;
 }
 
@@ -875,7 +832,6 @@ const handleBatchDelete = async () => {
   background: var(--el-fill-color-lighter);
 }
 
-/* banner 文件夹下使用横版比例，完整展示宽幅图 */
 .image-card-banner {
   aspect-ratio: 16 / 9;
 }

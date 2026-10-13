@@ -48,10 +48,10 @@
     {
       "path": "/course",
       "name": "course",
-      "redirect": "/course/list",
+      "redirect": "/course/category",
       "meta": {
         "icon": "VideoPlay",
-        "title": "课程管理",
+        "title": "内容与课程",
         "isLink": "",
         "isHide": false,
         "isFull": false,
@@ -60,22 +60,8 @@
       },
       "children": [
         {
-          "path": "/course/list",
-          "name": "courseList",
-          "component": "/course/list/index",
-          "meta": {
-            "icon": "Film",
-            "title": "课程列表",
-            "isLink": "",
-            "isHide": false,
-            "isFull": false,
-            "isAffix": false,
-            "isKeepAlive": true
-          }
-        },
-        {
           "path": "/course/category",
-          "name": "courseCategory",
+          "name": "CourseCategory",
           "component": "/course/category/index",
           "meta": {
             "icon": "Files",
@@ -88,12 +74,96 @@
           }
         },
         {
+          "path": "/course/list",
+          "name": "CourseList",
+          "component": "/course/list/index",
+          "meta": {
+            "icon": "Tickets",
+            "title": "课程列表",
+            "isLink": "",
+            "isHide": false,
+            "isFull": false,
+            "isAffix": false,
+            "isKeepAlive": true
+          }
+        },
+        {
           "path": "/course/video",
-          "name": "courseVideo",
+          "name": "CourseVideo",
           "component": "/course/video/index",
           "meta": {
-            "icon": "VideoCamera",
-            "title": "视频管理",
+            "icon": "Film",
+            "title": "视频中心",
+            "isLink": "",
+            "isHide": false,
+            "isFull": false,
+            "isAffix": false,
+            "isKeepAlive": true
+          }
+        },
+        {
+          "path": "/media/library",
+          "name": "MediaLibrary",
+          "component": "/media/library/index",
+          "meta": {
+            "icon": "Picture",
+            "title": "图片中心",
+            "isLink": "",
+            "isHide": false,
+            "isFull": false,
+            "isAffix": false,
+            "isKeepAlive": true
+          }
+        },
+        {
+          "path": "/community/feed",
+          "name": "CommunityFeed",
+          "component": "/community/post/index",
+          "meta": {
+            "icon": "ChatLineRound",
+            "title": "社区动态",
+            "isLink": "",
+            "isHide": false,
+            "isFull": false,
+            "isAffix": false,
+            "isKeepAlive": true
+          }
+        },
+        {
+          "path": "/community/moderation",
+          "name": "CommunityModeration",
+          "component": "/community/moderation/index",
+          "meta": {
+            "icon": "Warning",
+            "title": "内容审核",
+            "isLink": "",
+            "isHide": false,
+            "isFull": false,
+            "isAffix": false,
+            "isKeepAlive": true
+          }
+        },
+        {
+          "path": "/course/progress",
+          "name": "CourseProgress",
+          "component": "/course/progress/index",
+          "meta": {
+            "icon": "Monitor",
+            "title": "学习进度",
+            "isLink": "",
+            "isHide": false,
+            "isFull": false,
+            "isAffix": false,
+            "isKeepAlive": true
+          }
+        },
+        {
+          "path": "/community/comment",
+          "name": "CommunityComment",
+          "component": "/community/comment/index",
+          "meta": {
+            "icon": "ChatDotRound",
+            "title": "社区评论",
             "isLink": "",
             "isHide": false,
             "isFull": false,

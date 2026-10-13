@@ -22,8 +22,8 @@
             </el-form-item>
             <el-form-item label="状态">
               <el-select v-model="operSearch.status" placeholder="请选择" clearable style="width: 100px">
-                <el-option label="成功" :value="1" />
-                <el-option label="失败" :value="0" />
+                <el-option label="成功" value="0" />
+                <el-option label="失败" value="1" />
               </el-select>
             </el-form-item>
             <el-form-item>
@@ -33,13 +33,7 @@
           </el-form>
         </div>
 
-        <div class="mb-2">
-          <el-popconfirm title="确定清空所有操作日志吗?" @confirm="handleCleanOperLog">
-            <template #reference>
-              <el-button type="danger" size="small" :icon="Delete">清空日志</el-button>
-            </template>
-          </el-popconfirm>
-        </div>
+        <div class="mb-2"></div>
 
         <el-table :data="operLogList" border height="400" v-loading="operLoading">
           <el-table-column prop="title" label="模块" width="120" />
@@ -55,8 +49,8 @@
           <el-table-column prop="operIp" label="IP" width="120" />
           <el-table-column label="状态" width="80">
             <template #default="{ row }">
-              <el-tag size="small" :type="row.status === 1 ? 'success' : 'danger'">
-                {{ row.status === 1 ? "成功" : "失败" }}
+              <el-tag size="small" :type="row.status == 0 || row.status === '0' ? 'success' : 'danger'">
+                {{ row.status == 0 || row.status === "0" ? "成功" : "失败" }}
               </el-tag>
             </template>
           </el-table-column>
@@ -88,15 +82,12 @@
         <div class="search-form mb-4">
           <el-form :model="loginSearch" inline>
             <el-form-item label="用户名">
-              <el-input v-model="loginSearch.username" placeholder="请输入" clearable class="w-32" />
-            </el-form-item>
-            <el-form-item label="IP">
-              <el-input v-model="loginSearch.ip" placeholder="请输入" clearable class="w-32" />
+              <el-input v-model="loginSearch.userName" placeholder="请输入" clearable class="w-32" />
             </el-form-item>
             <el-form-item label="状态">
               <el-select v-model="loginSearch.status" placeholder="请选择" clearable style="width: 100px">
-                <el-option label="成功" :value="1" />
-                <el-option label="失败" :value="0" />
+                <el-option label="成功" value="1" />
+                <el-option label="失败" value="0" />
               </el-select>
             </el-form-item>
             <el-form-item label="客户端">
@@ -113,13 +104,7 @@
           </el-form>
         </div>
 
-        <div class="mb-2">
-          <el-popconfirm title="确定清空所有登录日志吗?" @confirm="handleCleanLoginLog">
-            <template #reference>
-              <el-button type="danger" size="small" :icon="Delete">清空日志</el-button>
-            </template>
-          </el-popconfirm>
-        </div>
+        <div class="mb-2"></div>
 
         <el-table :data="loginLogList" border height="400" v-loading="loginLoading">
           <el-table-column prop="userName" label="用户名" width="120" />
@@ -167,7 +152,9 @@
         <el-descriptions-item label="操作时间">{{ operDetail.operTime }}</el-descriptions-item>
         <el-descriptions-item label="请求方式">{{ operDetail.requestMethod }}</el-descriptions-item>
         <el-descriptions-item label="操作状态">
-          <el-tag :type="operDetail.status === 1 ? 'success' : 'danger'">{{ operDetail.status === 1 ? "成功" : "失败" }}</el-tag>
+          <el-tag :type="operDetail.status == 0 || operDetail.status === '0' ? 'success' : 'danger'">
+            {{ operDetail.status == 0 || operDetail.status === "0" ? "成功" : "失败" }}
+          </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="请求URL" :span="2">{{ operDetail.operUrl }}</el-descriptions-item>
         <el-descriptions-item label="方法名" :span="2">{{ operDetail.method }}</el-descriptions-item>
@@ -187,14 +174,11 @@
 
 <script setup name="log">
 import { ref, reactive, onMounted } from "vue";
-import { ElMessage } from "element-plus";
-import { Search, Refresh, Delete } from "@element-plus/icons-vue";
+import { Search, Refresh } from "@element-plus/icons-vue";
 import {
   getSysOperLogList,
   getSysOperLogById,
-  cleanSysOperLog,
-  getSysLoginLogList,
-  cleanSysLoginLog
+  getSysLoginLogList
 } from "@/api/modules/system";
 
 const activeTab = ref("oper");
@@ -207,8 +191,8 @@ const operPage = reactive({ currentPage: 1, pageSize: 10, total: 0 });
 const operDetailVisible = ref(false);
 const operDetail = ref({});
 
-// 登录日志
-const loginSearch = ref({ username: "", ip: "", status: null, clientType: null });
+// 登录日志（字段与 SysLoginLogQueryDTO 对齐）
+const loginSearch = ref({ userName: "", status: null, clientType: null });
 
 const clientTypeLabel = v => {
   if (!v) return "—";
@@ -225,7 +209,10 @@ const loadOperLog = async () => {
     const res = await getSysOperLogList({
       pageNum: operPage.currentPage,
       pageSize: operPage.pageSize,
-      ...operSearch.value
+      title: operSearch.value.title || undefined,
+      operName: operSearch.value.operName || undefined,
+      businessType: operSearch.value.businessType != null ? operSearch.value.businessType : undefined,
+      status: operSearch.value.status != null && operSearch.value.status !== "" ? String(operSearch.value.status) : undefined
     });
     operLogList.value = res.data?.records || [];
     operPage.total = Number(res.data?.total) || 0;
@@ -242,7 +229,9 @@ const loadLoginLog = async () => {
     const res = await getSysLoginLogList({
       pageNum: loginPage.currentPage,
       pageSize: loginPage.pageSize,
-      ...loginSearch.value
+      userName: loginSearch.value.userName || undefined,
+      status: loginSearch.value.status != null && loginSearch.value.status !== "" ? String(loginSearch.value.status) : undefined,
+      clientType: loginSearch.value.clientType || undefined
     });
     loginLogList.value = res.data?.records || [];
     loginPage.total = Number(res.data?.total) || 0;
@@ -270,39 +259,20 @@ const handleOperReset = () => {
 };
 
 const handleLoginReset = () => {
-  loginSearch.value = { username: "", ip: "", status: null, clientType: null };
+  loginSearch.value = { userName: "", status: null, clientType: null };
   loginPage.currentPage = 1;
   loadLoginLog();
 };
 
 const handleViewOperLog = async row => {
   try {
-    const res = await getSysOperLogById(row.id);
+    const id = row.operId ?? row.id;
+    const res = await getSysOperLogById(id);
     operDetail.value = res.data || row;
     operDetailVisible.value = true;
   } catch (error) {
     operDetail.value = row;
     operDetailVisible.value = true;
-  }
-};
-
-const handleCleanOperLog = async () => {
-  try {
-    await cleanSysOperLog();
-    ElMessage.success("清空成功");
-    loadOperLog();
-  } catch (error) {
-    ElMessage.error("清空失败");
-  }
-};
-
-const handleCleanLoginLog = async () => {
-  try {
-    await cleanSysLoginLog();
-    ElMessage.success("清空成功");
-    loadLoginLog();
-  } catch (error) {
-    ElMessage.error("清空失败");
   }
 };
 </script>

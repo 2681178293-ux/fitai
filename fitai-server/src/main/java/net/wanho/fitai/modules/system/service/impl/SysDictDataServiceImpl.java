@@ -17,6 +17,8 @@ import net.wanho.fitai.modules.system.service.SysDictDataServiceI;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -57,5 +59,11 @@ public class SysDictDataServiceImpl extends MPJBaseServiceImpl<SysDictDataMapper
     public SysDictDataVO findById(Long id) {
         SysDictData entity = this.getById(id);
         return converter.convert(entity, SysDictDataVO.class);
+    }
+
+    @Override
+    public List<SysDictDataVO> findByDictType(String dictType) {
+        List<SysDictData> dictDataList = this.list(new LambdaQueryWrapper<SysDictData>().eq(SysDictData::getDictType, dictType));
+        return dictDataList.stream().map(item -> converter.convert(item, SysDictDataVO.class)).collect(Collectors.toList());
     }
 }

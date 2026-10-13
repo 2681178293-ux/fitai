@@ -7,9 +7,9 @@
       </template>
 
       <template #type="{ row }">
-        <el-tag v-if="row.type === 1" type="warning">月卡</el-tag>
-        <el-tag v-else-if="row.type === 2" type="success">季卡</el-tag>
-        <el-tag v-else-if="row.type === 3" type="danger">年卡</el-tag>
+        <el-tag v-if="String(row.type) === '1'" type="warning">月卡</el-tag>
+        <el-tag v-else-if="String(row.type) === '2'" type="success">季卡</el-tag>
+        <el-tag v-else-if="String(row.type) === '3'" type="danger">年卡</el-tag>
         <el-tag v-else type="info">{{ row.type ?? "-" }}</el-tag>
       </template>
 
@@ -20,8 +20,14 @@
         </span>
       </template>
 
+      <!-- 库表：0上架 1下架 -->
       <template #status="{ row }">
-        <el-switch v-model="row.status" :active-value="1" :inactive-value="0" @change="handleStatusChange(row)" />
+        <el-switch
+          v-model="row.status"
+          active-value="0"
+          inactive-value="1"
+          @change="handleStatusChange(row)"
+        />
       </template>
 
       <template #action="{ row }">
@@ -37,9 +43,9 @@
         </el-form-item>
         <el-form-item label="类型" prop="type">
           <el-radio-group v-model="formData.type">
-            <el-radio :value="1">月卡</el-radio>
-            <el-radio :value="2">季卡</el-radio>
-            <el-radio :value="3">年卡</el-radio>
+            <el-radio value="1">月卡</el-radio>
+            <el-radio value="2">季卡</el-radio>
+            <el-radio value="3">年卡</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="有效天数" prop="durationDays">
@@ -70,8 +76,8 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="formData.status">
-            <el-radio :value="1">上架</el-radio>
-            <el-radio :value="0">下架</el-radio>
+            <el-radio value="0">上架</el-radio>
+            <el-radio value="1">下架</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -104,14 +110,14 @@ const benefitsText = ref("");
 const formData = reactive({
   id: null,
   name: "",
-  type: 1,
+  type: "1",
   durationDays: 30,
   price: null,
   originalPrice: null,
   description: "",
   aiTokenQuotaMonthly: 0,
   sortOrder: 0,
-  status: 1
+  status: "0"
 });
 
 const formRules = {
@@ -129,9 +135,19 @@ function parseBenefits(text) {
     .filter(Boolean);
 }
 
-function benefitsToText(list) {
-  if (!list || !Array.isArray(list)) return "";
-  return list.join("\n");
+function benefitsToText(val) {
+  if (!val) return "";
+  if (Array.isArray(val)) return val.join("\n");
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed.join("\n");
+    } catch {
+      // 非 JSON 时按原文展示
+    }
+    return val;
+  }
+  return "";
 }
 
 const gridOptions = reactive({
@@ -154,7 +170,6 @@ const gridOptions = reactive({
   pagerConfig: { enabled: false },
   proxyConfig: {
     seq: true,
-    // 与项目内其它页面一致：vxe-grid 默认按 result: "list" 取行数据，勿用 records
     response: { result: "list", total: "total" },
     ajax: {
       query: async () => {
@@ -187,11 +202,12 @@ const handleRefresh = () => {
 };
 
 const handleStatusChange = async row => {
+  const prev = row.status === "0" ? "1" : "0";
   try {
-    await updateMemberPlanApi(row.id, { status: row.status });
-    ElMessage.success(row.status === 1 ? "已上架" : "已下架");
+    await updateMemberPlanApi({ id: row.id, status: String(row.status) });
+    ElMessage.success(row.status === "0" ? "已上架" : "已下架");
   } catch {
-    row.status = row.status === 1 ? 0 : 1;
+    row.status = prev;
   }
 };
 
@@ -201,14 +217,14 @@ const handleAdd = () => {
   Object.assign(formData, {
     id: null,
     name: "",
-    type: 1,
+    type: "1",
     durationDays: 30,
     price: null,
     originalPrice: null,
     description: "",
     aiTokenQuotaMonthly: 0,
     sortOrder: 0,
-    status: 1
+    status: "0"
   });
   dialogVisible.value = true;
 };
@@ -219,14 +235,14 @@ const handleEdit = row => {
   Object.assign(formData, {
     id: row.id,
     name: row.name,
-    type: row.type ?? 1,
+    type: row.type != null ? String(row.type) : "1",
     durationDays: row.durationDays ?? 30,
     price: row.price != null ? Number(row.price) : null,
     originalPrice: row.originalPrice != null ? Number(row.originalPrice) : null,
     description: row.description || "",
     aiTokenQuotaMonthly: row.aiTokenQuotaMonthly ?? 0,
     sortOrder: row.sortOrder ?? 0,
-    status: row.status ?? 1
+    status: row.status != null ? String(row.status) : "0"
   });
   dialogVisible.value = true;
 };
@@ -237,18 +253,18 @@ const handleSubmit = async () => {
     submitLoading.value = true;
     const payload = {
       name: formData.name,
-      type: formData.type,
+      type: String(formData.type),
       durationDays: formData.durationDays,
       price: formData.price,
       originalPrice: formData.originalPrice,
       description: formData.description,
-      benefits: benefitsText.value,
+      benefits: JSON.stringify(parseBenefits(benefitsText.value)),
       aiTokenQuotaMonthly: formData.aiTokenQuotaMonthly,
       sortOrder: formData.sortOrder,
-      status: formData.status
+      status: String(formData.status)
     };
     if (isEdit.value) {
-      await updateMemberPlanApi(formData.id, payload);
+      await updateMemberPlanApi({ ...payload, id: formData.id });
       ElMessage.success("更新成功");
     } else {
       await createMemberPlanApi(payload);

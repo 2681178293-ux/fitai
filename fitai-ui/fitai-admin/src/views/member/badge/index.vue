@@ -8,11 +8,11 @@
         <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
       </template>
 
-      <template #icon="{ row }">
+      <template #iconUrl="{ row }">
         <el-image
-          v-if="row.icon"
-          :src="row.icon"
-          :preview-src-list="[row.icon]"
+          v-if="row.iconUrl"
+          :src="row.iconUrl"
+          :preview-src-list="[row.iconUrl]"
           :preview-teleported="true"
           fit="cover"
           class="badge-icon"
@@ -22,16 +22,12 @@
 
       <template #condition="{ row }">
         <span>{{ row.conditionType || "-" }}</span>
-        <span v-if="row.conditionValue != null" class="ml-1 text-gray-500">/ {{ row.conditionValue }}</span>
-      </template>
-
-      <template #grantType="{ row }">
-        <el-tag v-if="row.grantType === 2" type="warning">手动发放</el-tag>
-        <el-tag v-else type="success">自动发放</el-tag>
       </template>
 
       <template #status="{ row }">
-        <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? "启用" : "停用" }}</el-tag>
+        <el-tag :type="String(row.status) === '0' ? 'success' : 'info'">
+          {{ String(row.status) === '0' ? '正常' : '停用' }}
+        </el-tag>
       </template>
 
       <template #action="{ row }">
@@ -41,46 +37,37 @@
       </template>
     </vxe-grid>
 
-    <!-- 新增 / 编辑 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑徽章' : '新增徽章'" width="680px" destroy-on-close>
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="110px">
-        <el-form-item label="徽章名称" prop="name">
-          <el-input v-model="formData.name" placeholder="如：坚持不懈" />
+        <el-form-item label="徽章名称" prop="badgeName">
+          <el-input v-model="formData.badgeName" placeholder="如：坚持不懈" />
         </el-form-item>
-        <el-form-item label="徽章编码" prop="code">
-          <el-input v-model="formData.code" placeholder="如：CHECKIN_7" />
+        <el-form-item label="徽章编码" prop="badgeCode">
+          <el-input v-model="formData.badgeCode" placeholder="如：checkin_7" />
         </el-form-item>
         <el-form-item label="徽章图标">
-          <ImageLibrary v-model="formData.icon" folder="badge" upload-action="/file/upload/image" width="120px" height="120px" />
+          <ImageLibrary v-model="formData.iconUrl" folder="badge" upload-action="/file/upload/image" width="120px" height="120px" />
         </el-form-item>
         <el-form-item label="分类" prop="category">
-          <el-input v-model="formData.category" placeholder="如：签到 / 训练 / 社交" />
+          <el-select v-model="formData.category" placeholder="请选择分类" style="width: 100%">
+            <el-option label="训练" value="training" />
+            <el-option label="社交" value="social" />
+            <el-option label="成就" value="achievement" />
+          </el-select>
         </el-form-item>
         <el-form-item label="条件类型">
-          <el-input v-model="formData.conditionType" placeholder="如：checkin_days / course_count" />
+          <el-input v-model="formData.conditionType" placeholder="如：checkin_days / train_count" />
         </el-form-item>
-        <el-form-item label="条件值">
-          <el-input-number v-model="formData.conditionValue" :min="0" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="发放方式" prop="grantType">
-          <el-radio-group v-model="formData.grantType">
-            <el-radio :value="1">自动发放</el-radio>
-            <el-radio :value="2">手动发放</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="赠送积分">
-          <el-input-number v-model="formData.points" :min="0" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="formData.description" type="textarea" :rows="2" placeholder="徽章说明" />
+        <el-form-item label="奖励积分">
+          <el-input-number v-model="formData.pointsReward" :min="0" style="width: 100%" />
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="formData.sortOrder" :min="0" style="width: 100%" />
+          <el-input-number v-model="formData.orderNum" :min="0" style="width: 100%" />
         </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="formData.status">
-            <el-radio :value="1">启用</el-radio>
-            <el-radio :value="0">停用</el-radio>
+            <el-radio value="0">正常</el-radio>
+            <el-radio value="1">停用</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -90,7 +77,6 @@
       </template>
     </el-dialog>
 
-    <!-- 发放记录 -->
     <el-dialog v-model="grantRecordVisible" title="徽章发放记录" width="900px">
       <vxe-grid ref="grantGrid" v-bind="grantGridOptions">
         <template #isDisplayed="{ row }">
@@ -101,7 +87,6 @@
       </vxe-grid>
     </el-dialog>
 
-    <!-- 手动发放 -->
     <el-dialog v-model="grantVisible" title="手动发放徽章" width="520px" destroy-on-close>
       <el-form ref="grantFormRef" :model="grantForm" :rules="grantRules" label-width="100px">
         <el-form-item label="徽章">
@@ -150,27 +135,23 @@ const submitLoading = ref(false);
 const grantLoading = ref(false);
 
 const defaultForm = {
-  id: null,
-  name: "",
-  code: "",
-  icon: "",
-  category: "",
+  badgeId: null,
+  badgeName: "",
+  badgeCode: "",
+  iconUrl: "",
+  category: "achievement",
   conditionType: "",
-  conditionValue: 0,
-  grantType: 1,
-  points: 0,
-  description: "",
-  sortOrder: 0,
-  status: 1
+  pointsReward: 0,
+  orderNum: 0,
+  status: "0"
 };
 
 const formData = reactive({ ...defaultForm });
 
 const formRules = {
-  name: [{ required: true, message: "请输入徽章名称", trigger: "blur" }],
-  code: [{ required: true, message: "请输入徽章编码", trigger: "blur" }],
-  category: [{ required: true, message: "请输入徽章分类", trigger: "blur" }],
-  grantType: [{ required: true, message: "请选择发放方式", trigger: "change" }]
+  badgeName: [{ required: true, message: "请输入徽章名称", trigger: "blur" }],
+  badgeCode: [{ required: true, message: "请输入徽章编码", trigger: "blur" }],
+  category: [{ required: true, message: "请选择徽章分类", trigger: "change" }]
 };
 
 const grantForm = reactive({
@@ -188,7 +169,7 @@ const gridOptions = reactive({
   showOverflow: true,
   height: 600,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "badgeId", isHover: true },
   columnConfig: { resizable: true },
   checkboxConfig: { highlight: true },
   toolbarConfig: {
@@ -203,9 +184,33 @@ const gridOptions = reactive({
   },
   formConfig: {
     items: [
-      { field: "name", title: "徽章名称", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
-      { field: "code", title: "徽章编码", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
-      { field: "category", title: "分类", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
+      {
+        field: "badgeName",
+        title: "徽章名称",
+        span: 6,
+        itemRender: { name: "$input", props: { placeholder: "可选", clearable: true } }
+      },
+      {
+        field: "badgeCode",
+        title: "徽章编码",
+        span: 6,
+        itemRender: { name: "$input", props: { placeholder: "可选", clearable: true } }
+      },
+      {
+        field: "category",
+        title: "分类",
+        span: 6,
+        itemRender: {
+          name: "$select",
+          options: [
+            { label: "全部", value: "" },
+            { label: "训练", value: "training" },
+            { label: "社交", value: "social" },
+            { label: "成就", value: "achievement" }
+          ],
+          props: { placeholder: "全部", clearable: true }
+        }
+      },
       {
         field: "status",
         title: "状态",
@@ -214,10 +219,10 @@ const gridOptions = reactive({
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "启用", value: 1 },
-            { label: "停用", value: 0 }
+            { label: "正常", value: "0" },
+            { label: "停用", value: "1" }
           ],
-          props: { placeholder: "全部" }
+          props: { placeholder: "全部", clearable: true }
         }
       },
       {
@@ -248,10 +253,10 @@ const gridOptions = reactive({
           const res = await getBadgePageApi({
             pageNum: page.currentPage,
             pageSize: page.pageSize,
-            name: form.name || undefined,
-            code: form.code || undefined,
+            badgeName: form.badgeName || undefined,
+            badgeCode: form.badgeCode || undefined,
             category: form.category || undefined,
-            status: form.status !== "" && form.status !== undefined && form.status !== null ? form.status : undefined
+            status: form.status === "" || form.status == null ? undefined : String(form.status)
           });
           const pageData = res.data || {};
           return { list: pageData.records || [], total: pageData.total || 0 };
@@ -265,14 +270,13 @@ const gridOptions = reactive({
   columns: [
     { type: "checkbox", width: 50 },
     { type: "seq", title: "序号", width: 60 },
-    { field: "icon", title: "图标", width: 80, slots: { default: "icon" } },
-    { field: "name", title: "徽章名称", minWidth: 140 },
-    { field: "code", title: "编码", minWidth: 140 },
+    { field: "iconUrl", title: "图标", width: 80, slots: { default: "iconUrl" } },
+    { field: "badgeName", title: "徽章名称", minWidth: 140 },
+    { field: "badgeCode", title: "编码", minWidth: 140 },
     { field: "category", title: "分类", width: 110 },
     { field: "conditionType", title: "解锁条件", minWidth: 160, slots: { default: "condition" } },
-    { field: "points", title: "赠送积分", width: 100 },
-    { field: "grantType", title: "发放方式", width: 110, slots: { default: "grantType" } },
-    { field: "sortOrder", title: "排序", width: 70 },
+    { field: "pointsReward", title: "奖励积分", width: 100 },
+    { field: "orderNum", title: "排序", width: 70 },
     { field: "status", title: "状态", width: 90, slots: { default: "status" } },
     { title: "操作", width: 220, fixed: "right", slots: { default: "action" } }
   ]
@@ -353,18 +357,15 @@ const handleAdd = () => {
 const handleEdit = row => {
   isEdit.value = true;
   Object.assign(formData, {
-    id: row.id,
-    name: row.name || "",
-    code: row.code || "",
-    icon: row.icon || "",
-    category: row.category || "",
+    badgeId: row.badgeId,
+    badgeName: row.badgeName || "",
+    badgeCode: row.badgeCode || "",
+    iconUrl: row.iconUrl || "",
+    category: row.category || "achievement",
     conditionType: row.conditionType || "",
-    conditionValue: row.conditionValue ?? 0,
-    grantType: row.grantType ?? 1,
-    points: row.points ?? 0,
-    description: row.description || "",
-    sortOrder: row.sortOrder ?? 0,
-    status: row.status ?? 1
+    pointsReward: row.pointsReward ?? 0,
+    orderNum: row.orderNum ?? 0,
+    status: row.status != null ? String(row.status) : "0"
   });
   dialogVisible.value = true;
 };
@@ -374,20 +375,17 @@ const handleSubmit = async () => {
     await formRef.value.validate();
     submitLoading.value = true;
     const payload = {
-      name: formData.name,
-      code: formData.code,
-      icon: formData.icon,
+      badgeName: formData.badgeName,
+      badgeCode: formData.badgeCode,
+      iconUrl: formData.iconUrl,
       category: formData.category,
       conditionType: formData.conditionType,
-      conditionValue: formData.conditionValue,
-      grantType: formData.grantType,
-      points: formData.points,
-      description: formData.description,
-      sortOrder: formData.sortOrder,
-      status: formData.status
+      pointsReward: formData.pointsReward,
+      orderNum: formData.orderNum,
+      status: String(formData.status)
     };
     if (isEdit.value) {
-      await updateBadgeApi(formData.id, payload);
+      await updateBadgeApi({ ...payload, badgeId: formData.badgeId });
       ElMessage.success("更新成功");
     } else {
       await createBadgeApi(payload);
@@ -401,9 +399,9 @@ const handleSubmit = async () => {
 };
 
 const handleDelete = row => {
-  ElMessageBox.confirm(`确定删除徽章「${row.name}」吗？`, "提示", { type: "warning" })
+  ElMessageBox.confirm(`确定删除徽章「${row.badgeName}」吗？`, "提示", { type: "warning" })
     .then(async () => {
-      await deleteBadgeApi(row.id);
+      await deleteBadgeApi(row.badgeId);
       ElMessage.success("已删除");
       handleRefresh();
     })
@@ -416,7 +414,7 @@ const handleBatchDelete = () => {
     ElMessage.warning("请选择要删除的数据");
     return;
   }
-  const ids = records.map(r => r.id).join(",");
+  const ids = records.map(r => r.badgeId).join(",");
   ElMessageBox.confirm(`确定删除选中的 ${records.length} 个徽章吗？`, "提示", { type: "warning" })
     .then(async () => {
       await deleteBadgeApi(ids);
@@ -434,8 +432,8 @@ const openGrantRecord = () => {
 };
 
 const openGrant = row => {
-  grantForm.badgeId = row.id;
-  grantForm.badgeName = row.name;
+  grantForm.badgeId = row.badgeId;
+  grantForm.badgeName = row.badgeName;
   grantForm.userIdsText = "";
   grantVisible.value = true;
 };

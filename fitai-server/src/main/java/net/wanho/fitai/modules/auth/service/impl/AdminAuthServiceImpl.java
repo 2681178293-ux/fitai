@@ -37,31 +37,29 @@ public class AdminAuthServiceImpl implements AdminAuthServiceI {
     @Transactional(rollbackFor = Exception.class)
     public AdminLoginVO login(AdminLoginDTO loginDto) {
         SysUser user = sysUserService.getByUserName(loginDto.getUsername());
-        //判断用户是否存在
+
         if (ObjectUtil.isNull(user)) {
             loginLogService.recordLoginLog(loginDto.getUsername(), "admin","admin","0", SystemCode.USER_NOT_FOUND.msg());
             throw new CustomException(SystemCode.USER_NOT_FOUND);
         }
-        //判断用户状态
         if (!CommonConstant.STATUS_NORMAL.equals(user.getStatus())) {
             loginLogService.recordLoginLog(loginDto.getUsername(), "admin","admin","0", SystemCode.USER_DISABLED.msg());
             throw new CustomException(SystemCode.USER_DISABLED);
         }
-        //判断密码是否正确
         if (!BCrypt.checkpw(loginDto.getPassword(), user.getPassword())) {
             loginLogService.recordLoginLog(loginDto.getUsername(), "admin","admin","0", SystemCode.PASSWORD_ERROR.msg());
             throw new CustomException(SystemCode.PASSWORD_ERROR);
         }
-        //登录  默认是管理员登录，所以这里写死了StpKit.ADMIN
+
         StpKit.ADMIN.login(user.getUserId());
         LoginUser loginUser = buildLoginUser(user);
-        //将用户信息写入Session
         StpKit.ADMIN.getSession().set(SaSession.USER, loginUser);
         updateLoginInfo(user);
         loginLogService.recordLoginLog(user.getUserName(), "admin","admin","1", "登录成功");
         return buildUserInfo(user, StpKit.ADMIN.getTokenValue());
     }
 
+    //获取当前用户信息
     @Override
     public AdminLoginVO getCurrentUserInfo() {
         Long userId = AdminLoginHelper.getUserId();

@@ -4,19 +4,19 @@ import http from "@/api";
  * @name 用户管理模块
  */
 
-// 分页查询用户列表
+// 分页查询 C 端用户列表
 export const getUserPageApi = params => {
-  return http.get(`/admin/user/page`, params);
+  return http.get(`/admin/user/customer/list`, params);
 };
 
-// 获取用户详情
+// 获取 C 端用户详情
 export const getUserDetailApi = id => {
-  return http.get(`/admin/user/${id}`);
+  return http.get(`/admin/user/customer/${id}`);
 };
 
-// 更新用户状态
+// 更新 C 端用户状态（0正常 1冻结）
 export const updateUserStatusApi = (id, status) => {
-  return http.put(`/admin/user/${id}/status`, { status });
+  return http.put(`/admin/user/customer`, { customerId: id, status });
 };
 
 /**
@@ -38,9 +38,9 @@ export const createUserSegmentApi = data => {
   return http.post(`/admin/user/segment`, data);
 };
 
-// 编辑分群
-export const updateUserSegmentApi = (id, data) => {
-  return http.put(`/admin/user/segment/${id}`, data);
+// 编辑分群：body 含 segmentId
+export const updateUserSegmentApi = data => {
+  return http.put(`/admin/user/segment`, data);
 };
 
 // 批量删除分群（ids 逗号分隔）
@@ -48,19 +48,31 @@ export const deleteUserSegmentApi = ids => {
   return http.delete(`/admin/user/segment/${ids}`);
 };
 
-// 分群内用户分页
-export const getUserSegmentUserPageApi = (id, params) => {
-  return http.get(`/admin/user/segment/${id}/users`, params);
+// 分群内用户分页（后端 segment-rel/list，无按分群过滤参数）
+export const getUserSegmentUserPageApi = (segmentId, params) => {
+  return http.get(`/admin/user/segment-rel/list`, { pageNum: 1, pageSize: 500, ...params }).then(res => {
+    const records = (res.data?.records || []).filter(r => Number(r.segmentId) === Number(segmentId));
+    return {
+      ...res,
+      data: {
+        ...res.data,
+        records,
+        total: records.length
+      }
+    };
+  });
 };
 
 // 批量加入分群用户
-export const addUserSegmentUserApi = (id, userIds) => {
-  return http.post(`/admin/user/segment/${id}/users`, { userIds });
+export const addUserSegmentUserApi = (segmentId, userIds) => {
+  return Promise.all(
+    userIds.map(customerId => http.post(`/admin/user/segment-rel`, { segmentId, customerId }))
+  );
 };
 
-// 批量移出分群用户（userIds 逗号分隔）
-export const removeUserSegmentUserApi = (id, userIds) => {
-  return http.delete(`/admin/user/segment/${id}/users/${userIds}`);
+// 批量移出分群用户（传关联主键 segmentRelId，逗号分隔）
+export const removeUserSegmentUserApi = (_segmentId, segmentRelIds) => {
+  return http.delete(`/admin/user/segment-rel/${segmentRelIds}`);
 };
 
 /**
@@ -83,8 +95,8 @@ export const getBodyRecordKpiApi = () => {
 };
 
 // 指定用户体重/体脂趋势
-export const getBodyRecordTrendApi = (userId, limit = 30) => {
-  return http.get(`/admin/user/body/trend/${userId}`, { limit });
+export const getBodyRecordTrendApi = (customerId, limit = 30) => {
+  return http.get(`/admin/user/body/trend/${customerId}`, { limit });
 };
 
 // 新增身体记录
@@ -92,9 +104,9 @@ export const createBodyRecordApi = data => {
   return http.post(`/admin/user/body`, data);
 };
 
-// 编辑身体记录
-export const updateBodyRecordApi = (id, data) => {
-  return http.put(`/admin/user/body/${id}`, data);
+// 编辑身体记录：body 含 metricId
+export const updateBodyRecordApi = data => {
+  return http.put(`/admin/user/body`, data);
 };
 
 // 批量删除身体记录（ids 逗号分隔）

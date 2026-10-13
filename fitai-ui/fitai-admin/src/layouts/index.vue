@@ -14,6 +14,7 @@ import LayoutVertical from "./LayoutVertical/index.vue";
 import LayoutClassic from "./LayoutClassic/index.vue";
 import LayoutTransverse from "./LayoutTransverse/index.vue";
 import LayoutColumns from "./LayoutColumns/index.vue";
+import { useNoticeSse } from "@/hooks/useNoticeSse";
 
 const LayoutComponents = {
   vertical: LayoutVertical,
@@ -23,6 +24,7 @@ const LayoutComponents = {
 };
 
 const globalStore = useGlobalStore();
+useNoticeSse();
 
 const isDark = computed(() => globalStore.isDark);
 const layout = computed(() => globalStore.layout);

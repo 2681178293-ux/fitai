@@ -1,6 +1,5 @@
 <template>
   <div class="table-box p-5">
-    <!-- KPI 卡片 -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
       <div class="kpi-card">
         <div class="kpi-label">今日发放</div>
@@ -23,14 +22,14 @@
         <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
       </template>
 
-      <template #points="{ row }">
-        <span :class="Number(row.points) >= 0 ? 'text-green-500' : 'text-red-500'" class="font-medium">
-          {{ Number(row.points) >= 0 ? "+" : "" }}{{ row.points ?? 0 }}
+      <template #changePoints="{ row }">
+        <span :class="Number(row.changePoints) >= 0 ? 'text-green-500' : 'text-red-500'" class="font-medium">
+          {{ Number(row.changePoints) >= 0 ? "+" : "" }}{{ row.changePoints ?? 0 }}
         </span>
       </template>
 
-      <template #type="{ row }">
-        <el-tag :type="typeMap[row.type]?.type || 'info'">{{ typeMap[row.type]?.label ?? row.type ?? "-" }}</el-tag>
+      <template #bizType="{ row }">
+        <el-tag :type="typeMap[row.bizType]?.type || 'info'">{{ typeMap[row.bizType]?.label ?? row.bizType ?? "-" }}</el-tag>
       </template>
 
       <template #createTime="{ row }">
@@ -38,14 +37,13 @@
       </template>
     </vxe-grid>
 
-    <!-- 手动调整积分 -->
     <el-dialog v-model="adjustVisible" title="手动调整积分" width="520px" destroy-on-close>
       <el-form ref="adjustFormRef" :model="adjustForm" :rules="adjustRules" label-width="110px">
-        <el-form-item label="用户ID" prop="userId">
-          <el-input v-model="adjustForm.userId" placeholder="请输入用户ID" />
+        <el-form-item label="用户ID" prop="customerId">
+          <el-input v-model="adjustForm.customerId" placeholder="请输入用户ID" />
         </el-form-item>
-        <el-form-item label="积分变动值" prop="points">
-          <el-input-number v-model="adjustForm.points" :min="-100000" :max="100000" style="width: 100%" />
+        <el-form-item label="积分变动值" prop="changePoints">
+          <el-input-number v-model="adjustForm.changePoints" :min="-100000" :max="100000" style="width: 100%" />
           <div class="text-xs text-gray-400 mt-1">正数为发放，负数为扣减</div>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
@@ -85,33 +83,36 @@ const kpi = reactive({
 });
 
 const typeMap = {
-  earn: { label: "获得", type: "success" },
-  spend: { label: "消耗", type: "danger" },
-  expire: { label: "过期", type: "info" }
+  sign: { label: "签到", type: "success" },
+  checkin: { label: "签到", type: "success" },
+  train: { label: "训练", type: "primary" },
+  order: { label: "订单", type: "danger" },
+  review: { label: "评价", type: "warning" },
+  adjust: { label: "调整", type: "info" }
 };
 
 const lastQuery = ref({});
 
 const adjustForm = reactive({
-  userId: "",
-  points: 0,
+  customerId: "",
+  changePoints: 0,
   remark: ""
 });
 
 const adjustRules = {
-  userId: [{ required: true, message: "请输入用户ID", trigger: "blur" }],
-  points: [{ required: true, message: "请输入积分变动值", trigger: "blur" }],
+  customerId: [{ required: true, message: "请输入用户ID", trigger: "blur" }],
+  changePoints: [{ required: true, message: "请输入积分变动值", trigger: "blur" }],
   remark: [{ required: true, message: "请输入备注", trigger: "blur" }]
 };
 
 const formatTime = (val, suffix) => (val ? `${dayjs(val).format("YYYY-MM-DD")} ${suffix}` : undefined);
 
 const buildQuery = form => ({
-  userId: form.userId ? Number(form.userId) : undefined,
-  type: form.type || undefined,
-  source: form.source || undefined,
-  startTime: formatTime(form.startTime, "00:00:00"),
-  endTime: formatTime(form.endTime, "23:59:59")
+  customerId: form.customerId ? Number(form.customerId) : undefined,
+  bizType: form.bizType || undefined,
+  registerSource: form.registerSource || undefined,
+  pointsStartTime: formatTime(form.pointsStartTime, "00:00:00"),
+  pointsEndTime: formatTime(form.pointsEndTime, "23:59:59")
 });
 
 const gridOptions = reactive({
@@ -119,7 +120,7 @@ const gridOptions = reactive({
   showOverflow: true,
   height: 560,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "logId", isHover: true },
   columnConfig: { resizable: true },
   toolbarConfig: {
     slots: { buttons: "toolbar_buttons" },
@@ -133,31 +134,32 @@ const gridOptions = reactive({
   },
   formConfig: {
     items: [
-      { field: "userId", title: "用户ID", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
+      { field: "customerId", title: "用户ID", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
       {
-        field: "type",
+        field: "bizType",
         title: "类型",
         span: 6,
         itemRender: {
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "获得", value: "earn" },
-            { label: "消耗", value: "spend" },
-            { label: "过期", value: "expire" }
+            { label: "签到", value: "sign" },
+            { label: "训练", value: "train" },
+            { label: "订单", value: "order" },
+            { label: "评价", value: "review" }
           ],
           props: { placeholder: "全部" }
         }
       },
-      { field: "source", title: "来源", span: 6, itemRender: { name: "$input", props: { placeholder: "如：签到/兑换" } } },
+      { field: "registerSource", title: "来源", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
       {
-        field: "startTime",
+        field: "pointsStartTime",
         title: "开始时间",
         span: 6,
         itemRender: { name: "$input", props: { type: "date", placeholder: "开始日期", clearable: true } }
       },
       {
-        field: "endTime",
+        field: "pointsEndTime",
         title: "结束时间",
         span: 6,
         itemRender: { name: "$input", props: { type: "date", placeholder: "结束日期", clearable: true } }
@@ -205,12 +207,12 @@ const gridOptions = reactive({
   },
   columns: [
     { type: "seq", title: "序号", width: 60 },
-    { field: "userId", title: "用户ID", width: 100 },
-    { field: "userNickname", title: "用户昵称", minWidth: 130 },
-    { field: "points", title: "变动值", width: 110, slots: { default: "points" } },
-    { field: "balance", title: "变动后余额", width: 120 },
-    { field: "type", title: "类型", width: 100, slots: { default: "type" } },
-    { field: "source", title: "来源", width: 130 },
+    { field: "customerId", title: "用户ID", width: 100 },
+    { field: "nickname", title: "用户昵称", minWidth: 130 },
+    { field: "changePoints", title: "变动值", width: 110, slots: { default: "changePoints" } },
+    { field: "balanceAfter", title: "变动后余额", width: 120 },
+    { field: "bizType", title: "类型", width: 100, slots: { default: "bizType" } },
+    { field: "registerSource", title: "来源", width: 130 },
     { field: "bizId", title: "业务ID", width: 110 },
     { field: "remark", title: "备注", minWidth: 180 },
     { field: "createTime", title: "时间", minWidth: 170, slots: { default: "createTime" } }
@@ -235,21 +237,21 @@ const loadKpi = async () => {
 };
 
 const openAdjust = () => {
-  Object.assign(adjustForm, { userId: "", points: 0, remark: "" });
+  Object.assign(adjustForm, { customerId: "", changePoints: 0, remark: "" });
   adjustVisible.value = true;
 };
 
 const handleAdjustSubmit = async () => {
   try {
     await adjustFormRef.value.validate();
-    if (!adjustForm.points) {
+    if (!adjustForm.changePoints) {
       ElMessage.warning("积分变动值不能为 0");
       return;
     }
     adjustLoading.value = true;
     await adjustPointsApi({
-      userId: Number(adjustForm.userId),
-      points: adjustForm.points,
+      customerId: Number(adjustForm.customerId),
+      changePoints: adjustForm.changePoints,
       remark: adjustForm.remark
     });
     ElMessage.success("调整成功");

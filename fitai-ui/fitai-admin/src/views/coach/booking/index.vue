@@ -9,14 +9,14 @@
           </el-select>
         </el-form-item>
         <el-form-item label="用户ID">
-          <el-input v-model="searchForm.userId" placeholder="请输入用户ID" clearable class="w-40" />
+          <el-input v-model="searchForm.customerId" placeholder="请输入用户ID" clearable class="w-40" />
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="searchForm.status" placeholder="请选择" clearable style="width: 120px">
-            <el-option label="待确认" :value="0" />
-            <el-option label="已确认" :value="1" />
-            <el-option label="已完成" :value="2" />
-            <el-option label="已取消" :value="3" />
+            <el-option label="待确认" value="0" />
+            <el-option label="已确认" value="1" />
+            <el-option label="已完成" value="2" />
+            <el-option label="已取消" value="3" />
           </el-select>
         </el-form-item>
         <el-form-item label="预约日期">
@@ -46,10 +46,10 @@
 
       <!-- 状态列 -->
       <template #status="{ row }">
-        <el-tag v-if="row.status === 0" type="warning">待确认</el-tag>
-        <el-tag v-else-if="row.status === 1" type="primary">已确认</el-tag>
-        <el-tag v-else-if="row.status === 2" type="success">已完成</el-tag>
-        <el-tag v-else-if="row.status === 3" type="info">已取消</el-tag>
+        <el-tag v-if="row.status == 0" type="warning">待确认</el-tag>
+        <el-tag v-else-if="row.status == 1" type="primary">已确认</el-tag>
+        <el-tag v-else-if="row.status == 2" type="success">已完成</el-tag>
+        <el-tag v-else-if="row.status == 3" type="info">已取消</el-tag>
         <el-tag v-else type="info">未知</el-tag>
       </template>
 
@@ -66,12 +66,12 @@
 
       <!-- 操作列 -->
       <template #action="{ row }">
-        <el-button v-if="row.status === 0" type="primary" link :icon="Check" @click="handleConfirm(row)">确认</el-button>
-        <el-button v-if="row.status === 1" type="success" link :icon="Finished" @click="handleComplete(row)">完成</el-button>
-        <el-button v-if="row.status === 0 || row.status === 1" type="danger" link :icon="Close" @click="handleCancel(row)">
+        <el-button v-if="row.status == 0" type="primary" link :icon="Check" @click="handleConfirm(row)">确认</el-button>
+        <el-button v-if="row.status == 1" type="success" link :icon="Finished" @click="handleComplete(row)">完成</el-button>
+        <el-button v-if="row.status == 0 || row.status == 1" type="danger" link :icon="Close" @click="handleCancel(row)">
           取消
         </el-button>
-        <span v-if="row.status === 2 || row.status === 3" class="text-gray-400">-</span>
+        <span v-if="row.status == 2 || row.status == 3" class="text-gray-400">-</span>
       </template>
     </vxe-grid>
 
@@ -129,7 +129,7 @@ const dateRange = ref([]);
 
 const searchForm = ref({
   coachId: null,
-  userId: "",
+  customerId: "",
   status: null
 });
 
@@ -179,7 +179,7 @@ const gridOptions = reactive({
   showOverflow: true,
   height: 560,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "bookingId", isHover: true },
   columnConfig: { resizable: true },
   toolbarConfig: {
     slots: { buttons: "toolbar_buttons" },
@@ -197,8 +197,8 @@ const gridOptions = reactive({
     { field: "bookingNo", title: "预约单号", width: 190 },
     { field: "coachName", title: "教练", width: 110 },
     { field: "coachId", title: "教练ID", width: 90 },
-    { field: "userName", title: "用户昵称", width: 120 },
-    { field: "userId", title: "用户ID", width: 90 },
+    { field: "customerName", title: "用户昵称", width: 120 },
+    { field: "customerId", title: "用户ID", width: 90 },
     { field: "bookingDate", title: "预约日期", width: 120, slots: { default: "bookingDate" } },
     { field: "timeSlot", title: "时段", width: 120 },
     { field: "remark", title: "备注", minWidth: 140 },
@@ -227,7 +227,7 @@ const handleSearch = () => {
 };
 
 const handleReset = () => {
-  searchForm.value = { coachId: null, userId: "", status: null };
+  searchForm.value = { coachId: null, customerId: "", status: null };
   dateRange.value = [];
   pageConfig.currentPage = 1;
   loadData();
@@ -250,7 +250,7 @@ const handleConfirm = row => {
     type: "warning"
   })
     .then(async () => {
-      await confirmCoachBookingApi(row.id);
+      await confirmCoachBookingApi(row.bookingId);
       ElMessage.success("已确认");
       loadData();
     })
@@ -263,7 +263,7 @@ const handleComplete = row => {
     type: "warning"
   })
     .then(async () => {
-      await completeCoachBookingApi(row.id);
+      await completeCoachBookingApi(row.bookingId);
       ElMessage.success("已完成");
       loadData();
     })
@@ -273,7 +273,7 @@ const handleComplete = row => {
 // 打开取消弹窗
 const handleCancel = row => {
   Object.assign(cancelForm, {
-    id: row.id,
+    id: row.bookingId,
     bookingNo: row.bookingNo,
     cancelReason: ""
   });

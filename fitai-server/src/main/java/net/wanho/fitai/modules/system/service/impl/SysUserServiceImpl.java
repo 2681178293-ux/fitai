@@ -1,5 +1,6 @@
 package net.wanho.fitai.modules.system.service.impl;
 
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.BCrypt;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -60,7 +61,7 @@ public class SysUserServiceImpl extends MPJBaseServiceImpl<SysUserMapper, SysUse
                         .eq(SysRole::getStatus, CommonConstant.STATUS_NORMAL)
         );
 
-        return sysMenus.stream().map(SysMenu::getPerms).filter(StrUtil::isNotEmpty).distinct().toList();
+        return sysMenus.stream().filter(ObjectUtil::isNotNull).map(SysMenu::getPerms).filter(StrUtil::isNotBlank).distinct().toList();
     }
 
     @Override

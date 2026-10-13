@@ -11,16 +11,19 @@ import http from "@/api";
 /** 分页查询学习进度 */
 export const getLearnProgressPageApi = params => http.get("/admin/course/progress/page", params);
 
-/** 完成率统计（courseId 可空=全部） */
+/** 完成率统计（按课程ID） */
 export const getLearnProgressStatsApi = courseId =>
-  http.get("/admin/course/progress/stats", { courseId });
+  http.get(`/admin/course/progress/course/${courseId}/stats`);
+
+/** 学习进度详情 */
+export const getLearnProgressApi = id => http.get(`/admin/course/progress/${id}`);
 
 /** 某课程学员列表 */
 export const getCourseStudentsApi = courseId =>
   http.get(`/admin/course/progress/course/${courseId}/students`);
 
-/** 重置学习进度 */
-export const resetLearnProgressApi = id => http.put(`/admin/course/progress/${id}/reset`);
+/** 修改学习进度（用于重置等） */
+export const updateLearnProgressApi = data => http.put("/admin/course/progress", data);
 
 // ========== 训练设备 /admin/training/device ==========
 
@@ -81,16 +84,18 @@ export const getTrainRecordApi = id => http.get(`/admin/training/record/${id}`);
 /** 分页查询评论 */
 export const getCommentPageApi = params => http.get("/admin/community/comment/page", params);
 
+/** 置顶/取消置顶评论（top：1-置顶 0-取消；id 必须用字符串，避免大整数精度丢失） */
+export const setCommentTopApi = (id, top) =>
+  http.put(`/admin/community/comment/${String(id)}/top`, null, { params: { top } });
+
 /** 删除评论 */
-export const deleteCommentApi = id => http.delete(`/admin/community/comment/${id}`);
+export const deleteCommentApi = id => http.delete(`/admin/community/comment/${String(id)}`);
 
 /** 批量删除评论 */
 export const batchDeleteCommentApi = ids =>
-  http.delete("/admin/community/comment/batch", { ids: Array.isArray(ids) ? ids.join(",") : ids });
-
-/** 置顶/取消置顶评论（top：1-置顶 0-取消） */
-export const setCommentTopApi = (id, top) =>
-  http.put(`/admin/community/comment/${id}/top`, null, { params: { top } });
+  http.delete("/admin/community/comment/batch", {
+    ids: Array.isArray(ids) ? ids.map(id => String(id)).join(",") : String(ids)
+  });
 
 // ========== 内容审核 /admin/community/moderation ==========
 
@@ -117,11 +122,11 @@ export const rejectModerationApi = data => http.put("/admin/community/moderation
 // ========== 通知公告 /admin/system/notice ==========
 
 /** 公告分页列表 */
-export const getNoticePageApi = params => http.get("/admin/system/notice/list", params);
+export const getNoticePageApi = params => http.get("/admin/system/notice/page", params);
 
-/** 已发布公告列表（顶栏面板） */
-export const getPublishedNoticeApi = limit =>
-  http.get("/admin/system/notice/published", { limit });
+/** 已发布公告列表（顶栏面板，走分页接口 status=1） */
+export const getPublishedNoticeApi = (limit = 50) =>
+  http.get("/admin/system/notice/page", { pageNum: 1, pageSize: limit, status: "1" });
 
 /** 公告详情 */
 export const getNoticeApi = id => http.get(`/admin/system/notice/${id}`);
@@ -144,6 +149,12 @@ export const revokeNoticeApi = id => http.put(`/admin/system/notice/${id}/revoke
 
 /** 标记当前用户已读 */
 export const markNoticeReadApi = id => http.post(`/admin/system/notice/${id}/read`);
+
+/** 当前用户已读公告 ID 列表 */
+export const getMyNoticeReadIdsApi = () => http.get("/admin/system/notice/my-read-ids");
+
+/** 批量标记已读 */
+export const readNoticeBatchApi = data => http.post("/admin/system/notice/read-batch", data);
 
 /** 公告已读统计 */
 export const getNoticeReadStatsApi = id => http.get(`/admin/system/notice/${id}/read-stats`);

@@ -1,9 +1,9 @@
-﻿-- ==============================================
--- FitAI 全量汇总 SQL（单体库 fitai_all）
--- 合并自多库: ai/cms/crs/diet/media/mem/mkt/ord/prd/sys/train/user
--- 另含管理端增量模块: community_* / member_*
--- 说明: train_action.vod_video_id 已按 varchar(512) 建表（无需再跑 migration）
--- 更新时间: 2026-08-02
+-- ==============================================
+-- FitAI 全量建库 SQL（单体库 fitai_all）
+-- 仅用于新建库：DROP + CREATE + 种子。不含存量 ALTER / 字典补插 / 菜单补丁。
+-- 秒杀只用 seckill_*；付费会员用 vip_plan / vip_order；成长/积分用 mem_*
+-- 列名准绳见 docs/NAMING.md「库表列名」
+-- 更新时间: 2026-09-04
 -- ==============================================
 CREATE DATABASE IF NOT EXISTS `fitai_all` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `fitai_all`;
@@ -20,7 +20,7 @@ CREATE TABLE `ai_agent`  (
                              `agent_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'AgentID',
                              `agent_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '名称',
                              `agent_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '编码',
-                             `description` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
+                             `description` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
                              `model_id` bigint UNSIGNED NOT NULL COMMENT '主模型ID',
                              `prompt_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '提示词ID',
                              `flow_json` json NOT NULL COMMENT '编排流程JSON(nodes/edges)',
@@ -29,7 +29,7 @@ CREATE TABLE `ai_agent`  (
                              `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                              `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                              `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                              `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                              PRIMARY KEY (`agent_id`) USING BTREE,
                              UNIQUE INDEX `uk_ai_agent_code`(`agent_code` ASC) USING BTREE
@@ -172,7 +172,7 @@ CREATE TABLE `ai_dataset`  (
                                `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                               `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                               `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                PRIMARY KEY (`dataset_id`) USING BTREE,
                                UNIQUE INDEX `uk_ai_dataset_code`(`dataset_code` ASC) USING BTREE
@@ -220,6 +220,7 @@ CREATE TABLE `ai_evaluation`  (
                                   `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0进行中 1完成 2失败）',
                                   `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                   `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+                                  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                   `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                   PRIMARY KEY (`evaluation_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '模型评测' ROW_FORMAT = DYNAMIC;
@@ -227,7 +228,7 @@ CREATE TABLE `ai_evaluation`  (
 -- ----------------------------
 -- Records of ai_evaluation
 -- ----------------------------
-INSERT INTO `ai_evaluation` VALUES (2, 'qwen-plus', 1, 2, '{\"accuracy\": 0.875, \"rowCount\": 2, \"passCount\": 2, \"totalCost\": 0.0055, \"durationSec\": 38, \"totalTokens\": 4046, \"avgLatencyMs\": 17704, \"promptTokens\": 2138, \"completionTokens\": 1908}', '1', 'admin', '2026-07-06 17:37:27', '2026-07-06 17:37:40');
+INSERT INTO `ai_evaluation` VALUES (2, 'qwen-plus', 1, 2, '{\"accuracy\": 0.875, \"rowCount\": 2, \"passCount\": 2, \"totalCost\": 0.0055, \"durationSec\": 38, \"totalTokens\": 4046, \"avgLatencyMs\": 17704, \"promptTokens\": 2138, \"completionTokens\": 1908}', '1', 'admin', '2026-07-06 17:37:27', 'admin', '2026-07-06 17:37:40');
 
 -- ----------------------------
 -- Table structure for ai_guardrail
@@ -244,7 +245,7 @@ CREATE TABLE `ai_guardrail`  (
                                  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                 `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                  `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                  PRIMARY KEY (`guardrail_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '内容护栏' ROW_FORMAT = DYNAMIC;
@@ -269,7 +270,7 @@ CREATE TABLE `ai_knowledge`  (
                                  `knowledge_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '知识库ID',
                                  `kb_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '知识库名称',
                                  `kb_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '编码',
-                                 `description` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
+                                 `description` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
                                  `embedding_model_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '嵌入模型ID',
                                  `embedding_model` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'text-embedding-v3' COMMENT 'DashScope嵌入模型',
                                  `vector_dims` smallint UNSIGNED NOT NULL DEFAULT 1024 COMMENT '向量维度',
@@ -283,7 +284,7 @@ CREATE TABLE `ai_knowledge`  (
                                  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                 `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                  `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                  PRIMARY KEY (`knowledge_id`) USING BTREE,
                                  UNIQUE INDEX `uk_ai_knowledge_code`(`kb_code` ASC) USING BTREE
@@ -316,7 +317,7 @@ CREATE TABLE `ai_knowledge_chunk`  (
                                        `vector_engine` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'milvus' COMMENT '向量引擎',
                                        `milvus_vector_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'Milvus 向量主键',
                                        `metadata_json` json NULL COMMENT 'Redis TAG/Numeric过滤元数据',
-                                       `index_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '索引（0待写入 1已写入 2失败）',
+                                       `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '索引（0待写入 1已写入 2失败）',
                                        `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
                                        `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                        PRIMARY KEY (`chunk_id`) USING BTREE,
@@ -356,7 +357,7 @@ CREATE TABLE `ai_knowledge_doc`  (
                                      `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                      `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                      `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                     `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                     `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                      `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                      PRIMARY KEY (`doc_id`) USING BTREE,
                                      INDEX `idx_ai_knowledge_doc_kb`(`knowledge_id` ASC) USING BTREE,
@@ -397,13 +398,13 @@ CREATE TABLE `ai_model`  (
                              `output_price` decimal(10, 4) NOT NULL DEFAULT 0.0000 COMMENT '输出单价(元/百万Token)',
                              `base_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'API Base URL',
                              `api_key_ref` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '密钥配置键(非明文)',
-                             `sort_order` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '排序',
-                             `is_default` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '默认（0否 1是）',
+                             `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
+                             `default_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '默认（0否 1是）',
                              `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                              `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                              `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                              `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                              `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                              PRIMARY KEY (`model_id`) USING BTREE,
                              UNIQUE INDEX `uk_ai_model_code`(`model_code` ASC) USING BTREE,
@@ -424,19 +425,19 @@ INSERT INTO `ai_model` VALUES (4, 'Ollama Qwen2.5', 'ollama-qwen2.5', 'ollama', 
 DROP TABLE IF EXISTS `ai_plan_review`;
 CREATE TABLE `ai_plan_review`  (
                                    `review_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '审核ID',
-                                   `plan_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '方案类型 train/diet',
+                                   `biz_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '业务类型 train/diet',
                                    `plan_id` bigint UNSIGNED NOT NULL COMMENT '方案ID',
                                    `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
                                    `session_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT 'AI会话ID',
                                    `content_snapshot` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '方案快照JSON',
-                                   `audit_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '审核（0待审 1通过 2拒绝）',
-                                   `audit_reason` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '拒绝原因',
+                                   `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '审核状态（0待审 1通过 2拒绝）',
+                                   `reason` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '拒绝原因',
                                    `auditor_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '审核人',
                                    `audit_time` datetime NULL DEFAULT NULL COMMENT '审核时间',
                                    `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
                                    PRIMARY KEY (`review_id`) USING BTREE,
-                                   INDEX `idx_ai_plan_review_plan`(`plan_type` ASC, `plan_id` ASC) USING BTREE,
-                                   INDEX `idx_ai_plan_review_audit`(`audit_status` ASC) USING BTREE
+                                   INDEX `idx_ai_plan_review_plan`(`biz_type` ASC, `plan_id` ASC) USING BTREE,
+                                   INDEX `idx_ai_plan_review_audit`(`status` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'AI方案审核' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
@@ -459,11 +460,12 @@ CREATE TABLE `ai_prompt`  (
                               `variables_json` json NULL COMMENT '变量定义',
                               `model_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '默认模型ID',
                               `version` int UNSIGNED NOT NULL DEFAULT 1 COMMENT '版本',
+                              `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
                               `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                               `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                               `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                               `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                               `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                               PRIMARY KEY (`prompt_id`) USING BTREE,
                               UNIQUE INDEX `uk_ai_prompt_code`(`prompt_code` ASC) USING BTREE
@@ -472,9 +474,9 @@ CREATE TABLE `ai_prompt`  (
 -- ----------------------------
 -- Records of ai_prompt
 -- ----------------------------
-INSERT INTO `ai_prompt` VALUES (1, 'AI健身教练', 'fitness_coach', '客服话术', '你是FitAI专业健身教练，回答需安全、科学，涉及疾病请建议就医。', '用户问题：{question}', '[\"question\"]', 1, 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-07-06 17:02:42');
-INSERT INTO `ai_prompt` VALUES (2, '训练计划生成', 'train_plan_gen', '训练咨询', '你是 FitAI 训练计划教练。根据用户描述生成科学训练计划，并在末尾输出唯一 JSON（可用 ```json 代码块），字段：planName, goal, weeks, daysPerWeek, fitnessLevel, items:[{weekNo,dayNo,actionName,sets,reps,restSec}]。', '身高{height}cm 体重{weight}kg 目标{goal}', '[\"height\", \"weight\", \"goal\"]', 1, 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-07-06 17:02:42');
-INSERT INTO `ai_prompt` VALUES (3, '饮食方案生成', 'diet_plan_gen', '饮食建议', '你是 FitAI 营养师。根据用户需求生成饮食方案，并在末尾输出唯一 JSON（可用 ```json 代码块），字段：planName, targetCalories, macros:{protein_g,carbs_g,fat_g}, items:[{mealType,foodName,amount}]。', '目标：{goal} 每日热量约 {calories}kcal', '[\"goal\", \"calories\"]', 1, 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-07-06 17:02:42');
+INSERT INTO `ai_prompt` VALUES (1, 'AI健身教练', 'fitness_coach', '客服话术', '你是FitAI专业健身教练，回答需安全、科学，涉及疾病请建议就医。', '用户问题：{question}', '[\"question\"]', 1, 1, 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-07-06 17:02:42');
+INSERT INTO `ai_prompt` VALUES (2, '训练计划生成', 'train_plan_gen', '训练咨询', '你是 FitAI 训练计划教练。根据用户描述生成科学训练计划，并在末尾输出唯一 JSON（可用 ```json 代码块），字段：planName, goal, weeks, daysPerWeek, fitnessLevel, items:[{weekNo,dayNo,actionName,sets,reps,restSec}]。', '身高{height}cm 体重{weight}kg 目标{goal}', '[\"height\", \"weight\", \"goal\"]', 1, 1, 2, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-07-06 17:02:42');
+INSERT INTO `ai_prompt` VALUES (3, '饮食方案生成', 'diet_plan_gen', '饮食建议', '你是 FitAI 营养师。根据用户需求生成饮食方案，并在末尾输出唯一 JSON（可用 ```json 代码块），字段：planName, targetCalories, macros:{protein_g,carbs_g,fat_g}, items:[{mealType,foodName,amount}]。', '目标：{goal} 每日热量约 {calories}kcal', '[\"goal\", \"calories\"]', 1, 1, 3, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-07-06 17:02:42');
 
 -- ----------------------------
 -- Table structure for ai_quota_gift
@@ -486,7 +488,7 @@ CREATE TABLE `ai_quota_gift`  (
                                   `quota_month` char(7) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '额度月份 yyyy-MM',
                                   `gift_tokens` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '赠送 Token',
                                   `benefit_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '关联权益ID',
-                                  `reason` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '原因',
+                                  `reason` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '原因',
                                   `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
                                   PRIMARY KEY (`gift_id`) USING BTREE,
                                   INDEX `idx_ai_quota_gift_customer_month`(`customer_id` ASC, `quota_month` ASC) USING BTREE
@@ -565,14 +567,14 @@ CREATE TABLE `ai_tool`  (
                             `tool_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '工具名称',
                             `tool_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '编码',
                             `tool_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'function' COMMENT '类型 function/mcp/http',
-                            `description` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
+                            `description` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
                             `schema_json` json NOT NULL COMMENT '参数Schema(JSON Schema)',
                             `endpoint` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'HTTP/MCP端点',
                             `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                             `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                             `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                             `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                            `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                            `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                             `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                             PRIMARY KEY (`tool_id`) USING BTREE,
                             UNIQUE INDEX `uk_ai_tool_code`(`tool_code` ASC) USING BTREE
@@ -620,30 +622,31 @@ CREATE TABLE `ai_trace`  (
 INSERT INTO `ai_trace` VALUES (1, 'trace-uuid-001', 1, 'conv-uuid-001', 1, 'qwen-plus', 'chat', 'coach', 320, 641, 0, '[{\"kind\": \"RETRIEVE\", \"name\": \"retrieve\", \"spanId\": 1, \"status\": \"OK\", \"durationMs\": 120}, {\"kind\": \"CONFIG\", \"name\": \"prompt\", \"spanId\": 2, \"status\": \"OK\", \"durationMs\": 30}, {\"kind\": \"LLM\", \"name\": \"llm\", \"spanId\": 3, \"status\": \"OK\", \"durationMs\": 1100}, {\"kind\": \"OUTPUT\", \"name\": \"output\", \"spanId\": 4, \"status\": \"OK\", \"durationMs\": 10}]', 1260, '0', NULL, '2026-07-05 10:00:00');
 
 -- ----------------------------
--- Table structure for ai_user_quota
+-- Table structure for ai_customer_quota
 -- ----------------------------
 DROP TABLE IF EXISTS `ai_user_quota`;
-CREATE TABLE `ai_user_quota`  (
-                                  `quota_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '额度ID',
-                                  `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
-                                  `quota_month` char(7) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '额度月份 yyyy-MM',
-                                  `quota_total` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '月总额度(Token)',
-                                  `quota_used` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '已用 Token',
-                                  `quota_remain` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '剩余 Token(冗余)',
-                                  `source_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'base' COMMENT '月基础来源 base/member（赠送见 ai_quota_gift）',
-                                  `source_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '来源ID',
-                                  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                  `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                                  PRIMARY KEY (`quota_id`) USING BTREE,
-                                  UNIQUE INDEX `uk_ai_user_quota`(`customer_id` ASC, `quota_month` ASC) USING BTREE
+DROP TABLE IF EXISTS `ai_customer_quota`;
+CREATE TABLE `ai_customer_quota`  (
+                                      `quota_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '额度ID',
+                                      `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
+                                      `quota_month` char(7) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '额度月份 yyyy-MM',
+                                      `quota_total` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '月总额度(Token)',
+                                      `quota_used` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '已用 Token',
+                                      `quota_remain` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '剩余 Token(冗余)',
+                                      `source_type` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'base' COMMENT '月基础来源 base/member（赠送见 ai_quota_gift）',
+                                      `source_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '来源ID',
+                                      `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+                                      `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                      PRIMARY KEY (`quota_id`) USING BTREE,
+                                      UNIQUE INDEX `uk_ai_customer_quota`(`customer_id` ASC, `quota_month` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'AI用户月额度' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of ai_user_quota
+-- Records of ai_customer_quota
 -- ----------------------------
-INSERT INTO `ai_user_quota` VALUES (1, 1, '2025-05', 30000, 3600, 26400, 'member', 1, '2025-05-20 10:00:00', '2025-05-20 10:00:00');
-INSERT INTO `ai_user_quota` VALUES (2, 3, '2025-05', 150000, 4500, 145500, 'member', 2, '2025-05-20 10:00:00', '2025-05-20 10:00:00');
-INSERT INTO `ai_user_quota` VALUES (3, 1, '2026-07', 30000, 1317, 28683, 'base', NULL, '2026-07-06 09:28:50', '2026-07-06 15:21:40');
+INSERT INTO `ai_customer_quota` VALUES (1, 1, '2025-05', 30000, 3600, 26400, 'member', 1, '2025-05-20 10:00:00', '2025-05-20 10:00:00');
+INSERT INTO `ai_customer_quota` VALUES (2, 3, '2025-05', 150000, 4500, 145500, 'member', 2, '2025-05-20 10:00:00', '2025-05-20 10:00:00');
+INSERT INTO `ai_customer_quota` VALUES (3, 1, '2026-07', 30000, 1317, 28683, 'base', NULL, '2026-07-06 09:28:50', '2026-07-06 15:21:40');
 
 -- ----------------------------
 -- Table structure for ai_vector_index
@@ -663,10 +666,11 @@ CREATE TABLE `ai_vector_index`  (
                                     `endpoint` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '连接地址 milvus://host:19530',
                                     `doc_count` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '文档数(冗余)',
                                     `last_rebuild_time` datetime NULL DEFAULT NULL COMMENT '最后重建时间',
-                                    `index_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1重建中 2异常）',
+                                    `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1重建中 2异常）',
+                                    `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                     `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                     `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                    `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                    `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                     `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                     PRIMARY KEY (`index_id`) USING BTREE,
                                     UNIQUE INDEX `uk_ai_vector_index_name`(`index_name` ASC) USING BTREE,
@@ -676,167 +680,8 @@ CREATE TABLE `ai_vector_index`  (
 -- ----------------------------
 -- Records of ai_vector_index
 -- ----------------------------
-INSERT INTO `ai_vector_index` VALUES (4, 'fit_lose', 'milvus', 'idx:fit_lose', 'fit_lose', 2, 1024, 'COSINE', 'HNSW', 'text-embedding-v3', '192.168.49.110', 0, NULL, '0', 'admin', '2026-07-06 16:19:22', NULL, '2026-07-06 16:21:08');
-INSERT INTO `ai_vector_index` VALUES (5, 'fitai_muscle', 'milvus', 'idx:fitai_muscle', 'fitai_muscle', 3, 1024, 'COSINE', 'HNSW', 'text-embedding-v3', '192.168.49.110', 0, NULL, '0', 'admin', '2026-07-06 17:28:36', NULL, '2026-07-06 17:29:19');
-
-
-
-
--- ==============================================
--- 模块: fitai_cms (原 fitai_cms 库，已合并至 fitai_all)
--- ==============================================
-
--- ----------------------------
--- Table structure for cms_comment
--- ----------------------------
-DROP TABLE IF EXISTS `cms_comment`;
-CREATE TABLE `cms_comment`  (
-                                `comment_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '评论ID',
-                                `post_id` bigint UNSIGNED NOT NULL COMMENT '动态ID',
-                                `customer_id` bigint UNSIGNED NOT NULL COMMENT '评论用户ID',
-                                `customer_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '昵称(冗余)',
-                                `parent_id` bigint UNSIGNED NOT NULL DEFAULT 0 COMMENT '父评论ID',
-                                `content` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '评论内容',
-                                `like_count` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '点赞数(冗余)',
-                                `audit_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '审核（0待审 1通过 2拒绝）',
-                                `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1隐藏）',
-                                `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
-                                `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                PRIMARY KEY (`comment_id`) USING BTREE,
-                                INDEX `idx_cms_comment_post`(`post_id` ASC) USING BTREE,
-                                INDEX `idx_cms_comment_audit`(`audit_status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '社区评论' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of cms_comment
--- ----------------------------
-INSERT INTO `cms_comment` VALUES (1, 1, 2, '瑜伽达人Lily', 0, '加油！前三天最难，坚持就是胜利！', 0, '1', '0', '0', '2025-05-20 22:00:00');
-INSERT INTO `cms_comment` VALUES (2, 1, 3, 'IronMike', 0, '第一天感觉怎么样？心率大概多少？', 0, '1', '0', '0', '2025-05-20 22:15:00');
-INSERT INTO `cms_comment` VALUES (3, 1, 1, '健身小白', 2, '平均150左右，最后几分钟到170', 0, '1', '0', '0', '2025-05-20 22:30:00');
-INSERT INTO `cms_comment` VALUES (4, 2, 1, '健身小白', 0, '太强了！向大佬学习', 0, '1', '0', '0', '2025-05-19 19:00:00');
-INSERT INTO `cms_comment` VALUES (5, 3, 4, '跑步爱好者', 0, '我也该试试瑜伽了', 0, '1', '0', '0', '2025-05-18 08:00:00');
-
--- ----------------------------
--- Table structure for cms_comment_like
--- ----------------------------
-DROP TABLE IF EXISTS `cms_comment_like`;
-CREATE TABLE `cms_comment_like`  (
-                                     `like_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '点赞ID',
-                                     `comment_id` bigint UNSIGNED NOT NULL COMMENT '评论ID',
-                                     `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
-                                     `create_time` datetime NULL DEFAULT NULL COMMENT '点赞时间',
-                                     PRIMARY KEY (`like_id`) USING BTREE,
-                                     UNIQUE INDEX `uk_cms_comment_like`(`comment_id` ASC, `customer_id` ASC) USING BTREE,
-                                     INDEX `idx_cms_comment_like_customer`(`customer_id` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '评论点赞' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of cms_comment_like
--- ----------------------------
-
--- ----------------------------
--- Table structure for cms_moderation
--- ----------------------------
-DROP TABLE IF EXISTS `cms_moderation`;
-CREATE TABLE `cms_moderation`  (
-                                   `moderation_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '审核ID',
-                                   `target_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '对象类型 post/comment/ai_plan',
-                                   `target_id` bigint UNSIGNED NOT NULL COMMENT '对象ID',
-                                   `content_snapshot` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '内容快照',
-                                   `audit_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '审核（0待审 1通过 2拒绝）',
-                                   `audit_reason` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '拒绝原因',
-                                   `auditor_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '审核人',
-                                   `audit_time` datetime NULL DEFAULT NULL COMMENT '审核时间',
-                                   `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                   PRIMARY KEY (`moderation_id`) USING BTREE,
-                                   INDEX `idx_cms_moderation_target`(`target_type` ASC, `target_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '内容审核' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of cms_moderation
--- ----------------------------
-INSERT INTO `cms_moderation` VALUES (1, 'post', 1, '今天完成了第一天HIIT，累但爽！体重终于开始下降了 💪', '1', NULL, 2, '2025-05-20 22:00:00', '2025-05-20 22:00:00');
-INSERT INTO `cms_moderation` VALUES (2, 'comment', 1, '加油！前三天最难，坚持就是胜利！', '1', NULL, 2, '2025-05-20 22:05:00', '2025-05-20 22:05:00');
-INSERT INTO `cms_moderation` VALUES (3, 'post', 4, '第一次跟练产后修复课，强度刚好。', '0', NULL, NULL, '2025-05-20 10:00:00', '2025-05-20 10:00:00');
-
--- ----------------------------
--- Table structure for cms_post
--- ----------------------------
-DROP TABLE IF EXISTS `cms_post`;
-CREATE TABLE `cms_post`  (
-                             `post_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '动态ID',
-                             `customer_id` bigint UNSIGNED NOT NULL COMMENT '发布用户ID',
-                             `customer_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '昵称(冗余)',
-                             `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '正文',
-                             `images_json` json NULL COMMENT '图片列表',
-                             `like_count` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '点赞数(冗余)',
-                             `comment_count` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '评论数(冗余)',
-                             `audit_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '审核（0待审 1通过 2拒绝）',
-                             `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1隐藏）',
-                             `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
-                             `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                             `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                             PRIMARY KEY (`post_id`) USING BTREE,
-                             INDEX `idx_cms_post_customer`(`customer_id` ASC) USING BTREE,
-                             INDEX `idx_cms_post_audit`(`audit_status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '社区动态' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of cms_post
--- ----------------------------
-INSERT INTO `cms_post` VALUES (1, 1, '健身小白', '今天完成了第一天HIIT，累但爽！体重终于开始下降了 💪', '[\"https://fitai-media.oss-cn-shanghai.aliyuncs.com/post/hiit_day1.jpg\"]', 28, 5, '1', '0', '0', '2025-05-20 21:30:00', '2025-05-20 21:30:00');
-INSERT INTO `cms_post` VALUES (2, 3, 'IronMike', '卧推100kg达成！感谢王教练的周期化安排。', '[\"https://fitai-media.oss-cn-shanghai.aliyuncs.com/post/bench100.jpg\"]', 86, 12, '1', '0', '0', '2025-05-19 18:00:00', '2025-05-19 18:00:00');
-INSERT INTO `cms_post` VALUES (3, 2, '瑜伽达人Lily', '晨间瑜伽第7天，肩颈放松很多～', NULL, 15, 2, '1', '0', '0', '2025-05-18 07:15:00', '2025-05-18 07:15:00');
-INSERT INTO `cms_post` VALUES (4, 5, '产后恢复中', '第一次跟练产后修复课，强度刚好。', NULL, 8, 0, '0', '0', '0', '2025-05-22 10:00:00', '2025-05-22 10:00:00');
-
--- ----------------------------
--- Table structure for cms_post_like
--- ----------------------------
-DROP TABLE IF EXISTS `cms_post_like`;
-CREATE TABLE `cms_post_like`  (
-                                  `like_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '点赞ID',
-                                  `post_id` bigint UNSIGNED NOT NULL COMMENT '动态ID',
-                                  `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
-                                  `create_time` datetime NULL DEFAULT NULL COMMENT '点赞时间',
-                                  PRIMARY KEY (`like_id`) USING BTREE,
-                                  UNIQUE INDEX `uk_cms_post_like`(`post_id` ASC, `customer_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '动态点赞' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of cms_post_like
--- ----------------------------
-INSERT INTO `cms_post_like` VALUES (1, 1, 2, '2025-05-20 21:45:00');
-INSERT INTO `cms_post_like` VALUES (2, 1, 3, '2025-05-20 22:00:00');
-INSERT INTO `cms_post_like` VALUES (3, 1, 4, '2025-05-21 08:00:00');
-INSERT INTO `cms_post_like` VALUES (4, 2, 1, '2025-05-19 18:30:00');
-INSERT INTO `cms_post_like` VALUES (5, 2, 4, '2025-05-19 20:00:00');
-INSERT INTO `cms_post_like` VALUES (6, 3, 1, '2025-05-18 07:30:00');
-
--- ----------------------------
--- Table structure for cms_topic
--- ----------------------------
-DROP TABLE IF EXISTS `cms_topic`;
-CREATE TABLE `cms_topic`  (
-                              `topic_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '话题ID',
-                              `topic_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '话题名(不含#)',
-                              `post_count` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '关联动态数(热门排序依据)',
-                              `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0启用 1停用）',
-                              `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                              `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                              PRIMARY KEY (`topic_id`) USING BTREE,
-                              UNIQUE INDEX `uk_cms_topic_name`(`topic_name` ASC) USING BTREE,
-                              INDEX `idx_cms_topic_hot`(`status` ASC, `post_count` DESC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '社区话题' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of cms_topic
--- ----------------------------
-INSERT INTO `cms_topic` VALUES (1, '健身打卡', 1234, '0', '2025-05-01 10:00:00', '2025-05-01 10:00:00');
-INSERT INTO `cms_topic` VALUES (2, '减脂分享', 892, '0', '2025-05-01 10:00:00', '2025-05-01 10:00:00');
-INSERT INTO `cms_topic` VALUES (3, '力量训练', 756, '0', '2025-05-01 10:00:00', '2025-05-01 10:00:00');
-INSERT INTO `cms_topic` VALUES (4, '跑步日记', 623, '0', '2025-05-01 10:00:00', '2025-05-01 10:00:00');
-INSERT INTO `cms_topic` VALUES (5, '瑜伽生活', 512, '0', '2025-05-01 10:00:00', '2025-05-01 10:00:00');
-INSERT INTO `cms_topic` VALUES (6, '健康饮食', 489, '0', '2025-05-01 10:00:00', '2025-05-01 10:00:00');
+INSERT INTO `ai_vector_index` VALUES (4, 'fit_lose', 'milvus', 'idx:fit_lose', 'fit_lose', 2, 1024, 'COSINE', 'HNSW', 'text-embedding-v3', '192.168.49.110', 0, NULL, '0', '0', 'admin', '2026-07-06 16:19:22', NULL, '2026-07-06 16:21:08');
+INSERT INTO `ai_vector_index` VALUES (5, 'fitai_muscle', 'milvus', 'idx:fitai_muscle', 'fitai_muscle', 3, 1024, 'COSINE', 'HNSW', 'text-embedding-v3', '192.168.49.110', 0, NULL, '0', '0', 'admin', '2026-07-06 17:28:36', NULL, '2026-07-06 17:29:19');
 
 
 
@@ -855,13 +700,13 @@ CREATE TABLE `crs_category`  (
                                  `ancestors` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '祖级列表',
                                  `category_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称',
                                  `icon_oss_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '图标OSS图片ID',
-                                 `icon` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图标URL(冗余)',
+                                 `icon` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图标（Element 图标类名）',
                                  `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
                                  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                                  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                 `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                  `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                  PRIMARY KEY (`category_id`) USING BTREE,
                                  INDEX `idx_crs_category_parent`(`parent_id` ASC) USING BTREE
@@ -925,7 +770,7 @@ DROP TABLE IF EXISTS `crs_course_like`;
 CREATE TABLE `crs_course_like`  (
                                     `like_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '点赞记录ID',
                                     `course_id` bigint UNSIGNED NOT NULL COMMENT '课程ID',
-                                    `customer_id` bigint UNSIGNED NOT NULL COMMENT '会员ID',
+                                    `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
                                     `create_time` datetime NULL DEFAULT NULL COMMENT '点赞时间',
                                     PRIMARY KEY (`like_id`) USING BTREE,
                                     UNIQUE INDEX `uk_crs_course_like`(`course_id` ASC, `customer_id` ASC) USING BTREE,
@@ -934,6 +779,24 @@ CREATE TABLE `crs_course_like`  (
 
 -- ----------------------------
 -- Records of crs_course_like
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for crs_course_favorite
+-- ----------------------------
+DROP TABLE IF EXISTS `crs_course_favorite`;
+CREATE TABLE `crs_course_favorite`  (
+                                        `favorite_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '收藏记录ID',
+                                        `course_id` bigint UNSIGNED NOT NULL COMMENT '课程ID',
+                                        `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
+                                        `create_time` datetime NULL DEFAULT NULL COMMENT '收藏时间',
+                                        PRIMARY KEY (`favorite_id`) USING BTREE,
+                                        UNIQUE INDEX `uk_crs_course_favorite`(`course_id` ASC, `customer_id` ASC) USING BTREE,
+                                        INDEX `idx_crs_course_favorite_customer`(`customer_id` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '课程收藏' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of crs_course_favorite
 -- ----------------------------
 
 -- ----------------------------
@@ -962,51 +825,8 @@ CREATE TABLE `crs_learn_progress`  (
 -- ----------------------------
 -- Records of crs_learn_progress
 -- ----------------------------
-INSERT INTO `crs_learn_progress` VALUES (1, 1, 1, '21天燃脂挑战', 2, '第2课 核心燃脂', 70, 1415, 2020, '0', '2025-05-20 21:00:00', '2025-05-20 21:00:00', '2025-05-20 21:00:00');
-INSERT INTO `crs_learn_progress` VALUES (2, 2, 3, '7天晨间瑜伽', 1, '第1天 唤醒拉伸', 100, 600, 600, '1', '2025-05-18 07:20:00', '2025-05-18 07:20:00', '2025-05-18 07:20:00');
-
--- ----------------------------
--- Table structure for crs_video
--- ----------------------------
-DROP TABLE IF EXISTS `crs_video`;
-CREATE TABLE `crs_video`  (
-                              `video_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '视频课时ID',
-                              `course_id` bigint UNSIGNED NOT NULL COMMENT '课程ID',
-                              `course_title` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '课程名(冗余)',
-                              `video_title` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '视频标题',
-                              `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
-                              `vod_asset_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT 'VOD视频ID(media_vod)',
-                              `vod_category_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT 'VOD分类ID(冗余)',
-                              `vod_category_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'VOD分类名(冗余)',
-                              `cover_oss_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '封面OSS图片ID',
-                              `cover_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '封面URL(冗余,来自media_oss)',
-                              `vod_video_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'VOD VideoId(冗余)',
-                              `vod_cover_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'VOD封面(冗余)',
-                              `vod_play_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '播放地址(冗余)',
-                              `vod_duration` decimal(10, 2) NULL DEFAULT NULL COMMENT '时长秒(冗余)',
-                              `vod_status` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'VOD状态(冗余)',
-                              `is_preview` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '试看（0否 1是）',
-                              `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
-                              `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
-                              `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
-                              `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
-                              `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                              PRIMARY KEY (`video_id`) USING BTREE,
-                              INDEX `idx_crs_video_course`(`course_id` ASC) USING BTREE,
-                              INDEX `idx_crs_video_vod_asset`(`vod_asset_id` ASC) USING BTREE,
-                              INDEX `idx_crs_video_cover_oss`(`cover_oss_id` ASC) USING BTREE,
-                              INDEX `idx_crs_video_vod`(`vod_video_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '课程视频' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of crs_video
--- ----------------------------
-INSERT INTO `crs_video` VALUES (1, 1, '21天燃脂挑战', '第1课 热身与基础', 1, 1, 1, '课程正片', 4, 'https://fitai-media.oss-cn-shanghai.aliyuncs.com/course/hiit01.jpg', 'v_demo_hiit_001', 'https://fitai-media.oss-cn-shanghai.aliyuncs.com/course/hiit01.jpg', 'https://vod.fitai.com/hiit01.m3u8', 920.50, 'Normal', '1', '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
-INSERT INTO `crs_video` VALUES (2, 1, '21天燃脂挑战', '第2课 核心燃脂', 2, 2, 1, '课程正片', 5, 'https://fitai-media.oss-cn-shanghai.aliyuncs.com/course/hiit02.jpg', 'v_demo_hiit_002', 'https://fitai-media.oss-cn-shanghai.aliyuncs.com/course/hiit02.jpg', 'https://vod.fitai.com/hiit02.m3u8', 1100.00, 'Normal', '0', '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
-
-
-
+INSERT INTO `crs_learn_progress` VALUES (1, 1, 1, '21天燃脂挑战', NULL, NULL, 70, 1415, 2020, '0', '2025-05-20 21:00:00', '2025-05-20 21:00:00', '2025-05-20 21:00:00');
+INSERT INTO `crs_learn_progress` VALUES (2, 2, 3, '7天晨间瑜伽', NULL, NULL, 100, 600, 600, '1', '2025-05-18 07:20:00', '2025-05-18 07:20:00', '2025-05-18 07:20:00');
 
 -- ==============================================
 -- 模块: fitai_diet (原 fitai_diet 库，已合并至 fitai_all)
@@ -1018,23 +838,41 @@ INSERT INTO `crs_video` VALUES (2, 1, '21天燃脂挑战', '第2课 核心燃脂
 DROP TABLE IF EXISTS `diet_category`;
 CREATE TABLE `diet_category`  (
                                   `category_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '分类ID',
-                                  `parent_id` bigint UNSIGNED NOT NULL DEFAULT 0 COMMENT '父分类',
+                                  `parent_id` bigint UNSIGNED NOT NULL DEFAULT 0 COMMENT '父分类ID',
+                                  `ancestors` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '祖级列表',
                                   `category_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称',
+                                  `level` tinyint UNSIGNED NOT NULL DEFAULT 1 COMMENT '层级(1起)',
                                   `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
                                   `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                                   `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                   `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                   `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                   `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                                  PRIMARY KEY (`category_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '饮食分类' ROW_FORMAT = DYNAMIC;
+                                  PRIMARY KEY (`category_id`) USING BTREE,
+                                  INDEX `idx_diet_category_parent`(`parent_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 18 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '饮食分类(树)' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of diet_category
 -- ----------------------------
-INSERT INTO `diet_category` VALUES (1, 0, '主食', 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
-INSERT INTO `diet_category` VALUES (2, 0, '蛋白质', 2, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (1, 0, '0', '主食', 1, 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (2, 0, '0', '蛋白质', 1, 2, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (3, 0, '0', '蔬菜', 1, 3, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (4, 0, '0', '水果', 1, 4, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (5, 0, '0', '乳制品', 1, 5, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (16, 0, '0', '坚果油脂', 1, 6, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (6, 1, '0,1', '米饭面食', 2, 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (7, 1, '0,1', '杂粮薯类', 2, 2, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (8, 2, '0,2', '禽畜肉', 2, 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (9, 2, '0,2', '蛋类', 2, 2, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (10, 2, '0,2', '水产', 2, 3, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (11, 2, '0,2', '豆制品', 2, 4, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (12, 3, '0,3', '叶菜', 2, 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (13, 3, '0,3', '花果菜', 2, 2, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (14, 4, '0,4', '常见水果', 2, 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (15, 5, '0,5', '奶与酸奶', 2, 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_category` VALUES (17, 16, '0,16', '坚果', 2, 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
 
 -- ----------------------------
 -- Table structure for diet_food
@@ -1046,29 +884,42 @@ CREATE TABLE `diet_food`  (
                               `category_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '分类名(冗余)',
                               `food_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '食物名称',
                               `food_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '编码',
-                              `image` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图片',
                               `unit` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '100g' COMMENT '计量单位',
                               `calories` decimal(8, 2) NOT NULL COMMENT '热量kcal',
-                              `protein_g` decimal(6, 2) NULL DEFAULT NULL COMMENT '蛋白质g',
-                              `fat_g` decimal(6, 2) NULL DEFAULT NULL COMMENT '脂肪g',
-                              `carbs_g` decimal(6, 2) NULL DEFAULT NULL COMMENT '碳水g',
-                              `fiber` decimal(6, 2) NULL DEFAULT NULL COMMENT '膳食纤维g',
+                              `protein_g` decimal(8, 2) NULL DEFAULT NULL COMMENT '蛋白质g',
+                              `fat_g` decimal(8, 2) NULL DEFAULT NULL COMMENT '脂肪g',
+                              `carbs_g` decimal(8, 2) NULL DEFAULT NULL COMMENT '碳水g',
                               `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                               `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                               `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                               `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                               `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                               PRIMARY KEY (`food_id`) USING BTREE,
                               INDEX `idx_diet_food_category`(`category_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '食物库' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 19 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '食物库' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of diet_food
 -- ----------------------------
-INSERT INTO `diet_food` VALUES (1, 1, '主食', '糙米饭', NULL, NULL, '100g', 116.00, 2.60, 0.90, 25.60, NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
-INSERT INTO `diet_food` VALUES (2, 2, '蛋白质', '鸡胸肉', NULL, NULL, '100g', 133.00, 19.40, 5.00, 2.50, NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
-INSERT INTO `diet_food` VALUES (3, 2, '蛋白质', '水煮蛋', NULL, NULL, '1个(50g)', 72.00, 6.30, 4.80, 0.60, NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (1, 6, '米饭面食', '糙米饭', NULL, '100g', 116.00, 2.60, 0.90, 25.60, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (2, 8, '禽畜肉', '鸡胸肉', NULL, '100g', 133.00, 19.40, 5.00, 2.50, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (3, 9, '蛋类', '水煮蛋', NULL, '100g', 144.00, 12.60, 9.60, 1.20, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (4, 7, '杂粮薯类', '燕麦片', NULL, '100g', 367.00, 13.00, 6.50, 62.00, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (5, 6, '米饭面食', '全麦面包', NULL, '100g', 247.00, 8.50, 3.50, 43.00, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (6, 10, '水产', '三文鱼', NULL, '100g', 208.00, 20.00, 13.00, 0.00, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (7, 11, '豆制品', '豆腐', NULL, '100g', 76.00, 8.10, 4.80, 1.90, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (8, 13, '花果菜', '西兰花', NULL, '100g', 34.00, 2.80, 0.40, 7.00, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (9, 12, '叶菜', '生菜', NULL, '100g', 15.00, 1.40, 0.20, 2.90, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (10, 14, '常见水果', '香蕉', NULL, '100g', 89.00, 1.10, 0.30, 22.80, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (11, 14, '常见水果', '苹果', NULL, '100g', 52.00, 0.30, 0.20, 13.80, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (12, 15, '奶与酸奶', '无糖酸奶', NULL, '100g', 61.00, 3.50, 3.30, 4.70, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (13, 7, '杂粮薯类', '红薯', NULL, '100g', 86.00, 1.60, 0.10, 20.10, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (14, 10, '水产', '虾仁', NULL, '100g', 93.00, 18.60, 0.80, 2.00, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (15, 15, '奶与酸奶', '纯牛奶', NULL, '100g', 54.00, 3.00, 3.20, 3.40, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (16, 17, '坚果', '核桃', NULL, '100g', 654.00, 15.20, 65.20, 13.70, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (17, 12, '叶菜', '菠菜', NULL, '100g', 23.00, 2.90, 0.40, 3.60, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `diet_food` VALUES (18, 6, '米饭面食', '荞麦面', NULL, '100g', 348.00, 9.70, 2.70, 71.50, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
 
 -- ----------------------------
 -- Table structure for diet_plan
@@ -1078,26 +929,28 @@ CREATE TABLE `diet_plan`  (
                               `plan_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '方案ID',
                               `plan_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '方案名称',
                               `customer_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '用户ID',
-                              `plan_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '1' COMMENT '类型（1系统 2个人 3AI）',
-                              `target_calories` decimal(8, 2) NOT NULL COMMENT '目标热量',
-                              `macros_json` json NULL COMMENT '宏量营养素目标JSON',
-                              `plan_json` json NULL COMMENT 'AI方案JSON(可选冗余)',
+                              `plan_date` date NULL DEFAULT NULL COMMENT '计划日期（C端按日唯一）',
+                              `plan_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '1' COMMENT '方案类型（1系统 2个人 3AI）',
+                              `target_calories` decimal(8, 2) NOT NULL COMMENT '目标热量kcal',
+                              `macros_json` json NULL COMMENT '宏量目标JSON：protein_g/carbs_g/fat_g',
+                              `plan_json` json NULL COMMENT '四餐JSON：breakfast/lunch/dinner/snacks',
                               `ai_session_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT 'AI会话ID',
-                              `audit_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '审核（0待审 1通过 2拒绝）',
+                              `audit_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '审核状态（0待审 1通过 2拒绝）',
                               `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                               `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                               `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                               `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                               `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                               PRIMARY KEY (`plan_id`) USING BTREE,
-                              INDEX `idx_diet_plan_customer`(`customer_id` ASC) USING BTREE
+                              INDEX `idx_diet_plan_customer`(`customer_id` ASC) USING BTREE,
+                              UNIQUE INDEX `uk_diet_plan_customer_date`(`customer_id` ASC, `plan_date` ASC)
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '饮食方案' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of diet_plan
 -- ----------------------------
-INSERT INTO `diet_plan` VALUES (1, 'AI减脂饮食-1800kcal', 1, '3', 1800.00, '{\"fat_g\": 60, \"carbs_g\": 180, \"protein_g\": 120}', NULL, NULL, '1', '0', '0', '超级管理员', '2025-05-18 15:00:00', '', '2025-05-18 15:00:00');
+INSERT INTO `diet_plan` VALUES (1, 'AI减脂饮食-1800kcal', 1, '2025-05-18', '3', 1800.00, '{\"fat_g\": 60, \"carbs_g\": 180, \"protein_g\": 120}', '{\"breakfast\":[{\"foodId\":3,\"foodName\":\"水煮蛋\",\"portion\":\"100g\",\"calories\":144,\"protein\":12.6,\"carbs\":1.2,\"fat\":9.6}],\"lunch\":[{\"foodId\":2,\"foodName\":\"鸡胸肉\",\"portion\":\"150g\",\"calories\":200,\"protein\":29.1,\"carbs\":3.8,\"fat\":7.5},{\"foodId\":1,\"foodName\":\"糙米饭\",\"portion\":\"150g\",\"calories\":174,\"protein\":3.9,\"carbs\":38.4,\"fat\":1.4}],\"dinner\":[],\"snacks\":[]}', NULL, '1', '0', '0', '超级管理员', '2025-05-18 15:00:00', '', '2025-05-18 15:00:00');
 
 -- ----------------------------
 -- Table structure for diet_plan_item
@@ -1109,8 +962,8 @@ CREATE TABLE `diet_plan_item`  (
                                    `meal_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '餐次（1早 2午 3晚 4加餐）',
                                    `food_id` bigint UNSIGNED NOT NULL COMMENT '食物ID',
                                    `food_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '食物名(冗余)',
-                                   `amount` decimal(8, 2) NOT NULL COMMENT '份量',
-                                   `calories` decimal(8, 2) NOT NULL COMMENT '热量(冗余)',
+                                   `portion_g` decimal(8, 2) NOT NULL COMMENT '份量g',
+                                   `calories` decimal(8, 2) NOT NULL COMMENT '热量kcal(冗余)',
                                    PRIMARY KEY (`item_id`) USING BTREE,
                                    INDEX `idx_diet_plan_item_plan`(`plan_id` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '饮食方案明细' ROW_FORMAT = DYNAMIC;
@@ -1131,10 +984,14 @@ CREATE TABLE `diet_record`  (
                                 `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
                                 `record_date` date NOT NULL COMMENT '记录日期',
                                 `meal_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '餐次（1早 2午 3晚 4加餐）',
-                                `food_id` bigint UNSIGNED NOT NULL COMMENT '食物ID',
+                                `food_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '食物ID（手填可空）',
                                 `food_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '食物名(冗余)',
-                                `amount` decimal(8, 2) NOT NULL COMMENT '份量',
-                                `calories` decimal(8, 2) NOT NULL COMMENT '热量',
+                                `category_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '分类ID',
+                                `portion_g` decimal(8, 2) NOT NULL COMMENT '份量g',
+                                `calories` decimal(8, 2) NOT NULL COMMENT '热量kcal',
+                                `protein_g` decimal(8, 2) NULL DEFAULT NULL COMMENT '蛋白质g',
+                                `carbs_g` decimal(8, 2) NULL DEFAULT NULL COMMENT '碳水g',
+                                `fat_g` decimal(8, 2) NULL DEFAULT NULL COMMENT '脂肪g',
                                 `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
                                 PRIMARY KEY (`record_id`) USING BTREE,
                                 INDEX `idx_diet_record_customer_date`(`customer_id` ASC, `record_date` ASC) USING BTREE,
@@ -1144,8 +1001,8 @@ CREATE TABLE `diet_record`  (
 -- ----------------------------
 -- Records of diet_record
 -- ----------------------------
-INSERT INTO `diet_record` VALUES (1, 1, '2025-05-20', '1', 3, '水煮蛋', 2.00, 144.00, '2025-05-20 10:00:00');
-INSERT INTO `diet_record` VALUES (2, 1, '2025-05-20', '2', 2, '鸡胸肉', 120.00, 159.60, '2025-05-20 10:00:00');
+INSERT INTO `diet_record` VALUES (1, 1, '2025-05-20', '1', 3, '水煮蛋', 9, 100.00, 144.00, 12.60, 1.20, 9.60, '2025-05-20 10:00:00');
+INSERT INTO `diet_record` VALUES (2, 1, '2025-05-20', '2', 2, '鸡胸肉', 8, 120.00, 160.00, 23.30, 3.00, 6.00, '2025-05-20 10:00:00');
 
 
 
@@ -1153,30 +1010,6 @@ INSERT INTO `diet_record` VALUES (2, 1, '2025-05-20', '2', 2, '鸡胸肉', 120.0
 -- ==============================================
 -- 模块: fitai_media (原 fitai_media 库，已合并至 fitai_all)
 -- ==============================================
-
--- ----------------------------
--- Table structure for file_folder（图片库分类）
--- ----------------------------
-DROP TABLE IF EXISTS `file_folder`;
-CREATE TABLE `file_folder`  (
-                                `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
-                                `folder_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'OSS目录前缀',
-                                `label` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '侧栏显示名称',
-                                `sort_order` int NOT NULL DEFAULT 0 COMMENT '排序（越小越靠前）',
-                                `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
-                                `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
-                                `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
-                                `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                                PRIMARY KEY (`id`) USING BTREE,
-                                UNIQUE KEY `uk_file_folder_key` (`folder_key`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '图片库分类' ROW_FORMAT = DYNAMIC;
-
-INSERT INTO `file_folder` VALUES (1, 'banner', '轮播图片', 1, '0', '超级管理员', '2026-05-26 15:00:00', '', '2026-05-26 15:00:00');
-INSERT INTO `file_folder` VALUES (2, 'images', '默认图片', 2, '0', '超级管理员', '2026-05-26 15:00:00', '', '2026-05-26 15:00:00');
-INSERT INTO `file_folder` VALUES (3, 'course', '课程图片', 3, '0', '超级管理员', '2026-05-26 15:00:00', '', '2026-05-26 15:00:00');
-INSERT INTO `file_folder` VALUES (4, 'product', '商品图片', 4, '0', '超级管理员', '2026-05-26 15:00:00', '', '2026-05-26 15:00:00');
-INSERT INTO `file_folder` VALUES (5, 'seckill', '秒杀图片', 5, '0', '超级管理员', '2026-05-26 15:00:00', '', '2026-05-26 15:00:00');
 
 -- ----------------------------
 -- Table structure for media_oss
@@ -1202,7 +1035,7 @@ CREATE TABLE `media_oss`  (
                               `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                               `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                               `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                               `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                               PRIMARY KEY (`oss_id`) USING BTREE,
                               INDEX `idx_media_oss_category`(`category_id` ASC) USING BTREE,
@@ -1275,7 +1108,7 @@ CREATE TABLE `media_oss_category`  (
                                        `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                        `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                        `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                       `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                       `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                        `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                        PRIMARY KEY (`category_id`) USING BTREE,
                                        INDEX `idx_media_oss_category_parent`(`parent_id` ASC) USING BTREE
@@ -1319,7 +1152,7 @@ CREATE TABLE `media_vod`  (
                               `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                               `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                               `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                               `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                               PRIMARY KEY (`vod_asset_id`) USING BTREE,
                               UNIQUE INDEX `uk_media_vod_video_id`(`vod_video_id` ASC) USING BTREE,
@@ -1353,7 +1186,7 @@ CREATE TABLE `media_vod_category`  (
                                        `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                        `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                        `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                       `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                       `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                        `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                        PRIMARY KEY (`category_id`) USING BTREE,
                                        INDEX `idx_media_vod_category_parent`(`parent_id` ASC) USING BTREE,
@@ -1363,9 +1196,9 @@ CREATE TABLE `media_vod_category`  (
 -- ----------------------------
 -- Records of media_vod_category
 -- ----------------------------
-INSERT INTO `media_vod_category` VALUES (1, 0, '0', '课程正片', 100001, 1, '0', '2', '超级管理员', '2026-05-26 15:22:20', '超级管理员', '2026-05-26 15:22:20');
-INSERT INTO `media_vod_category` VALUES (2, 0, '0', '试看片段', 100003, 2, '0', '2', '超级管理员', '2026-05-26 15:22:18', '超级管理员', '2026-05-26 15:22:18');
-INSERT INTO `media_vod_category` VALUES (3, 0, '0', '动作示范', 100002, 3, '0', '2', '超级管理员', '2026-05-26 15:22:19', '超级管理员', '2026-05-26 15:22:19');
+INSERT INTO `media_vod_category` VALUES (1, 0, '0', '课程正片', 100001, 1, '0', '0', '超级管理员', '2026-05-26 15:22:20', '超级管理员', '2026-05-26 15:22:20');
+INSERT INTO `media_vod_category` VALUES (2, 0, '0', '试看片段', 100003, 2, '0', '0', '超级管理员', '2026-05-26 15:22:18', '超级管理员', '2026-05-26 15:22:18');
+INSERT INTO `media_vod_category` VALUES (3, 0, '0', '动作示范', 100002, 3, '0', '0', '超级管理员', '2026-05-26 15:22:19', '超级管理员', '2026-05-26 15:22:19');
 INSERT INTO `media_vod_category` VALUES (4, 0, '0', '动作库', NULL, 1, '0', '0', '超级管理员', '2026-05-26 15:22:25', '超级管理员', '2026-05-26 15:22:25');
 
 
@@ -1383,16 +1216,18 @@ CREATE TABLE `mem_badge`  (
                               `badge_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '徽章ID',
                               `badge_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '徽章编码',
                               `badge_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '徽章名称',
-                              `description` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
+                              `description` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
                               `icon_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图标URL',
                               `category` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'achievement' COMMENT '分类 training/social/achievement',
                               `condition_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '条件类型 train_days/checkin/points',
                               `condition_value` int UNSIGNED NULL DEFAULT NULL COMMENT '条件值',
                               `points_reward` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '奖励积分',
-                              `sort_order` int NOT NULL DEFAULT 0 COMMENT '排序',
+                              `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
                               `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                               `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
+                              `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                               `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                               `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                               PRIMARY KEY (`badge_id`) USING BTREE,
                               UNIQUE INDEX `uk_mem_badge_code`(`badge_code` ASC) USING BTREE
@@ -1401,36 +1236,12 @@ CREATE TABLE `mem_badge`  (
 -- ----------------------------
 -- Records of mem_badge
 -- ----------------------------
-INSERT INTO `mem_badge` VALUES (1, 'first_train', '首次训练', '完成第一次训练记录', NULL, 'training', 'train_count', 1, 50, 1, '0', '0', '2025-05-01 09:00:00', '2025-05-01 09:00:00');
-INSERT INTO `mem_badge` VALUES (2, 'checkin_7', '连续签到7天', '连续签到满7天', NULL, 'achievement', 'checkin_days', 7, 100, 2, '0', '0', '2025-05-01 09:00:00', '2025-05-01 09:00:00');
-INSERT INTO `mem_badge` VALUES (3, 'fat_loss_5kg', '减脂5kg', '累计减重5kg', NULL, 'achievement', 'weight_loss_kg', 5, 200, 3, '0', '0', '2025-05-01 09:00:00', '2025-05-01 09:00:00');
+INSERT INTO `mem_badge` VALUES (1, 'first_train', '首次训练', '完成第一次训练记录', NULL, 'training', 'train_count', 1, 50, 1, '0', '0', '超级管理员', '2025-05-01 09:00:00', '', '2025-05-01 09:00:00');
+INSERT INTO `mem_badge` VALUES (2, 'checkin_7', '连续签到7天', '连续签到满7天', NULL, 'achievement', 'checkin_days', 7, 100, 2, '0', '0', '超级管理员', '2025-05-01 09:00:00', '', '2025-05-01 09:00:00');
+INSERT INTO `mem_badge` VALUES (3, 'fat_loss_5kg', '减脂5kg', '累计减重5kg', NULL, 'achievement', 'weight_loss_kg', 5, 200, 3, '0', '0', '超级管理员', '2025-05-01 09:00:00', '', '2025-05-01 09:00:00');
 
--- ----------------------------
--- Table structure for mem_benefit
--- ----------------------------
+-- 历史死表（权益已迁 vip_benefit）
 DROP TABLE IF EXISTS `mem_benefit`;
-CREATE TABLE `mem_benefit`  (
-                                `benefit_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '权益ID',
-                                `benefit_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '权益名称',
-                                `benefit_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '权益编码',
-                                `benefit_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '类型 discount/course/ai_quota',
-                                `benefit_value` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '权益值',
-                                `description` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
-                                `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
-                                `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
-                                `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
-                                `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
-                                `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                                PRIMARY KEY (`benefit_id`) USING BTREE,
-                                UNIQUE INDEX `uk_mem_benefit_code`(`benefit_code` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '会员权益' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of mem_benefit
--- ----------------------------
-INSERT INTO `mem_benefit` VALUES (1, 'AI加赠2万Token', 'ai_quota_gift_20k', 'ai_quota', '20000', '活动/客服手动发放，不参与等级自动叠加', '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
-INSERT INTO `mem_benefit` VALUES (2, '课程9折', 'course_90off', 'discount', '0.90', NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
 
 -- ----------------------------
 -- Table structure for mem_checkin
@@ -1461,12 +1272,12 @@ INSERT INTO `mem_checkin` VALUES (4, 1, '2026-07-06', 1, 10, '2026-07-06 11:42:1
 -- ----------------------------
 DROP TABLE IF EXISTS `mem_customer_badge`;
 CREATE TABLE `mem_customer_badge`  (
-                                       `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
+                                       `customer_badge_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
                                        `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
                                        `badge_id` bigint UNSIGNED NOT NULL COMMENT '徽章ID',
                                        `unlock_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '解锁时间',
-                                       `is_displayed` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '是否展示 0否 1是',
-                                       PRIMARY KEY (`id`) USING BTREE,
+                                       `display_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '展示（0否 1是）',
+                                       PRIMARY KEY (`customer_badge_id`) USING BTREE,
                                        UNIQUE INDEX `uk_mem_customer_badge`(`customer_id` ASC, `badge_id` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户徽章' ROW_FORMAT = DYNAMIC;
 
@@ -1484,9 +1295,9 @@ CREATE TABLE `mem_growth_log`  (
                                    `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
                                    `change_value` int NOT NULL COMMENT '变动成长值',
                                    `balance_after` int UNSIGNED NOT NULL COMMENT '变动后成长值',
-                                   `biz_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '业务类型 sign/train/order',
+                                   `biz_type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '业务类型 sign/train/order',
                                    `biz_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '业务ID',
-                                   `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+                                   `remark` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
                                    `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
                                    PRIMARY KEY (`log_id`) USING BTREE,
                                    INDEX `idx_mem_growth_log_customer`(`customer_id` ASC, `create_time` ASC) USING BTREE
@@ -1508,15 +1319,15 @@ CREATE TABLE `mem_level`  (
                               `level_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '等级ID',
                               `level_name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '等级名称',
                               `level_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '等级编码',
-                              `level_sort` int NOT NULL DEFAULT 0 COMMENT '排序(越大越高)',
+                              `order_num` int NOT NULL DEFAULT 0 COMMENT '排序(越大越高)',
                               `growth_min` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '成长值下限',
                               `growth_max` int UNSIGNED NULL DEFAULT NULL COMMENT '成长值上限',
-                              `icon` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图标',
+                              `icon_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图标URL',
                               `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                               `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                               `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                               `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                               `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                               PRIMARY KEY (`level_id`) USING BTREE,
                               UNIQUE INDEX `uk_mem_level_code`(`level_code` ASC) USING BTREE
@@ -1529,55 +1340,8 @@ INSERT INTO `mem_level` VALUES (1, '普通会员', 'normal', 1, 0, 999, NULL, '0
 INSERT INTO `mem_level` VALUES (2, '黄金会员', 'gold', 2, 1000, 4999, NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
 INSERT INTO `mem_level` VALUES (3, '钻石会员', 'diamond', 3, 5000, NULL, NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
 
--- ----------------------------
--- Table structure for mem_level_benefit
--- ----------------------------
+-- 历史死表（关联已迁 vip_level_benefit）
 DROP TABLE IF EXISTS `mem_level_benefit`;
-CREATE TABLE `mem_level_benefit`  (
-                                      `level_benefit_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '关联ID',
-                                      `level_id` bigint UNSIGNED NOT NULL COMMENT '等级ID',
-                                      `benefit_id` bigint UNSIGNED NOT NULL COMMENT '权益ID',
-                                      PRIMARY KEY (`level_benefit_id`) USING BTREE,
-                                      UNIQUE INDEX `uk_mem_level_benefit`(`level_id` ASC, `benefit_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '等级权益关联' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of mem_level_benefit
--- ----------------------------
-INSERT INTO `mem_level_benefit` VALUES (1, 2, 2);
-INSERT INTO `mem_level_benefit` VALUES (2, 3, 2);
-
--- ----------------------------
--- Table structure for mem_package
--- ----------------------------
-DROP TABLE IF EXISTS `mem_package`;
-CREATE TABLE `mem_package`  (
-                                `package_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '套餐ID',
-                                `package_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '套餐名称',
-                                `package_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '1' COMMENT '类型（1月卡 2季卡 3年卡）',
-                                `duration_days` int UNSIGNED NOT NULL COMMENT '有效天数',
-                                `price` decimal(10, 2) NOT NULL COMMENT '售价',
-                                `orig_price` decimal(10, 2) NULL DEFAULT NULL COMMENT '原价',
-                                `level_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '赠送等级ID',
-                                `level_name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '等级名(冗余)',
-                                `ai_quota_monthly` int UNSIGNED NULL DEFAULT 0 COMMENT 'AI月Token额度',
-                                `ai_quota_daily_tokens` int UNSIGNED NULL DEFAULT 0 COMMENT 'AI日Token上限（会员）',
-                                `ai_daily_chat_limit` int UNSIGNED NULL DEFAULT 0 COMMENT 'AI日对话次数上限（会员）',
-                                `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '描述',
-                                `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0上架 1下架）',
-                                `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
-                                `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
-                                `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
-                                `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                                PRIMARY KEY (`package_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '会员套餐' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of mem_package
--- ----------------------------
-INSERT INTO `mem_package` VALUES (1, '月度会员', '1', 30, 29.90, 39.90, 2, '黄金会员', 100000, 50000, 200, NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
-INSERT INTO `mem_package` VALUES (2, '年度会员', '3', 365, 299.00, 468.00, 3, '钻石会员', 500000, 200000, 500, NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
 
 -- ----------------------------
 -- Table structure for mem_points_log
@@ -1589,9 +1353,9 @@ CREATE TABLE `mem_points_log`  (
                                    `rule_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '规则ID',
                                    `change_points` int NOT NULL COMMENT '变动积分',
                                    `balance_after` int UNSIGNED NOT NULL COMMENT '变动后余额',
-                                   `biz_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '业务类型',
+                                   `biz_type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '业务类型',
                                    `biz_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '业务ID',
-                                   `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+                                   `remark` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
                                    `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
                                    PRIMARY KEY (`log_id`) USING BTREE,
                                    INDEX `idx_mem_points_log_customer`(`customer_id` ASC, `create_time` ASC) USING BTREE
@@ -1621,7 +1385,7 @@ CREATE TABLE `mem_points_rule`  (
                                     `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                     `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                     `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                    `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                    `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                     `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                     PRIMARY KEY (`rule_id`) USING BTREE,
                                     UNIQUE INDEX `uk_mem_points_rule_code`(`rule_code` ASC) USING BTREE
@@ -1633,36 +1397,6 @@ CREATE TABLE `mem_points_rule`  (
 INSERT INTO `mem_points_rule` VALUES (1, '每日签到', 'daily_sign', 'sign', 10, 10, '0', '0', '超级管理员', '2025-05-01 09:00:00', '', '2025-05-01 09:00:00');
 INSERT INTO `mem_points_rule` VALUES (2, '完成训练', 'train_done', 'train', 20, 60, '0', '0', '超级管理员', '2025-05-01 09:00:00', '', '2025-05-01 09:00:00');
 
--- ----------------------------
--- Table structure for mem_subscription
--- ----------------------------
-DROP TABLE IF EXISTS `mem_subscription`;
-CREATE TABLE `mem_subscription`  (
-                                     `subscription_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '订阅ID',
-                                     `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
-                                     `package_id` bigint UNSIGNED NOT NULL COMMENT '套餐ID',
-                                     `package_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '套餐名(冗余)',
-                                     `member_order_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '来源会员订单ID',
-                                     `start_time` datetime NOT NULL COMMENT '生效时间',
-                                     `expire_time` datetime NOT NULL COMMENT '到期时间',
-                                     `auto_renew` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '自动续费（0否 1是）',
-                                     `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0有效 1已过期 2已取消）',
-                                     `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                     `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                                     PRIMARY KEY (`subscription_id`) USING BTREE,
-                                     INDEX `idx_mem_subscription_customer`(`customer_id` ASC) USING BTREE,
-                                     INDEX `idx_mem_subscription_expire`(`expire_time` ASC) USING BTREE,
-                                     INDEX `idx_mem_subscription_status_expire`(`status` ASC, `expire_time` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户会员订阅' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of mem_subscription
--- ----------------------------
-INSERT INTO `mem_subscription` VALUES (1, 1, 1, '月度会员', 1, '2025-05-01 10:00:00', '2025-05-31 10:00:00', '0', '0', '2025-05-31 10:00:00', '2025-05-31 10:00:00');
-
-
-
-
 -- ==============================================
 -- 模块: fitai_mkt (原 fitai_mkt 库，已合并至 fitai_all)
 -- ==============================================
@@ -1672,80 +1406,80 @@ INSERT INTO `mem_subscription` VALUES (1, 1, 1, '月度会员', 1, '2025-05-01 1
 -- ----------------------------
 DROP TABLE IF EXISTS `mkt_banner`;
 CREATE TABLE `mkt_banner`  (
-                               `id` bigint NOT NULL AUTO_INCREMENT COMMENT '轮播ID',
-                               `title` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '标题',
+                               `banner_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '轮播ID',
+                               `banner_title` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '标题',
                                `image_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '图片URL',
                                `link_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '链接类型：url/page/product/course',
                                `link_value` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '链接值',
                                `position` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'home' COMMENT '位置：home/course/product',
-                               `sort_order` int NOT NULL DEFAULT 0 COMMENT '排序（越小越靠前）',
+                               `order_num` int NOT NULL DEFAULT 0 COMMENT '排序（越小越靠前）',
                                `start_time` datetime NULL DEFAULT NULL COMMENT '有效期开始',
                                `end_time` datetime NULL DEFAULT NULL COMMENT '有效期结束',
-                               `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态：0禁用 1启用',
+                               `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                                `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
                                `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                               PRIMARY KEY (`id`) USING BTREE,
+                               PRIMARY KEY (`banner_id`) USING BTREE,
                                INDEX `idx_mkt_banner_position_status`(`position` ASC, `status` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '轮播图' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of mkt_banner
 -- ----------------------------
-INSERT INTO `mkt_banner` VALUES (1, '21天燃脂挑战', 'https://fitai-media.oss-cn-shanghai.aliyuncs.com/banner/home_01.jpg', 'course', '1', 'home', 1, NULL, NULL, 1, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
-INSERT INTO `mkt_banner` VALUES (2, '年度会员限时5折', 'https://fitai-media.oss-cn-shanghai.aliyuncs.com/banner/member_sale.jpg', 'url', 'https://fitai.example.com/member', 'home', 2, NULL, NULL, 1, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
-INSERT INTO `mkt_banner` VALUES (3, '乳清蛋白新品上市', 'https://fitai-media.oss-cn-shanghai.aliyuncs.com/banner/whey_new.jpg', 'product', '2', 'product', 3, NULL, NULL, 1, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `mkt_banner` VALUES (1, '21天燃脂挑战', 'https://fitai-media.oss-cn-shanghai.aliyuncs.com/banner/home_01.jpg', 'course', '1', 'home', 1, NULL, NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `mkt_banner` VALUES (2, '年度会员限时5折', 'https://fitai-media.oss-cn-shanghai.aliyuncs.com/banner/member_sale.jpg', 'url', 'https://fitai.example.com/member', 'home', 2, NULL, NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `mkt_banner` VALUES (3, '乳清蛋白新品上市', 'https://fitai-media.oss-cn-shanghai.aliyuncs.com/banner/whey_new.jpg', 'product', '2', 'product', 3, NULL, NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
 
 
 -- Table structure for mkt_challenge
 -- ----------------------------
 DROP TABLE IF EXISTS `mkt_challenge`;
 CREATE TABLE `mkt_challenge`  (
-                                  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '挑战ID',
-                                  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '挑战名称',
-                                  `description` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
-                                  `cover_image` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '封面图',
-                                  `type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '类型：plank/pushup/running/checkin',
+                                  `challenge_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '挑战ID',
+                                  `challenge_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '挑战名称',
+                                  `description` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
+                                  `cover_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '封面URL',
+                                  `challenge_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '类型：plank/pushup/running/checkin',
                                   `target_days` int NULL DEFAULT 0 COMMENT '目标天数',
                                   `target_value` int NULL DEFAULT 0 COMMENT '目标值',
                                   `start_time` datetime NULL DEFAULT NULL COMMENT '开始时间',
                                   `end_time` datetime NULL DEFAULT NULL COMMENT '结束时间',
                                   `participant_count` int NULL DEFAULT 0 COMMENT '参与人数',
-                                  `status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0下线 1上线',
+                                  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0上线 1下线）',
                                   `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                   `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                   `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
                                   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                   `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                                  PRIMARY KEY (`id`) USING BTREE,
+                                  PRIMARY KEY (`challenge_id`) USING BTREE,
                                   INDEX `idx_mkt_challenge_status`(`status` ASC, `start_time` ASC, `end_time` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '挑战赛' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of mkt_challenge
 -- ----------------------------
-INSERT INTO `mkt_challenge` VALUES (1, '30天打卡挑战', '连续打卡30天，养成运动习惯', NULL, 'checkin', 30, 30, '2025-05-01 00:00:00', '2026-12-31 23:59:59', 2, 1, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
-INSERT INTO `mkt_challenge` VALUES (2, '7日平板支撑', '每天累计平板支撑达标', NULL, 'plank', 7, 300, '2025-06-01 00:00:00', '2026-12-31 23:59:59', 0, 0, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `mkt_challenge` VALUES (1, '30天打卡挑战', '连续打卡30天，养成运动习惯', NULL, 'checkin', 30, 30, '2025-05-01 00:00:00', '2026-12-31 23:59:59', 2, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `mkt_challenge` VALUES (2, '7日平板支撑', '每天累计平板支撑达标', NULL, 'plank', 7, 300, '2025-06-01 00:00:00', '2026-12-31 23:59:59', 0, '1', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
 
 -- ----------------------------
 -- Table structure for mkt_challenge_record
 -- ----------------------------
 DROP TABLE IF EXISTS `mkt_challenge_record`;
 CREATE TABLE `mkt_challenge_record`  (
-                                         `id` bigint NOT NULL AUTO_INCREMENT COMMENT '记录ID',
-                                         `challenge_id` bigint NOT NULL COMMENT '挑战ID',
-                                         `user_id` bigint NOT NULL COMMENT '用户ID（usr_customer.customer_id）',
+                                         `challenge_record_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+                                         `challenge_id` bigint UNSIGNED NOT NULL COMMENT '挑战ID',
+                                         `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID（usr_customer.customer_id）',
                                          `current_days` int NULL DEFAULT 0 COMMENT '当前完成天数',
                                          `current_value` int NULL DEFAULT 0 COMMENT '当前完成值',
-                                         `completed` tinyint NULL DEFAULT 0 COMMENT '是否完成：0否 1是',
-                                         `cheat_flag` tinyint NULL DEFAULT 0 COMMENT '作弊标记：0正常 1作弊',
+                                         `finish_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '完成（0否 1是）',
+                                         `cheat_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '作弊标记（0正常 1作弊）',
                                          `join_time` datetime NULL DEFAULT NULL COMMENT '参与时间',
                                          `last_checkin_time` datetime NULL DEFAULT NULL COMMENT '最后打卡时间',
-                                         PRIMARY KEY (`id`) USING BTREE,
-                                         INDEX `idx_mkt_challenge_record_challenge`(`challenge_id` ASC, `user_id` ASC) USING BTREE,
-                                         INDEX `idx_mkt_challenge_record_user`(`user_id` ASC) USING BTREE
+                                         PRIMARY KEY (`challenge_record_id`) USING BTREE,
+                                         INDEX `idx_mkt_challenge_record_challenge`(`challenge_id` ASC, `customer_id` ASC) USING BTREE,
+                                         INDEX `idx_mkt_challenge_record_customer`(`customer_id` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '挑战赛参与记录' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
@@ -1759,105 +1493,59 @@ INSERT INTO `mkt_challenge_record` VALUES (2, 1, 3, 30, 30, 1, 0, '2025-05-01 11
 -- ----------------------------
 DROP TABLE IF EXISTS `mkt_coupon`;
 CREATE TABLE `mkt_coupon`  (
-                               `id` bigint NOT NULL AUTO_INCREMENT COMMENT '优惠券ID',
-                               `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '名称',
-                               `type` tinyint NOT NULL COMMENT '类型：1满减 2折扣 3无门槛',
-                               `value` decimal(10, 2) NOT NULL COMMENT '优惠值（金额或折扣）',
+                               `coupon_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '优惠券ID',
+                               `coupon_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '优惠券名称',
+                               `coupon_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '类型：1满减 2折扣 3无门槛',
+                               `coupon_value` decimal(10, 2) NOT NULL COMMENT '优惠值（金额或折扣）',
                                `min_amount` decimal(10, 2) NULL DEFAULT 0.00 COMMENT '最低消费',
                                `max_discount` decimal(10, 2) NULL DEFAULT NULL COMMENT '最大优惠（折扣券封顶）',
                                `total_count` int UNSIGNED NOT NULL COMMENT '发放总量',
                                `remain_count` int UNSIGNED NOT NULL COMMENT '剩余数量',
-                               `limit_per_user` int UNSIGNED NULL DEFAULT 1 COMMENT '每人限领',
+                               `limit_per_customer` int UNSIGNED NOT NULL DEFAULT 1 COMMENT '每人限领',
                                `start_time` datetime NOT NULL COMMENT '生效时间',
                                `end_time` datetime NOT NULL COMMENT '失效时间',
                                `use_scope` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'all' COMMENT '使用范围：all/category/product',
                                `scope_ids` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '范围ID列表',
-                               `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态：0禁用 1启用',
+                               `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                                `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
                                `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                               PRIMARY KEY (`id`) USING BTREE
+                               PRIMARY KEY (`coupon_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '优惠券' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of mkt_coupon
 -- ----------------------------
-INSERT INTO `mkt_coupon` VALUES (1, '满100减20', 1, 20.00, 100.00, NULL, 1000, 998, 1, '2025-05-01 00:00:00', '2026-12-31 23:59:59', 'all', NULL, 1, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
-INSERT INTO `mkt_coupon` VALUES (2, '全场8.5折', 2, 8.50, 0.00, 50.00, 500, 500, 1, '2025-05-01 00:00:00', '2026-12-31 23:59:59', 'all', NULL, 1, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `mkt_coupon` VALUES (1, '满100减20', '1', 20.00, 100.00, NULL, 1000, 998, 1, '2025-05-01 00:00:00', '2026-12-31 23:59:59', 'all', NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `mkt_coupon` VALUES (2, '全场8.5折', '2', 8.50, 0.00, 50.00, 500, 500, 1, '2025-05-01 00:00:00', '2026-12-31 23:59:59', 'all', NULL, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
 
 -- ----------------------------
--- Table structure for mkt_coupon_user
+-- Table structure for mkt_coupon_receive
 -- ----------------------------
 DROP TABLE IF EXISTS `mkt_coupon_user`;
-CREATE TABLE `mkt_coupon_user`  (
-                                    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '领取ID',
-                                    `coupon_id` bigint NOT NULL COMMENT '优惠券ID',
-                                    `user_id` bigint NOT NULL COMMENT '用户ID（usr_customer.customer_id）',
-                                    `status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0未使用 1已使用 2已过期/作废',
-                                    `order_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '使用订单号',
-                                    `use_time` datetime NULL DEFAULT NULL COMMENT '使用时间',
-                                    `expire_time` datetime NULL DEFAULT NULL COMMENT '过期时间',
-                                    `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '领取时间',
-                                    PRIMARY KEY (`id`) USING BTREE,
-                                    INDEX `idx_mkt_coupon_user_user`(`user_id` ASC, `status` ASC) USING BTREE,
-                                    INDEX `idx_mkt_coupon_user_coupon`(`coupon_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户优惠券领取记录' ROW_FORMAT = DYNAMIC;
+DROP TABLE IF EXISTS `mkt_coupon_receive`;
+CREATE TABLE `mkt_coupon_receive`  (
+                                       `coupon_receive_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '领取ID',
+                                       `coupon_id` bigint UNSIGNED NOT NULL COMMENT '优惠券ID',
+                                       `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID（usr_customer.customer_id）',
+                                       `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0未使用 1已使用 2已过期/作废）',
+                                       `order_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '使用订单号',
+                                       `use_time` datetime NULL DEFAULT NULL COMMENT '使用时间',
+                                       `expire_time` datetime NULL DEFAULT NULL COMMENT '过期时间',
+                                       `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '领取时间',
+                                       PRIMARY KEY (`coupon_receive_id`) USING BTREE,
+                                       INDEX `idx_mkt_coupon_receive_customer`(`customer_id` ASC, `status` ASC) USING BTREE,
+                                       INDEX `idx_mkt_coupon_receive_coupon`(`coupon_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '优惠券领取记录' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of mkt_coupon_user
+-- Records of mkt_coupon_receive
 -- ----------------------------
-INSERT INTO `mkt_coupon_user` VALUES (1, 1, 1, 0, NULL, NULL, '2026-12-31 23:59:59', '2026-05-25 09:37:56');
-INSERT INTO `mkt_coupon_user` VALUES (2, 1, 3, 1, 'ORD202505150001', '2025-05-15 12:00:00', '2026-12-31 23:59:59', '2026-05-25 09:37:56');
+INSERT INTO `mkt_coupon_receive` VALUES (1, 1, 1, '0', NULL, NULL, '2026-12-31 23:59:59', '2026-05-25 09:37:56');
+INSERT INTO `mkt_coupon_receive` VALUES (2, 1, 3, '1', 'ORD202505150001', '2025-05-15 12:00:00', '2026-12-31 23:59:59', '2026-05-25 09:37:56');
 
-
--- Table structure for mkt_flash_sale
--- ----------------------------
-DROP TABLE IF EXISTS `mkt_flash_sale`;
-CREATE TABLE `mkt_flash_sale`  (
-                                   `activity_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '活动ID',
-                                   `activity_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '活动名称',
-                                   `start_time` datetime NOT NULL COMMENT '开始',
-                                   `end_time` datetime NOT NULL COMMENT '结束',
-                                   `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0未开始 1进行中 2已结束）',
-                                   `limit_per_user` int UNSIGNED NOT NULL DEFAULT 1 COMMENT '单人限购件数，0表示不限',
-                                   `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
-                                   `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
-                                   `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
-                                   `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                                   PRIMARY KEY (`activity_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '秒杀活动' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of mkt_flash_sale
--- ----------------------------
-INSERT INTO `mkt_flash_sale` VALUES (1, '618蛋白粉秒杀', '2025-06-18 10:00:00', '2025-06-18 12:00:00', '2', 1, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-07-06 09:28:18');
-
--- ----------------------------
--- Table structure for mkt_flash_sale_sku
--- ----------------------------
-DROP TABLE IF EXISTS `mkt_flash_sale_sku`;
-CREATE TABLE `mkt_flash_sale_sku`  (
-                                       `flash_sku_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '秒杀明细ID',
-                                       `activity_id` bigint UNSIGNED NOT NULL COMMENT '活动ID',
-                                       `spu_id` bigint UNSIGNED NOT NULL COMMENT 'SPU ID',
-                                       `sku_id` bigint UNSIGNED NOT NULL COMMENT 'SKU ID',
-                                       `sku_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'SKU名称(冗余)',
-                                       `flash_price` decimal(10, 2) NOT NULL COMMENT '秒杀价',
-                                       `flash_stock` int UNSIGNED NOT NULL COMMENT '秒杀库存',
-                                       `sold_count` int UNSIGNED NOT NULL DEFAULT 0 COMMENT '已售(冗余)',
-                                       PRIMARY KEY (`flash_sku_id`) USING BTREE,
-                                       UNIQUE INDEX `uk_mkt_flash_sku_activity_sku`(`activity_id` ASC, `sku_id` ASC) USING BTREE,
-                                       INDEX `idx_mkt_flash_sku_activity`(`activity_id` ASC) USING BTREE,
-                                       INDEX `idx_mkt_flash_sku_sku`(`sku_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '秒杀SKU' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of mkt_flash_sale_sku
--- ----------------------------
-INSERT INTO `mkt_flash_sale_sku` VALUES (1, 1, 2, 2, '巧克力味 2lb', 199.00, 50, 0);
 
 -- ----------------------------
 -- Table structure for mkt_mq_consume_log
@@ -1876,6 +1564,40 @@ CREATE TABLE `mkt_mq_consume_log`  (
 
 
 
+
+-- ==============================================
+-- 模块: fitai_msg（C 端站内消息收件箱）
+-- ==============================================
+
+-- ----------------------------
+-- Table structure for msg_notice
+-- ----------------------------
+DROP TABLE IF EXISTS `msg_notice`;
+CREATE TABLE `msg_notice`  (
+                               `notice_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '消息ID',
+                               `customer_id` bigint UNSIGNED NOT NULL COMMENT 'C端用户ID（每用户一条，禁止NULL广播行）',
+                               `notice_title` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标题',
+                               `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '内容',
+                               `notice_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'system' COMMENT '类型 system/order/activity/ai',
+                               `biz_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '关联业务ID',
+                               `read_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '已读（0未读 1已读）',
+                               `read_time` datetime NULL DEFAULT NULL COMMENT '阅读时间',
+                               `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
+                               `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+                               `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                               PRIMARY KEY (`notice_id`) USING BTREE,
+                               INDEX `idx_msg_customer_read`(`customer_id` ASC, `read_flag` ASC) USING BTREE,
+                               INDEX `idx_msg_customer_type`(`customer_id` ASC, `notice_type` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'C端站内消息收件箱' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of msg_notice
+-- ----------------------------
+INSERT INTO `msg_notice` VALUES (1, 1, '欢迎加入 FitAI', '完善个人资料，获取专属训练计划推荐。', 'system', NULL, '0', NULL, '0', '2025-05-20 10:00:00', '2025-05-20 10:00:00');
+INSERT INTO `msg_notice` VALUES (2, 1, '订单支付成功', '您的订单已支付成功，商品将尽快发货。', 'order', 1, '0', NULL, '0', '2025-05-21 11:30:00', '2025-05-21 11:30:00');
+INSERT INTO `msg_notice` VALUES (3, 1, '春季挑战赛开启', '参与 30 天打卡赢积分，完成训练还可抽年卡。', 'activity', NULL, '1', '2025-05-22 09:00:00', '0', '2025-05-21 09:00:00', '2025-05-22 09:00:00');
+INSERT INTO `msg_notice` VALUES (4, 1, 'AI 计划已生成', '根据您的目标生成了本周训练计划，快去看看吧。', 'ai', NULL, '0', NULL, '0', '2025-05-22 15:00:00', '2025-05-22 15:00:00');
+INSERT INTO `msg_notice` VALUES (5, 2, '欢迎加入 FitAI', '完善个人资料，获取专属训练计划推荐。', 'system', NULL, '0', NULL, '0', '2025-05-20 10:05:00', '2025-05-20 10:05:00');
 
 -- ==============================================
 -- 模块: fitai_ord (原 fitai_ord 库，已合并至 fitai_all)
@@ -1957,34 +1679,6 @@ INSERT INTO `ord_logistics_trace` VALUES (4, 2, '2025-05-21 14:00:00', '【北�
 INSERT INTO `ord_logistics_trace` VALUES (5, 2, '2025-05-22 10:00:00', '【北京市】快件已签收，签收人：本人', '2025-05-22 10:00:00');
 
 -- ----------------------------
--- Table structure for ord_member_order
--- ----------------------------
-DROP TABLE IF EXISTS `ord_member_order`;
-CREATE TABLE `ord_member_order`  (
-                                     `order_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '订单ID',
-                                     `order_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '订单号',
-                                     `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
-                                     `package_id` bigint UNSIGNED NOT NULL COMMENT '套餐ID',
-                                     `package_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '套餐名(冗余)',
-                                     `duration_days` int UNSIGNED NOT NULL COMMENT '天数(冗余)',
-                                     `pay_amount` decimal(10, 2) NOT NULL COMMENT '实付',
-                                     `pay_channel` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '支付渠道',
-                                     `pay_time` datetime NULL DEFAULT NULL COMMENT '支付时间',
-                                     `expire_time` datetime NULL DEFAULT NULL COMMENT '到期时间',
-                                     `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0待支付 1已支付 2已取消 3已退款）',
-                                     `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                     `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                                     PRIMARY KEY (`order_id`) USING BTREE,
-                                     UNIQUE INDEX `uk_ord_member_order_no`(`order_no` ASC) USING BTREE,
-                                     INDEX `idx_ord_member_order_customer`(`customer_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '会员订单' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of ord_member_order
--- ----------------------------
-INSERT INTO `ord_member_order` VALUES (1, 'MEM202505010001', 1, 1, '月度会员', 30, 29.90, 'wechat', '2025-05-01 10:00:00', '2025-05-31 10:00:00', '1', '2025-05-01 10:00:00', '2025-05-31 10:00:00');
-
--- ----------------------------
 -- Table structure for ord_order
 -- ----------------------------
 DROP TABLE IF EXISTS `ord_order`;
@@ -2035,7 +1729,7 @@ CREATE TABLE `ord_order_item`  (
                                    `sku_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'SKU名称(冗余)',
                                    `sku_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'SKU货号(冗余)',
                                    `sku_specs` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '规格(冗余)',
-                                   `cover_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '封面(冗余)',
+                                   `cover_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '封面URL(冗余)',
                                    `price` decimal(10, 2) NOT NULL COMMENT '单价(下单快照)',
                                    `quantity` int UNSIGNED NOT NULL COMMENT '数量',
                                    `subtotal` decimal(10, 2) NOT NULL COMMENT '小计',
@@ -2063,11 +1757,13 @@ CREATE TABLE `ord_payment_channel`  (
                                         `merchant_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '商户号',
                                         `config_json` json NULL COMMENT '配置(密钥引用)',
                                         `fee_rate` decimal(5, 4) NULL DEFAULT 0.0000 COMMENT '费率',
-                                        `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0启用 1停用）',
+                                        `icon_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图标URL',
+                                        `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
+                                        `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                                         `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                         `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                         `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                        `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                        `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                         `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                         PRIMARY KEY (`channel_id`) USING BTREE,
                                         UNIQUE INDEX `uk_ord_payment_channel_code`(`channel_code` ASC) USING BTREE
@@ -2076,8 +1772,8 @@ CREATE TABLE `ord_payment_channel`  (
 -- ----------------------------
 -- Records of ord_payment_channel
 -- ----------------------------
-INSERT INTO `ord_payment_channel` VALUES (1, '微信支付', 'wechat', '1900000001', NULL, 0.0060, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
-INSERT INTO `ord_payment_channel` VALUES (2, '支付宝', 'alipay', '2088000001', NULL, 0.0060, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `ord_payment_channel` VALUES (1, '微信支付', 'wechat', '1900000001', NULL, 0.0060, NULL, 1, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
+INSERT INTO `ord_payment_channel` VALUES (2, '支付宝', 'alipay', '2088000001', NULL, 0.0060, NULL, 2, '0', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-26 16:38:26');
 
 -- ----------------------------
 -- Table structure for ord_payment_record
@@ -2092,9 +1788,9 @@ CREATE TABLE `ord_payment_record`  (
                                        `order_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '业务订单号(冗余)',
                                        `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
                                        `channel_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '支付渠道 wechat/alipay',
-                                       `pay_amount` decimal(10, 2) NOT NULL COMMENT '支付金额',
+                                       `pay_amount` decimal(10, 2) NOT NULL COMMENT '实付金额',
                                        `transaction_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '第三方交易号',
-                                       `pay_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0待支付 1成功 2失败 3已退款）',
+                                       `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0待支付 1成功 2失败 3已退款）',
                                        `pay_time` datetime NULL DEFAULT NULL COMMENT '支付时间',
                                        `callback_raw` json NULL COMMENT '回调原文',
                                        `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
@@ -2162,7 +1858,7 @@ CREATE TABLE `prd_attr`  (
                              `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                              `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                              `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                              `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                              PRIMARY KEY (`attr_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '商品属性' ROW_FORMAT = DYNAMIC;
@@ -2208,14 +1904,14 @@ CREATE TABLE `prd_brand`  (
                               `brand_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '品牌ID',
                               `brand_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '品牌名称',
                               `brand_logo` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'Logo URL',
-                              `description` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '品牌描述',
+                              `description` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '品牌描述',
                               `first_letter` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '首字母(检索)',
                               `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
                               `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                               `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                               `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                               `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                               `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                               PRIMARY KEY (`brand_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '商品品牌' ROW_FORMAT = DYNAMIC;
@@ -2237,7 +1933,7 @@ CREATE TABLE `prd_cart`  (
                              `sku_id` bigint UNSIGNED NOT NULL COMMENT 'SKU ID',
                              `sku_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'SKU名称(冗余)',
                              `sku_sn` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'SKU货号(冗余)',
-                             `cover_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '封面(冗余)',
+                             `cover_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '封面URL(冗余)',
                              `price` decimal(10, 2) NOT NULL COMMENT '单价(冗余,加购时快照)',
                              `quantity` int UNSIGNED NOT NULL DEFAULT 1 COMMENT '数量',
                              `selected` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '1' COMMENT '选中（0否 1是）',
@@ -2264,13 +1960,13 @@ CREATE TABLE `prd_category`  (
                                  `ancestors` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '祖级列表',
                                  `category_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称',
                                  `level` tinyint UNSIGNED NOT NULL DEFAULT 1 COMMENT '层级(1起)',
-                                 `icon` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图标',
+                                 `icon` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图标（Element 图标类名）',
                                  `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
                                  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                                  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                 `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                  `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                  PRIMARY KEY (`category_id`) USING BTREE,
                                  INDEX `idx_prd_category_parent`(`parent_id` ASC) USING BTREE
@@ -2366,7 +2062,7 @@ CREATE TABLE `prd_sku`  (
                             `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                             `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                             `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                            `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                            `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                             `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                             PRIMARY KEY (`sku_id`) USING BTREE,
                             UNIQUE INDEX `uk_prd_sku_sn`(`sku_sn` ASC) USING BTREE,
@@ -2431,7 +2127,7 @@ CREATE TABLE `prd_spu`  (
                             `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                             `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                             `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                            `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                            `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                             `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                             PRIMARY KEY (`spu_id`) USING BTREE,
                             UNIQUE INDEX `uk_prd_spu_sn`(`spu_sn` ASC) USING BTREE,
@@ -2526,107 +2222,108 @@ INSERT INTO `prd_stock` VALUES (7, 7, 'DEFAULT', 100, 0, 10, '2026-05-27 09:09:0
 INSERT INTO `prd_stock` VALUES (8, 8, 'DEFAULT', 200, 0, 10, '2026-05-27 09:09:04');
 
 -- ----------------------------
--- Table structure for prd_user_favorite
+-- Table structure for prd_favorite
 -- ----------------------------
 DROP TABLE IF EXISTS `prd_user_favorite`;
-CREATE TABLE `prd_user_favorite`  (
-                                      `favorite_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '收藏ID',
-                                      `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
-                                      `spu_id` bigint UNSIGNED NOT NULL COMMENT 'SPU ID',
-                                      `create_time` datetime NULL DEFAULT NULL COMMENT '收藏时间',
-                                      PRIMARY KEY (`favorite_id`) USING BTREE,
-                                      UNIQUE INDEX `uk_prd_favorite_customer_spu`(`customer_id` ASC, `spu_id` ASC) USING BTREE,
-                                      INDEX `idx_prd_favorite_customer`(`customer_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户商品收藏' ROW_FORMAT = DYNAMIC;
+DROP TABLE IF EXISTS `prd_favorite`;
+CREATE TABLE `prd_favorite`  (
+                                 `favorite_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '收藏ID',
+                                 `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
+                                 `spu_id` bigint UNSIGNED NOT NULL COMMENT 'SPU ID',
+                                 `create_time` datetime NULL DEFAULT NULL COMMENT '收藏时间',
+                                 PRIMARY KEY (`favorite_id`) USING BTREE,
+                                 UNIQUE INDEX `uk_prd_favorite_customer_spu`(`customer_id` ASC, `spu_id` ASC) USING BTREE,
+                                 INDEX `idx_prd_favorite_customer`(`customer_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '商品收藏' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of prd_user_favorite
+-- Records of prd_favorite
 -- ----------------------------
-INSERT INTO `prd_user_favorite` VALUES (1, 1, 1, '2025-05-20 10:00:00');
-INSERT INTO `prd_user_favorite` VALUES (2, 2, 2, '2025-05-20 10:00:00');
-INSERT INTO `prd_user_favorite` VALUES (3, 3, 4, '2025-05-20 10:00:00');
+INSERT INTO `prd_favorite` VALUES (1, 1, 1, '2025-05-20 10:00:00');
+INSERT INTO `prd_favorite` VALUES (2, 2, 2, '2025-05-20 10:00:00');
+INSERT INTO `prd_favorite` VALUES (3, 3, 4, '2025-05-20 10:00:00');
 
 
 
 -- ----------------------------
 -- Table structure for seckill_activity
 -- ----------------------------
+DROP TABLE IF EXISTS `seckill_order`;
+DROP TABLE IF EXISTS `seckill_sku`;
 DROP TABLE IF EXISTS `seckill_activity`;
-CREATE TABLE `seckill_activity` (
-                                    `id` bigint NOT NULL,
-                                    `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL COMMENT '备注',
-                                    `cover_image` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '备注',
-                                    `description` text COLLATE utf8mb4_general_ci COMMENT '备注',
-                                    `start_time` datetime NOT NULL COMMENT '备注',
-                                    `end_time` datetime NOT NULL COMMENT '备注',
-                                    `status` tinyint DEFAULT '0' COMMENT '状态：0-待开始 1-进行中 2-已结束',
-                                    `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-                                    PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='秒杀活动表';
+CREATE TABLE `seckill_activity`  (
+                                     `activity_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '活动ID',
+                                     `activity_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '活动名称',
+                                     `cover_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '封面URL',
+                                     `description` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
+                                     `start_time` datetime NOT NULL COMMENT '开始时间',
+                                     `end_time` datetime NOT NULL COMMENT '结束时间',
+                                     `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0未开始 1进行中 2已结束）',
+                                     `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
+                                     `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
+                                     `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                     `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
+                                     `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                     PRIMARY KEY (`activity_id`) USING BTREE,
+                                     INDEX `idx_seckill_activity_status_time`(`status` ASC, `start_time` ASC, `end_time` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '秒杀活动表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of seckill_activity
 -- ----------------------------
-BEGIN;
-INSERT INTO `seckill_activity` (`id`, `name`, `cover_image`, `description`, `start_time`, `end_time`, `status`, `create_time`) VALUES (2020379721124048898, '新年活动', 'http://192.168.56.10:9000/fitai/seckill/covers/2026/02/08/db40277113744be6917dae34703dcb9d.png', '新年活动', '2026-02-08 00:00:00', '2026-03-11 00:00:00', 0, '2026-02-08 14:10:37');
-COMMIT;
+INSERT INTO `seckill_activity` (`activity_id`, `activity_name`, `cover_url`, `description`, `start_time`, `end_time`, `status`, `del_flag`, `create_by`, `create_time`, `update_by`, `update_time`) VALUES (1, '新年活动', 'http://192.168.56.10:9000/fitai/seckill/covers/2026/02/08/db40277113744be6917dae34703dcb9d.png', '新年活动', '2026-02-08 00:00:00', '2026-03-11 00:00:00', '0', '0', '超级管理员', '2026-02-08 14:10:37', '', '2026-02-08 14:10:37');
 
 -- ----------------------------
 -- Table structure for seckill_order
 -- ----------------------------
-DROP TABLE IF EXISTS `seckill_order`;
-CREATE TABLE `seckill_order` (
-                                 `id` bigint NOT NULL,
-                                 `order_no` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-                                 `user_id` bigint NOT NULL,
-                                 `activity_id` bigint NOT NULL,
-                                 `sku_id` bigint NOT NULL,
-                                 `seckill_price` decimal(10,2) DEFAULT NULL,
-                                 `quantity` int DEFAULT '1',
-                                 `status` tinyint DEFAULT '0' COMMENT '状态：0-待开始 1-进行中 2-已结束',
-                                 `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-                                 `pay_time` datetime DEFAULT NULL,
-                                 `cancel_time` datetime DEFAULT NULL,
-                                 PRIMARY KEY (`id`),
-                                 UNIQUE KEY `uk_order_no` (`order_no`),
-                                 KEY `idx_user_activity` (`user_id`,`activity_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='秒杀订单表';
+CREATE TABLE `seckill_order`  (
+                                  `seckill_order_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '秒杀订单ID',
+                                  `order_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '订单号',
+                                  `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID（usr_customer.customer_id）',
+                                  `activity_id` bigint UNSIGNED NOT NULL COMMENT '活动ID',
+                                  `sku_id` bigint UNSIGNED NOT NULL COMMENT 'SKU ID',
+                                  `seckill_price` decimal(10, 2) NULL DEFAULT NULL COMMENT '秒杀价',
+                                  `quantity` int UNSIGNED NOT NULL DEFAULT 1 COMMENT '购买数量',
+                                  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0待支付 1已支付 2已取消）',
+                                  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                  `pay_time` datetime NULL DEFAULT NULL COMMENT '支付时间',
+                                  `cancel_time` datetime NULL DEFAULT NULL COMMENT '取消时间',
+                                  PRIMARY KEY (`seckill_order_id`) USING BTREE,
+                                  UNIQUE INDEX `uk_seckill_order_no`(`order_no` ASC) USING BTREE,
+                                  INDEX `idx_seckill_order_customer_activity`(`customer_id` ASC, `activity_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '秒杀订单表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of seckill_order
 -- ----------------------------
-BEGIN;
-INSERT INTO `seckill_order` (`id`, `order_no`, `user_id`, `activity_id`, `sku_id`, `seckill_price`, `quantity`, `status`, `create_time`, `pay_time`, `cancel_time`) VALUES (2020391372913872897, 'SK2020391372779114496', 1, 2020379721124048898, 7, 1.00, 1, 1, '2026-02-08 14:56:55', '2026-02-08 14:56:57', NULL);
-INSERT INTO `seckill_order` (`id`, `order_no`, `user_id`, `activity_id`, `sku_id`, `seckill_price`, `quantity`, `status`, `create_time`, `pay_time`, `cancel_time`) VALUES (2020392272927625217, 'SK2020392272864169984', 1, 2020379721124048898, 7, 1.00, 1, 2, '2026-02-08 15:00:30', NULL, '2026-02-08 15:15:30');
-INSERT INTO `seckill_order` (`id`, `order_no`, `user_id`, `activity_id`, `sku_id`, `seckill_price`, `quantity`, `status`, `create_time`, `pay_time`, `cancel_time`) VALUES (2020680841381818370, 'SK2020680841033818112', 1, 2020379721124048898, 7, 1.00, 1, 1, '2026-02-09 10:07:10', '2026-02-09 10:08:47', NULL);
-INSERT INTO `seckill_order` (`id`, `order_no`, `user_id`, `activity_id`, `sku_id`, `seckill_price`, `quantity`, `status`, `create_time`, `pay_time`, `cancel_time`) VALUES (2020683608804569089, 'SK2020683608775335936', 1, 2020379721124048898, 7, 1.00, 1, 1, '2026-02-09 10:18:09', '2026-02-09 10:18:54', NULL);
-COMMIT;
+INSERT INTO `seckill_order` (`seckill_order_id`, `order_no`, `customer_id`, `activity_id`, `sku_id`, `seckill_price`, `quantity`, `status`, `create_time`, `pay_time`, `cancel_time`) VALUES (1, 'SK2020391372779114496', 1, 1, 7, 1.00, 1, '1', '2026-02-08 14:56:55', '2026-02-08 14:56:57', NULL);
+INSERT INTO `seckill_order` (`seckill_order_id`, `order_no`, `customer_id`, `activity_id`, `sku_id`, `seckill_price`, `quantity`, `status`, `create_time`, `pay_time`, `cancel_time`) VALUES (2, 'SK2020392272864169984', 1, 1, 7, 1.00, 1, '2', '2026-02-08 15:00:30', NULL, '2026-02-08 15:15:30');
+INSERT INTO `seckill_order` (`seckill_order_id`, `order_no`, `customer_id`, `activity_id`, `sku_id`, `seckill_price`, `quantity`, `status`, `create_time`, `pay_time`, `cancel_time`) VALUES (3, 'SK2020680841033818112', 1, 1, 7, 1.00, 1, '1', '2026-02-09 10:07:10', '2026-02-09 10:08:47', NULL);
+INSERT INTO `seckill_order` (`seckill_order_id`, `order_no`, `customer_id`, `activity_id`, `sku_id`, `seckill_price`, `quantity`, `status`, `create_time`, `pay_time`, `cancel_time`) VALUES (4, 'SK2020683608775335936', 1, 1, 7, 1.00, 1, '1', '2026-02-09 10:18:09', '2026-02-09 10:18:54', NULL);
 
 -- ----------------------------
 -- Table structure for seckill_sku
 -- ----------------------------
-DROP TABLE IF EXISTS `seckill_sku`;
-CREATE TABLE `seckill_sku` (
-                               `id` bigint NOT NULL,
-                               `activity_id` bigint NOT NULL,
-                               `sku_id` bigint NOT NULL,
-                               `seckill_price` decimal(10,2) NOT NULL COMMENT '备注',
-                               `total_stock` int NOT NULL COMMENT '备注',
-                               `available_stock` int NOT NULL COMMENT '备注',
-                               `limit_per_user` int DEFAULT '1' COMMENT '备注',
-                               `sort_order` int DEFAULT '0',
-                               `status` tinyint DEFAULT '1',
-                               PRIMARY KEY (`id`),
-                               KEY `idx_activity` (`activity_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='秒杀商品表';
+CREATE TABLE `seckill_sku`  (
+                                `seckill_sku_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '秒杀SKU ID',
+                                `activity_id` bigint UNSIGNED NOT NULL COMMENT '活动ID',
+                                `sku_id` bigint UNSIGNED NOT NULL COMMENT 'SKU ID',
+                                `seckill_price` decimal(10, 2) NOT NULL COMMENT '秒杀价',
+                                `total_stock` int UNSIGNED NOT NULL COMMENT '秒杀总库存',
+                                `available_stock` int UNSIGNED NOT NULL COMMENT '剩余可售库存',
+                                `limit_per_customer` int UNSIGNED NOT NULL DEFAULT 1 COMMENT '每人限购',
+                                `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
+                                `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
+                                `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                PRIMARY KEY (`seckill_sku_id`) USING BTREE,
+                                INDEX `idx_seckill_sku_activity`(`activity_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '秒杀商品表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of seckill_sku
 -- ----------------------------
-BEGIN;
-INSERT INTO `seckill_sku` (`id`, `activity_id`, `sku_id`, `seckill_price`, `total_stock`, `available_stock`, `limit_per_user`, `sort_order`, `status`) VALUES (2020379790418145282, 2020379721124049000, 7, 1.00, 100, 97, 1, 0, 1);
-INSERT INTO `seckill_sku` (`id`, `activity_id`, `sku_id`, `seckill_price`, `total_stock`, `available_stock`, `limit_per_user`, `sort_order`, `status`) VALUES (2020392192074027010, 2020379721124048898, 7, 1.00, 100, 98, 5, 0, 1);
-COMMIT;
+INSERT INTO `seckill_sku` (`seckill_sku_id`, `activity_id`, `sku_id`, `seckill_price`, `total_stock`, `available_stock`, `limit_per_customer`, `order_num`, `status`, `create_time`) VALUES (1, 1, 7, 1.00, 100, 97, 1, 0, '0', '2026-02-08 14:10:37');
+INSERT INTO `seckill_sku` (`seckill_sku_id`, `activity_id`, `sku_id`, `seckill_price`, `total_stock`, `available_stock`, `limit_per_customer`, `order_num`, `status`, `create_time`) VALUES (2, 1, 7, 1.00, 100, 98, 5, 0, '0', '2026-02-08 14:10:37');
 
 
 -- ==============================================
@@ -2645,10 +2342,10 @@ CREATE TABLE `sys_config`  (
                                `config_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'N' COMMENT '系统内置（Y是 N否）',
                                `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                                `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
-                               `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+                               `remark` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
                                `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                               `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                               `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                PRIMARY KEY (`config_id`) USING BTREE,
                                UNIQUE INDEX `uk_sys_config_key`(`config_key` ASC) USING BTREE
@@ -2686,7 +2383,7 @@ CREATE TABLE `sys_dept`  (
                              `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                              `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                              `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                              `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                              PRIMARY KEY (`dept_id`) USING BTREE,
                              INDEX `idx_sys_dept_parent`(`parent_id` ASC) USING BTREE
@@ -2713,14 +2410,14 @@ CREATE TABLE `sys_dict_data`  (
                                   `css_class` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '样式',
                                   `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                                   `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
-                                  `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+                                  `remark` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
                                   `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                   `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                   `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                   PRIMARY KEY (`dict_code`) USING BTREE,
                                   INDEX `idx_sys_dict_data_type`(`dict_type` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 17 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '字典数据' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 132 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '字典数据' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of sys_dict_data
@@ -2741,6 +2438,127 @@ INSERT INTO `sys_dict_data` VALUES (13, 2, '中级', '2', 'crs_difficulty', NULL
 INSERT INTO `sys_dict_data` VALUES (14, 3, '高级', '3', 'crs_difficulty', NULL, '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
 INSERT INTO `sys_dict_data` VALUES (15, 1, '微信支付', 'wechat', 'ord_pay_channel', NULL, '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
 INSERT INTO `sys_dict_data` VALUES (16, 2, '支付宝', 'alipay', 'ord_pay_channel', NULL, '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (17, 1, '已上架', '0', 'crs_course_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (18, 2, '已下架', '1', 'crs_course_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (19, 3, '草稿', '2', 'crs_course_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (20, 1, '普通', 'normal', 'community_post_type', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (21, 2, '打卡', 'checkin', 'community_post_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (22, 3, '挑战', 'challenge', 'community_post_type', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (23, 1, '正常', '0', 'sys_normal_disable', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (24, 2, '停用', '1', 'sys_normal_disable', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (25, 1, '否', '0', 'sys_yes_no', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (26, 2, '是', '1', 'sys_yes_no', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (27, 1, '其他', '0', 'sys_oper_type', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (28, 2, '新增', '1', 'sys_oper_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (29, 3, '修改', '2', 'sys_oper_type', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (30, 4, '删除', '3', 'sys_oper_type', 'danger', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (31, 5, '查询', '4', 'sys_oper_type', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (32, 1, '成功', '0', 'sys_oper_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (33, 2, '失败', '1', 'sys_oper_status', 'danger', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (34, 1, '失败', '0', 'sys_login_status', 'danger', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (35, 2, '成功', '1', 'sys_login_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (36, 1, '管理端', 'admin', 'sys_client_type', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (37, 2, 'PC用户端', 'pc', 'sys_client_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (38, 3, '移动端', 'mobile', 'sys_client_type', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (39, 1, '公告', '1', 'sys_notice_type', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (40, 2, '推送', '2', 'sys_notice_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (41, 1, '草稿', '0', 'sys_notice_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (42, 2, '已发布', '1', 'sys_notice_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (43, 3, '已撤回', '2', 'sys_notice_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (44, 1, '未开始', '0', 'seckill_activity_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (45, 2, '进行中', '1', 'seckill_activity_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (46, 3, '已结束', '2', 'seckill_activity_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (47, 1, '待支付', '0', 'seckill_order_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (48, 2, '已支付', '1', 'seckill_order_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (49, 3, '已取消', '2', 'seckill_order_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (50, 1, '待支付', '0', 'mem_order_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (51, 2, '已支付', '1', 'mem_order_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (52, 3, '已取消', '2', 'mem_order_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (53, 4, '已退款', '3', 'mem_order_status', 'danger', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (54, 1, '生效中', '1', 'mem_subscription_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (55, 2, '已过期', '2', 'mem_subscription_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (56, 3, '已取消', '3', 'mem_subscription_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (57, 1, '未使用', '0', 'mkt_coupon_receive_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (58, 2, '已使用', '1', 'mkt_coupon_receive_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (59, 3, '已过期', '2', 'mkt_coupon_receive_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (60, 1, '平板支撑', 'plank', 'mkt_challenge_type', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (61, 2, '俯卧撑', 'pushup', 'mkt_challenge_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (62, 3, '跑步', 'running', 'mkt_challenge_type', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (63, 4, '打卡', 'checkin', 'mkt_challenge_type', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (64, 1, '首页', 'home', 'mkt_banner_position', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (65, 2, '课程', 'course', 'mkt_banner_position', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (66, 3, '商城', 'product', 'mkt_banner_position', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (67, 1, '跟练', '1', 'usr_coach_bind_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (68, 2, '私教', '2', 'usr_coach_bind_type', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (69, 1, '有效', '0', 'usr_coach_bind_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (70, 2, '已解绑', '1', 'usr_coach_bind_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (71, 1, '待确认', '0', 'usr_coach_booking_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (72, 2, '已确认', '1', 'usr_coach_booking_status', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (73, 3, '已完成', '2', 'usr_coach_booking_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (74, 4, '已取消', '3', 'usr_coach_booking_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (75, 1, '蓝牙', 'bluetooth', 'train_connect_type', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (76, 2, 'WiFi', 'wifi', 'train_connect_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (77, 3, 'ANT+', 'ant', 'train_connect_type', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (78, 1, '草稿', '0', 'train_plan_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (79, 2, '进行中', '1', 'train_plan_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (80, 3, '已完成', '2', 'train_plan_status', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (81, 4, '已放弃', '3', 'train_plan_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (82, 1, '早餐', 'breakfast', 'diet_meal_type', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (83, 2, '午餐', 'lunch', 'diet_meal_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (84, 3, '晚餐', 'dinner', 'diet_meal_type', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (85, 4, '加餐', 'snack', 'diet_meal_type', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (86, 1, '动态', 'post', 'community_target_type', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (87, 2, '评论', 'comment', 'community_target_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (88, 1, '待审', '0', 'community_audit_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (89, 2, '通过', '1', 'community_audit_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (90, 3, '拒绝', '2', 'community_audit_status', 'danger', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (91, 1, '学习中', '0', 'crs_learn_finish', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (92, 2, '已完成', '1', 'crs_learn_finish', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (93, 1, '待审核', '0', 'pay_refund_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (94, 2, '已同意', '1', 'pay_refund_status', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (95, 3, '已拒绝', '2', 'pay_refund_status', 'danger', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (96, 4, '已退款', '3', 'pay_refund_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (97, 1, '获得', 'earn', 'mem_points_change_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (98, 2, '消耗', 'spend', 'mem_points_change_type', 'danger', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (99, 3, '过期', 'expire', 'mem_points_change_type', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (100, 1, '签到', 'checkin', 'mem_points_biz_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (101, 2, '徽章', 'badge', 'mem_points_biz_type', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (102, 3, '打卡', 'sign', 'mem_points_biz_type', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (103, 4, '训练', 'train', 'mem_points_biz_type', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (104, 5, '订单', 'order', 'mem_points_biz_type', 'danger', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (105, 6, '课程', 'course', 'mem_points_biz_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (106, 1, '全局', 'global', 'ai_prompt_scene', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (107, 2, '训练计划', 'training', 'ai_prompt_scene', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (108, 3, '饮食方案', 'diet', 'ai_prompt_scene', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (109, 4, '闲聊', 'chat', 'ai_prompt_scene', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (110, 5, '训练点评', 'review', 'ai_prompt_scene', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (111, 6, '知识库问答', 'knowledge', 'ai_prompt_scene', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (112, 1, '关键词', 'keyword', 'ai_guardrail_rule_type', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (113, 2, '正则', 'regex', 'ai_guardrail_rule_type', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (114, 3, '长度限制', 'length', 'ai_guardrail_rule_type', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (115, 4, '医疗提示', 'medical', 'ai_guardrail_rule_type', 'danger', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (116, 5, '免责声明', 'disclaimer', 'ai_guardrail_rule_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (117, 1, '模型评测', 'eval', 'ai_dataset_type', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (118, 2, 'RAG评估', 'rag', 'ai_dataset_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (119, 1, '正常', '0', 'ai_vector_index_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (120, 2, '重建中', '1', 'ai_vector_index_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (121, 3, '异常', '2', 'ai_vector_index_status', 'danger', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (122, 1, '进行中', '0', 'ai_session_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (123, 2, '已结束', '1', 'ai_session_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (124, 3, '已归档', '2', 'ai_session_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (125, 1, '对话', 'chat', 'ai_session_scene', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (126, 2, '训练计划', 'train_plan', 'ai_session_scene', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (127, 3, '饮食方案', 'diet_plan', 'ai_session_scene', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (128, 4, '训练点评', 'review', 'ai_session_scene', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (129, 1, 'function', 'function', 'ai_tool_type', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (130, 2, 'mcp', 'mcp', 'ai_tool_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (131, 3, 'http', 'http', 'ai_tool_type', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (132, 1, '待发货', '0', 'ord_logistics_status', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (133, 2, '已发货', '1', 'ord_logistics_status', 'warning', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (134, 3, '运输中', '2', 'ord_logistics_status', 'primary', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (135, 4, '已签收', '3', 'ord_logistics_status', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (136, 1, '销售属性', '1', 'prd_attr_type', 'success', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
+INSERT INTO `sys_dict_data` VALUES (137, 2, '基本属性', '2', 'prd_attr_type', 'info', '0', '0', NULL, '超级管理员', '2026-05-26 16:47:10', '', '2026-05-26 16:47:10');
 
 -- ----------------------------
 -- Table structure for sys_dict_type
@@ -2752,14 +2570,14 @@ CREATE TABLE `sys_dict_type`  (
                                   `dict_type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '字典类型',
                                   `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                                   `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
-                                  `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+                                  `remark` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
                                   `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                   `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                   `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                   PRIMARY KEY (`dict_id`) USING BTREE,
                                   UNIQUE INDEX `uk_sys_dict_type`(`dict_type` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '字典类型' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 42 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '字典类型' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of sys_dict_type
@@ -2769,6 +2587,44 @@ INSERT INTO `sys_dict_type` VALUES (2, '订单状态', 'ord_order_status', '0', 
 INSERT INTO `sys_dict_type` VALUES (3, '会员等级', 'mem_level_code', '0', '0', '会员等级编码', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
 INSERT INTO `sys_dict_type` VALUES (4, '课程难度', 'crs_difficulty', '0', '0', '1初级 2中级 3高级', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
 INSERT INTO `sys_dict_type` VALUES (5, '支付渠道', 'ord_pay_channel', '0', '0', 'wechat/alipay/apple', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (6, '课程状态', 'crs_course_status', '0', '0', '0上架 1下架 2草稿', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (7, '社区动态类型', 'community_post_type', '0', '0', 'normal普通 checkin打卡 challenge挑战', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (8, '系统启停', 'sys_normal_disable', '0', '0', '通用 0正常 1停用', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (9, '是否', 'sys_yes_no', '0', '0', '通用 0否 1是', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (10, '操作类型', 'sys_oper_type', '0', '0', '0其他 1新增 2修改 3删除 4查询', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (11, '操作结果', 'sys_oper_status', '0', '0', '0成功 1失败', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (12, '登录结果', 'sys_login_status', '0', '0', '0失败 1成功', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (13, '客户端类型', 'sys_client_type', '0', '0', 'admin/pc/mobile', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (14, '通知类型', 'sys_notice_type', '0', '0', '1公告 2推送', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (15, '通知状态', 'sys_notice_status', '0', '0', '0草稿 1已发布 2已撤回', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (16, '秒杀活动状态', 'seckill_activity_status', '0', '0', '0未开始 1进行中 2已结束', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (17, '秒杀订单状态', 'seckill_order_status', '0', '0', '0待支付 1已支付 2已取消', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (18, '会员订单状态', 'mem_order_status', '0', '0', '0待支付 1已支付 2已取消 3已退款', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (19, '会员订阅状态', 'mem_subscription_status', '0', '0', '1生效中 2已过期 3已取消', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (20, '优惠券领取状态', 'mkt_coupon_receive_status', '0', '0', '0未使用 1已使用 2已过期', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (21, '挑战赛类型', 'mkt_challenge_type', '0', '0', 'plank/pushup/running/checkin', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (22, '轮播位置', 'mkt_banner_position', '0', '0', 'home/course/product', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (23, '教练绑定类型', 'usr_coach_bind_type', '0', '0', '1跟练 2私教', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (24, '教练绑定状态', 'usr_coach_bind_status', '0', '0', '0有效 1已解绑', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (25, '教练预约状态', 'usr_coach_booking_status', '0', '0', '0待确认 1已确认 2已完成 3已取消', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (26, '设备连接方式', 'train_connect_type', '0', '0', 'bluetooth/wifi/ant', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (27, '训练计划状态', 'train_plan_status', '0', '0', '0草稿 1进行中 2已完成 3已放弃', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (28, '餐次', 'diet_meal_type', '0', '0', 'breakfast/lunch/dinner/snack', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (29, '社区审核对象', 'community_target_type', '0', '0', 'post动态 comment评论', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (30, '社区审核状态', 'community_audit_status', '0', '0', '0待审 1通过 2拒绝', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (31, '学习完成状态', 'crs_learn_finish', '0', '0', '0学习中 1已完成', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (32, '退款审核状态', 'pay_refund_status', '0', '0', '0待审核 1已同意 2已拒绝 3已退款', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (33, '积分变动类型', 'mem_points_change_type', '0', '0', 'earn获得 spend消耗 expire过期', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (34, '积分业务来源', 'mem_points_biz_type', '0', '0', 'checkin/badge/sign/train/order/course', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (35, '提示词场景', 'ai_prompt_scene', '0', '0', 'global/training/diet/chat/review/knowledge', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (36, '护栏规则类型', 'ai_guardrail_rule_type', '0', '0', 'keyword/regex/length/medical/disclaimer', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (37, '数据集类型', 'ai_dataset_type', '0', '0', 'eval/rag', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (38, '向量索引状态', 'ai_vector_index_status', '0', '0', '0正常 1重建中 2异常', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (39, 'AI会话状态', 'ai_session_status', '0', '0', '0进行中 1已结束 2已归档', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (40, 'AI会话场景', 'ai_session_scene', '0', '0', 'chat/train_plan/diet_plan/review', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (41, 'AI工具类型', 'ai_tool_type', '0', '0', 'function/mcp/http', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (42, '物流状态', 'ord_logistics_status', '0', '0', '0待发货 1已发货 2运输中 3已签收', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
+INSERT INTO `sys_dict_type` VALUES (43, '商品属性类型', 'prd_attr_type', '0', '0', '1销售 2基本', '超级管理员', '2026-05-26 16:46:56', '', '2026-05-26 16:46:56');
 
 -- ----------------------------
 -- Table structure for sys_entry_daily
@@ -2813,10 +2669,10 @@ CREATE TABLE `sys_job`  (
                             `concurrent` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '1' COMMENT '并发（0允许 1禁止）',
                             `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1暂停）',
                             `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
-                            `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+                            `remark` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
                             `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                             `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                            `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                            `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                             `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                             PRIMARY KEY (`job_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '定时任务' ROW_FORMAT = DYNAMIC;
@@ -2827,7 +2683,7 @@ CREATE TABLE `sys_job`  (
 INSERT INTO `sys_job` VALUES (1, '同步VOD转码状态', 'DEFAULT', 'vodTask.syncTranscodeStatus()', '0 0/5 * * * ?', '3', '1', '0', '0', '每5分钟拉取阿里云VOD转码进度', '超级管理员', '2026-05-26 16:46:37', '', '2026-05-26 16:46:37');
 INSERT INTO `sys_job` VALUES (2, '会员到期提醒', 'DEFAULT', 'memTask.notifyExpireSoon()', '0 0 9 * * ?', '3', '1', '0', '0', '到期前3天推送续费提醒', '超级管理员', '2026-05-26 16:46:37', '', '2026-05-26 16:46:37');
 INSERT INTO `sys_job` VALUES (3, 'AI成本日汇总', 'DEFAULT', 'aiTask.aggregateDailyCost()', '0 30 1 * * ?', '3', '1', '0', '0', '凌晨汇总前日Token消耗', '超级管理员', '2026-05-26 16:46:37', '', '2026-05-26 16:46:37');
-INSERT INTO `sys_job` VALUES (4, 'AI月额度归档', 'DEFAULT', 'aiTask.resetMonthlyQuota()', '0 10 0 1 * ?', '3', '1', '0', '0', '每月清理上月 ai_user_quota 缓存行', '超级管理员', '2026-05-26 16:46:37', '', '2026-05-26 16:46:37');
+INSERT INTO `sys_job` VALUES (4, 'AI月额度归档', 'DEFAULT', 'aiTask.resetMonthlyQuota()', '0 10 0 1 * ?', '3', '1', '0', '0', '每月清理上月 ai_customer_quota 缓存行', '超级管理员', '2026-05-26 16:46:37', '', '2026-05-26 16:46:37');
 
 -- ----------------------------
 -- Table structure for sys_job_log
@@ -2932,11 +2788,11 @@ CREATE TABLE `sys_menu`  (
                              `visible` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '显示（0显示 1隐藏）',
                              `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                              `perms` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '权限标识',
-                             `icon` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图标',
+                             `icon` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '图标（Element 图标类名）',
                              `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                              `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                              `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                              `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                              PRIMARY KEY (`menu_id`) USING BTREE,
                              INDEX `idx_sys_menu_parent`(`parent_id` ASC) USING BTREE
@@ -2945,321 +2801,374 @@ CREATE TABLE `sys_menu`  (
 -- ----------------------------
 -- Records of sys_menu
 -- ----------------------------
-INSERT INTO `sys_menu` VALUES (1, '首页', 0, '0', 0, '/dashboard', NULL, 'Dashboard', 'C', '0', '0', 'system:dashboard:view', 'House', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (10, '用户与会员', 0, '0', 1, NULL, NULL, NULL, 'M', '0', '0', NULL, 'UserFilled', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (11, 'C端用户', 10, '0,10', 1, '/user/customer-list', NULL, 'BizUserList', 'C', '0', '0', 'usr:customer:list', 'User', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (12, '体测数据', 10, '0,10', 2, '/user/body-data', NULL, 'UserBodyData', 'C', '0', '0', 'usr:body:list', 'DataAnalysis', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (13, '教练管理', 10, '0,10', 3, '/user/coach', NULL, 'UserCoach', 'C', '0', '0', 'usr:coach:list', 'Avatar', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (14, '用户分群', 10, '0,10', 4, '/user/segment', NULL, 'UserSegment', 'C', '0', '0', 'usr:segment:list', 'CollectionTag', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (15, '会员套餐', 10, '0,10', 5, '/member/package', NULL, 'MemberPackage', 'C', '0', '0', 'mem:package:list', 'Medal', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (16, '会员等级', 10, '0,10', 6, '/member/level', NULL, 'MemberLevel', 'C', '0', '0', 'mem:level:list', 'Rank', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (17, '会员权益', 10, '0,10', 7, '/member/benefit', NULL, 'MemberBenefit', 'C', '0', '0', 'mem:benefit:list', 'Star', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (18, '积分体系', 10, '0,10', 8, '/member/points', NULL, 'MemberPoints', 'C', '0', '0', 'mem:points:list', 'Trophy', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (19, '约课审核', 10, '0,10', 9, '/user/booking', NULL, 'UserBooking', 'C', '0', '0', 'usr:booking:list', 'Calendar', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (20, '内容与课程', 0, '0', 2, NULL, NULL, NULL, 'M', '0', '0', NULL, 'VideoPlay', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (21, '课程分类', 20, '0,20', 1, '/course/category', NULL, 'CourseCategory', 'C', '0', '0', 'crs:category:list', 'Files', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (22, '课程列表', 20, '0,20', 2, '/course/list', NULL, 'CourseList', 'C', '0', '0', 'crs:course:list', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (23, '视频中心', 20, '0,20', 3, '/course/video', NULL, 'CourseVideo', 'C', '0', '0', 'crs:video:list', 'Film', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (24, '图片中心', 20, '0,20', 4, '/media/library', NULL, 'MediaLibrary', 'C', '0', '0', 'media:asset:list', 'Picture', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (25, '社区动态', 20, '0,20', 5, '/community/feed', NULL, 'CommunityFeed', 'C', '0', '0', 'cms:post:list', 'ChatLineRound', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (26, '内容审核', 20, '0,20', 6, '/community/moderation', NULL, 'CommunityModeration', 'C', '0', '0', 'cms:moderation:list', 'Warning', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (30, '训练管理', 0, '0', 3, NULL, NULL, NULL, 'M', '0', '0', NULL, 'Position', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (31, '动作库', 30, '0,30', 1, '/train/action-lib', NULL, 'TrainActionLib', 'C', '0', '0', 'train:action:list', 'Position', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (32, '训练计划', 30, '0,30', 2, '/train/plan', NULL, 'TrainPlan', 'C', '0', '0', 'train:plan:list', 'Calendar', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (33, '训练记录', 30, '0,30', 3, '/train/record', NULL, 'TrainRecord', 'C', '0', '0', 'train:record:list', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (34, '穿戴设备', 30, '0,30', 4, '/train/device', NULL, 'HealthDevice', 'C', '0', '0', 'train:device:list', 'Watch', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (40, '饮食管理', 0, '0', 4, NULL, NULL, NULL, 'M', '0', '0', NULL, 'Food', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (41, '饮食分类', 40, '0,40', 1, '/diet/category', NULL, 'DietCategory', 'C', '0', '0', 'diet:category:list', 'FolderOpened', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (42, '食物库', 40, '0,40', 2, '/diet/food', NULL, 'DietFoodLib', 'C', '0', '0', 'diet:food:list', 'ShoppingBag', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (43, '饮食方案', 40, '0,40', 3, '/diet/plan', NULL, 'DietPlan', 'C', '0', '0', 'diet:plan:list', 'Calendar', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (44, '饮食记录', 40, '0,40', 4, '/diet/record', NULL, 'DietRecord', 'C', '0', '0', 'diet:record:list', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (50, 'AI 管理', 0, '0', 5, NULL, NULL, NULL, 'M', '0', '0', NULL, 'Cpu', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (51, 'AI 统计', 5004, '0,50,5004', 1, '/ai/stats', NULL, 'AiStats', 'C', '0', '0', 'ai:stats:list', 'Histogram', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (52, '知识库管理', 5002, '0,50,5002', 2, '/ai/knowledge', NULL, 'AiKnowledge', 'C', '0', '0', 'ai:knowledge:list', 'Document', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-07-06 15:40:07');
-INSERT INTO `sys_menu` VALUES (53, '对话记录', 5001, '0,50,5001', 1, '/ai/chat', NULL, 'AiChat', 'C', '0', '0', 'ai:chat:list', 'ChatDotRound', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (54, '模型配置', 5003, '0,50,5003', 1, '/ai/model', NULL, 'AiModel', 'C', '0', '0', 'ai:model:list', 'Setting', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (55, '提示词管理', 5001, '0,50,5001', 3, '/ai/prompt', NULL, 'AiPrompt', 'C', '0', '0', 'ai:prompt:list', 'EditPen', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (56, 'RAG 质量评估', 5002, '0,50,5002', 3, '/ai/rag', NULL, 'AiRag', 'C', '0', '0', 'ai:rag:list', 'MagicStick', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (57, '方案审核', 5001, '0,50,5001', 4, '/ai/plan-review', NULL, 'AiPlanReview', 'C', '0', '0', 'ai:plan:list', 'View', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (58, 'AI 助手调试', 5001, '0,50,5001', 2, '/ai/assistant', NULL, 'AiAssistant', 'C', '0', '0', 'ai:chat:query', 'ChatDotRound', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (61, 'Agent 编排', 5003, '0,50,5003', 3, '/ai/agent', NULL, 'AiAgent', 'C', '0', '0', 'ai:agent:list', 'Connection', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (62, '工具管理', 5003, '0,50,5003', 4, '/ai/tools', NULL, 'AiTools', 'C', '0', '0', 'ai:tool:list', 'Tools', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (63, '数据集', 5002, '0,50,5002', 4, '/ai/dataset', NULL, 'AiDataset', 'C', '0', '0', 'ai:dataset:list', 'Folder', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (64, '模型评测', 5003, '0,50,5003', 2, '/ai/evaluation', NULL, 'AiEvaluation', 'C', '0', '0', 'ai:evaluation:list', 'TrendCharts', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (65, '成本管控', 50, '0,50', 5, NULL, NULL, NULL, 'M', '0', '0', NULL, 'Coin', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (66, '内容护栏', 5004, '0,50,5004', 4, '/ai/guardrail', NULL, 'AiGuardrail', 'C', '0', '0', 'ai:guardrail:list', 'Lock', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (67, '向量库管理', 5002, '0,50,5002', 1, '/ai/vector', NULL, 'AiVector', 'C', '0', '0', 'ai:vector:list', 'Share', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-07-06 15:40:30');
-INSERT INTO `sys_menu` VALUES (68, '链路追踪', 5004, '0,50,5004', 3, '/ai/trace', NULL, 'AiTrace', 'C', '0', '0', 'ai:trace:list', 'Monitor', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (70, '商城管理', 0, '0', 7, NULL, NULL, NULL, 'M', '0', '0', NULL, 'ShoppingCart', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (71, '商品分类', 70, '0,70', 1, '/product/category', NULL, 'ProductCategory', 'C', '0', '0', 'prd:category:list', 'Files', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (72, '品牌管理', 70, '0,70', 2, '/product/brand', NULL, 'ProductBrand', 'C', '0', '0', 'prd:brand:list', 'PriceTag', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (73, '商品列表', 70, '0,70', 4, '/product/list', NULL, 'ProductList', 'C', '0', '0', 'prd:product:list', 'Goods', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (74, '库存管理', 70, '0,70', 5, '/product/stock', NULL, 'ProductStock', 'C', '0', '0', 'prd:stock:list', 'Box', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (75, '销售属性', 70, '0,70', 3, '/product/attr', NULL, 'ProductAttr', 'C', '0', '0', 'prd:attr:list', 'Operation', '0', '超级管理员', '2025-05-20 10:00:00', '', '2025-05-20 10:00:00');
-INSERT INTO `sys_menu` VALUES (80, '订单中心', 0, '0', 8, NULL, NULL, NULL, 'M', '0', '0', NULL, 'List', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (81, '商品订单', 80, '0,80', 1, '/order/list', NULL, 'OrderList', 'C', '0', '0', 'ord:order:list', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (82, '会员订单', 80, '0,80', 2, '/order/member', NULL, 'MemberOrder', 'C', '0', '0', 'ord:member:list', 'Document', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (83, '售后退款', 80, '0,80', 3, '/order/refund', NULL, 'OrderRefund', 'C', '0', '0', 'ord:refund:list', 'Ticket', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (84, '支付渠道', 80, '0,80', 4, '/order/payment', NULL, 'OrderPayment', 'C', '0', '0', 'ord:payment:list', 'Wallet', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (85, '物流管理', 80, '0,80', 5, '/order/logistics', NULL, 'OrderLogistics', 'C', '0', '0', 'ord:logistics:list', 'Van', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (90, '营销管理', 0, '0', 9, NULL, NULL, NULL, 'M', '0', '0', NULL, 'Picture', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (91, '轮播图管理', 90, '0,90', 1, '/marketing/banner', NULL, 'MarketingBanner', 'C', '0', '0', 'mkt:banner:list', 'Picture', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (92, '优惠券管理', 90, '0,90', 2, '/marketing/coupon', NULL, 'MarketingCoupon', 'C', '0', '0', 'mkt:coupon:list', 'Ticket', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (93, '秒杀活动', 90, '0,90', 3, '/marketing/flash', NULL, 'MarketingFlash', 'C', '0', '0', 'mkt:flash:list', 'Odometer', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (94, '挑战打卡', 90, '0,90', 4, '/marketing/challenge', NULL, 'MarketingChallenge', 'C', '0', '0', 'mkt:challenge:list', 'Trophy', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (100, '系统管理', 0, '0', 10, NULL, NULL, NULL, 'M', '0', '0', NULL, 'Setting', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (101, '账号管理', 100, '0,100', 1, '/system/account', NULL, 'SystemAccount', 'C', '0', '0', 'system:user:list', 'User', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (102, '角色管理', 100, '0,100', 2, '/system/role', NULL, 'SystemRole', 'C', '0', '0', 'system:role:list', 'UserFilled', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (103, '菜单管理', 100, '0,100', 3, '/system/menu', NULL, 'SystemMenu', 'C', '0', '0', 'system:menu:list', 'Grid', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (104, '部门管理', 100, '0,100', 4, '/system/dept', NULL, 'SystemDept', 'C', '0', '0', 'system:dept:list', 'OfficeBuilding', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (105, '字典管理', 100, '0,100', 5, '/system/dict', NULL, 'SystemDict', 'C', '0', '0', 'system:dict:list', 'Notebook', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (106, '日志管理', 100, '0,100', 6, NULL, NULL, NULL, 'M', '0', '0', NULL, 'Document', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (107, '定时任务', 100, '0,100', 7, '/system/job', NULL, 'SystemJob', 'C', '0', '0', 'system:job:list', 'Clock', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (108, '系统配置', 100, '0,100', 8, '/system/config', NULL, 'SystemConfig', 'C', '0', '0', 'system:config:list', 'Setting', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (109, '消息推送', 100, '0,100', 9, '/system/notice', NULL, 'SystemNotice', 'C', '0', '0', 'system:notice:list', 'Bell', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (659, '成本总览', 65, '0,50,65', 1, '/ai/cost', NULL, 'AiCost', 'C', '0', '0', 'ai:cost:list', 'Coin', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (691, '用户额度', 65, '0,50,65', 2, '/ai/quota', NULL, 'AiQuota', 'C', '0', '0', 'ai:cost:query', 'User', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (692, 'Token 流水', 5004, '0,50,5004', 2, '/ai/token', NULL, 'AiToken', 'C', '0', '0', 'ai:stats:query', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1061, '登录日志', 106, '0,100,106', 1, '/system/login-log', NULL, 'SystemLoginLog', 'C', '0', '0', 'system:loginlog:list', 'User', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1062, '操作日志', 106, '0,100,106', 2, '/system/oper-log', NULL, 'SystemOperLog', 'C', '0', '0', 'system:operlog:list', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1, '首页', 0, '0', 0, '/home/index', '/home/index', 'home', 'C', '0', '0', 'system:dashboard:view', 'House', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (10, '用户与会员', 0, '0', 1, '/user', NULL, 'User', 'M', '0', '0', NULL, 'UserFilled', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11, 'C端用户', 10, '0,10', 1, '/user', '/user/index', 'user', 'C', '0', '0', 'usr:customer:list', 'User', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (12, '体测数据', 10, '0,10', 2, '/user/body', '/user/body/index', 'userBody', 'C', '0', '0', 'usr:body:list', 'DataAnalysis', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (13, '教练管理', 10, '0,10', 3, '/coach', '/coach/index', 'coach', 'C', '0', '0', 'usr:coach:list', 'Avatar', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (14, '用户分群', 10, '0,10', 4, '/user/segment', '/user/segment/index', 'userSegment', 'C', '0', '0', 'usr:segment:list', 'CollectionTag', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (15, '会员套餐', 10, '0,10', 5, '/member/plan', '/member/plan/index', 'memberPlan', 'C', '0', '0', 'vip:plan:list', 'Medal', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (16, '会员等级', 10, '0,10', 6, '/member/level', '/member/level/index', 'memberLevel', 'C', '0', '0', 'mem:level:list', 'Rank', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (17, '会员权益', 10, '0,10', 7, '/member/benefit', '/member/benefit/index', 'memberBenefit', 'C', '0', '0', 'vip:benefit:list', 'Star', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (18, '积分体系', 10, '0,10', 8, '/member/points-log', '/member/points-log/index', 'memberPointsLog', 'C', '0', '0', 'mem:points-log:list', 'Trophy', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (19, '约课审核', 10, '0,10', 9, '/coach/booking', '/coach/booking/index', 'coachBooking', 'C', '0', '0', 'usr:booking:list', 'Calendar', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (115, '会员订阅', 10, '0,10', 10, '/member/subscription', '/member/subscription/index', 'memberSubscription', 'C', '0', '0', 'vip:subscription:list', 'Ticket', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (116, '徽章管理', 10, '0,10', 11, '/member/badge', '/member/badge/index', 'memberBadge', 'C', '0', '0', 'mem:badge:list', 'Medal', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (117, '签到记录', 10, '0,10', 12, '/member/checkin', '/member/checkin/index', 'memberCheckin', 'C', '0', '0', 'mem:checkin:list', 'Calendar', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (118, '积分规则', 10, '0,10', 13, '/member/points-rule', '/member/points-rule/index', 'memberPointsRule', 'C', '0', '0', 'mem:points-rule:list', 'SetUp', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (119, '教练绑定', 10, '0,10', 14, '/coach/bind', '/coach/bind/index', 'coachBind', 'C', '0', '0', 'usr:coach:list', 'Link', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (120, '教练排班', 10, '0,10', 15, '/coach/schedule', '/coach/schedule/index', 'coachSchedule', 'C', '0', '0', 'usr:coach:query', 'Clock', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (123, '用户地址', 10, '0,10', 16, '/user/address', '/user/address/index', 'userAddress', 'C', '0', '0', 'usr:address:list', 'Location', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (124, '用户设置', 10, '0,10', 17, '/user/setting', '/user/setting/index', 'userSetting', 'C', '0', '0', 'usr:setting:list', 'Setting', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (20, '内容与课程', 0, '0', 2, '/course', NULL, 'Course', 'M', '0', '0', NULL, 'VideoPlay', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (24, '图片中心', 20, '0,20', 1, '/media/library', '/media/library/index', 'MediaLibrary', 'C', '0', '0', 'media:asset:list', 'Picture', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (23, '视频中心', 20, '0,20', 2, '/course/video', '/course/video/index', 'courseVideo', 'C', '0', '0', 'crs:video:list', 'Film', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (21, '课程分类', 20, '0,20', 3, '/course/category', '/course/category/index', 'courseCategory', 'C', '0', '0', 'crs:category:list', 'Files', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (22, '课程列表', 20, '0,20', 4, '/course/list', '/course/list/index', 'CourseList', 'C', '0', '0', 'crs:course:list', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (27, '学习进度', 20, '0,20', 5, '/course/progress', '/course/progress/index', 'courseProgress', 'C', '0', '0', 'crs:progress:list', 'DataLine', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (25, '社区动态', 20, '0,20', 6, '/community/post', '/community/post/index', 'communityPost', 'C', '0', '0', 'community:post:list', 'ChatLineRound', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (26, '内容审核', 20, '0,20', 7, '/community/moderation', '/community/moderation/index', 'CommunityModeration', 'C', '0', '0', 'community:audit:list', 'Warning', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (28, '社区评论', 20, '0,20', 8, '/community/comment', '/community/comment/index', 'communityComment', 'C', '0', '0', 'community:comment:list', 'ChatDotRound', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (30, '训练管理', 0, '0', 3, '/training', NULL, 'Training', 'M', '0', '0', NULL, 'Position', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (31, '动作库', 30, '0,30', 1, '/training/exercise', '/training/exercise/index', 'trainingExercise', 'C', '0', '0', 'train:exercise:list', 'Position', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (32, '训练计划', 30, '0,30', 2, '/training/plan', '/training/plan/index', 'trainingPlan', 'C', '0', '0', 'train:plan:list', 'Calendar', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (33, '训练记录', 30, '0,30', 3, '/training/record', '/training/record/index', 'trainingRecord', 'C', '0', '0', 'train:record:list', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (34, '穿戴设备', 30, '0,30', 4, '/training/device', '/training/device/index', 'trainingDevice', 'C', '0', '0', 'train:device:list', 'Watch', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (40, '饮食管理', 0, '0', 4, '/diet', NULL, 'Diet', 'M', '0', '0', NULL, 'Food', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (41, '饮食分类', 40, '0,40', 1, '/diet/food-category', '/diet/food-category/index', 'dietFoodCategory', 'C', '0', '0', 'diet:food-category:list', 'FolderOpened', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (42, '食物库', 40, '0,40', 2, '/diet/food', '/diet/food/index', 'dietFood', 'C', '0', '0', 'diet:food:list', 'ShoppingBag', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (43, '饮食方案', 40, '0,40', 3, '/diet/meal-plan', '/diet/meal-plan/index', 'dietMealPlan', 'C', '0', '0', 'diet:meal-plan:list', 'Calendar', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (44, '饮食记录', 40, '0,40', 4, '/diet/record', '/diet/record/index', 'dietRecord', 'C', '0', '0', 'diet:record:list', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (50, 'AI 管理', 0, '0', 5, '/ai', NULL, 'Ai', 'M', '0', '0', NULL, 'Cpu', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (51, 'AI 看板', 5004, '0,50,5004', 1, '/ai/stats', '/ai/stats/index', 'aiStats', 'C', '0', '0', 'ai:stats:list', 'Histogram', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (52, '知识库管理', 5002, '0,50,5002', 2, '/ai/knowledge', '/ai/knowledge/index', 'aiKnowledge', 'C', '0', '0', 'ai:knowledge:list', 'Document', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-07-06 15:40:07');
+INSERT INTO `sys_menu` VALUES (53, '对话记录', 5001, '0,50,5001', 1, '/ai/conversation', '/ai/conversation/index', 'aiConversation', 'C', '1', '0', 'ai:conversation:list', 'ChatDotRound', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (54, '模型配置', 5003, '0,50,5003', 1, '/ai/model', '/ai/model/index', 'aiModel', 'C', '0', '0', 'ai:model:list', 'Setting', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (55, '提示词管理', 5001, '0,50,5001', 3, '/ai/prompt', '/ai/prompt/index', 'aiPrompt', 'C', '0', '0', 'ai:prompt:list', 'EditPen', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (56, 'RAG 知识库评估', 5002, '0,50,5002', 3, '/ai/rag-eval', '/ai/rag-eval/index', 'aiRagEval', 'C', '0', '0', 'ai:rag-eval:list', 'MagicStick', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (57, '方案审核', 5001, '0,50,5001', 4, '/ai/plan-review', '/ai/plan-review/index', 'aiPlanReview', 'C', '0', '0', 'ai:plan-review:list', 'View', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (58, '会话管理', 5001, '0,50,5001', 2, '/ai/session', '/ai/session/index', 'aiSession', 'C', '0', '0', 'ai:session:list', 'ChatDotRound', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (61, 'Agent 编排', 5003, '0,50,5003', 3, '/ai/agent', '/ai/agent/index', 'aiAgent', 'C', '0', '0', 'ai:agent:list', 'Connection', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (62, '工具管理', 5003, '0,50,5003', 4, '/ai/tool', '/ai/tool/index', 'aiTool', 'C', '0', '0', 'ai:tool:list', 'Tools', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (63, '数据集', 5002, '0,50,5002', 4, '/ai/dataset', '/ai/dataset/index', 'aiDataset', 'C', '0', '0', 'ai:dataset:list', 'Folder', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (64, '模型评测（问答集）', 5003, '0,50,5003', 2, '/ai/evaluation', '/ai/evaluation/index', 'aiEvaluation', 'C', '0', '0', 'ai:evaluation:list', 'TrendCharts', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (65, '成本管控', 50, '0,50', 5, '/ai/cost-group', NULL, 'AiCostGroup', 'M', '0', '0', NULL, 'Coin', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (66, '内容护栏', 5004, '0,50,5004', 4, '/ai/guardrail', '/ai/guardrail/index', 'aiGuardrail', 'C', '0', '0', 'ai:guardrail:list', 'Lock', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (67, '向量库管理', 5002, '0,50,5002', 1, '/ai/vector-index', '/ai/vector-index/index', 'aiVectorIndex', 'C', '0', '0', 'ai:vector-index:list', 'Share', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-07-06 15:40:30');
+INSERT INTO `sys_menu` VALUES (68, '链路追踪', 5004, '0,50,5004', 3, '/ai/trace', '/ai/trace/index', 'aiTrace', 'C', '0', '0', 'ai:trace:list', 'Monitor', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (70, '商城管理', 0, '0', 7, '/product', NULL, 'Product', 'M', '0', '0', NULL, 'ShoppingCart', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (71, '商品分类', 70, '0,70', 1, '/product/category', '/product/category/index', 'productCategory', 'C', '0', '0', 'prd:category:list', 'Files', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (72, '品牌管理', 70, '0,70', 2, '/product/brand', '/product/brand/index', 'productBrand', 'C', '0', '0', 'prd:brand:list', 'PriceTag', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (73, '商品列表', 70, '0,70', 4, '/product/list', '/product/list/index', 'productList', 'C', '0', '0', 'prd:product:list', 'Goods', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (74, '库存管理', 70, '0,70', 5, '/product/stock', '/product/stock/index', 'productStock', 'C', '0', '0', 'prd:stock:list', 'Box', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (75, '销售属性', 70, '0,70', 3, '/product/attr', '/product/attr/index', 'productAttr', 'C', '0', '0', 'prd:attr:list', 'Operation', '0', '超级管理员', '2025-05-20 10:00:00', '', '2025-05-20 10:00:00');
+INSERT INTO `sys_menu` VALUES (76, '搜索索引(ES)', 70, '0,70', 6, '/product/es', '/product/es/index', 'productEs', 'C', '0', '0', 'prd:es:list', 'Search', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (80, '订单中心', 0, '0', 8, '/order', NULL, 'Order', 'M', '0', '0', NULL, 'List', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (81, '商品订单', 80, '0,80', 1, '/order', '/order/index', 'order', 'C', '0', '0', 'ord:order:list', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (82, '会员订单', 80, '0,80', 2, '/member/order', '/member/order/index', 'memberOrder', 'C', '0', '0', 'vip:order:list', 'Document', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (83, '售后退款', 80, '0,80', 3, '/pay/refund', '/pay/refund/index', 'payRefund', 'C', '0', '0', 'pay:refund:list', 'Ticket', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (84, '支付渠道', 80, '0,80', 4, '/pay/channel', '/pay/channel/index', 'payChannel', 'C', '0', '0', 'pay:channel:list', 'Wallet', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (85, '物流管理', 80, '0,80', 5, '/order/logistics', '/order/logistics/index', 'orderLogistics', 'C', '0', '0', 'ord:logistics:list', 'Van', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (90, '营销管理', 0, '0', 9, '/marketing', NULL, 'Marketing', 'M', '0', '0', NULL, 'Picture', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (91, '轮播图管理', 90, '0,90', 1, '/marketing/banner', '/marketing/banner/index', 'marketingBanner', 'C', '0', '0', 'mkt:banner:list', 'Picture', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (92, '优惠券管理', 90, '0,90', 2, '/marketing/coupon', '/marketing/coupon/index', 'marketingCoupon', 'C', '0', '0', 'mkt:coupon:list', 'Ticket', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (93, '秒杀活动', 90, '0,90', 3, '/seckill/activity', '/seckill/activity/index', 'seckillActivity', 'C', '0', '0', 'seckill:activity:list', 'Odometer', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (94, '挑战打卡', 90, '0,90', 4, '/marketing/challenge', '/marketing/challenge/index', 'marketingChallenge', 'C', '0', '0', 'mkt:challenge:list', 'Trophy', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (95, '领券记录', 90, '0,90', 5, '/marketing/coupon-receive', '/marketing/coupon-receive/index', 'marketingCouponReceive', 'C', '0', '0', 'mkt:coupon-receive:list', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (96, '秒杀订单', 90, '0,90', 6, '/seckill/order', '/seckill/order/index', 'seckillOrder', 'C', '0', '0', 'seckill:order:list', 'ShoppingCart', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (100, '系统管理', 0, '0', 10, '/system', NULL, 'System', 'M', '0', '0', NULL, 'Setting', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (101, '账号管理', 100, '0,100', 1, '/system/account', '/system/account/index', 'SystemAccount', 'C', '0', '0', 'system:user:list', 'User', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (102, '角色管理', 100, '0,100', 2, '/system/role', '/system/role/index', 'SystemRole', 'C', '0', '0', 'system:role:list', 'UserFilled', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (103, '菜单管理', 100, '0,100', 3, '/system/menu', '/system/menu/index', 'SystemMenu', 'C', '0', '0', 'system:menu:list', 'Grid', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (104, '部门管理', 100, '0,100', 4, '/system/department', '/system/department/index', 'SystemDepartment', 'C', '0', '0', 'system:dept:list', 'OfficeBuilding', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (105, '字典管理', 100, '0,100', 5, '/system/dict', '/system/dict/index', 'SystemDict', 'C', '0', '0', 'system:dict:list', 'Notebook', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (106, '日志管理', 100, '0,100', 6, '/system/logs', NULL, 'SystemLogs', 'M', '0', '0', NULL, 'Document', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (107, '任务调度(XXL-Job)', 100, '0,100', 7, '/system/task', '/system/task/index', 'SystemTask', 'C', '0', '0', 'system:job:list', 'Clock', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (108, '系统配置', 100, '0,100', 8, '/system/config', '/system/config/index', 'SystemConfig', 'C', '0', '0', 'system:config:list', 'Setting', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (109, '消息管理', 100, '0,100', 9, '/system/notice', '/system/notice/index', 'SystemNotice', 'C', '0', '0', 'system:notice:list', 'Bell', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (659, '成本总览', 65, '0,50,65', 1, '/ai/cost', '/ai/cost/index', 'aiCost', 'C', '0', '0', 'ai:cost:list', 'Coin', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (691, '用户额度', 65, '0,50,65', 2, '/ai/quota', '/ai/quota/index', 'aiQuota', 'C', '0', '0', 'ai:quota:list', 'User', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (692, 'Token 流水', 5004, '0,50,5004', 2, '/ai/token-usage', '/ai/token-usage/index', 'aiTokenUsage', 'C', '0', '0', 'ai:token-usage:list', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1061, '登录日志', 106, '0,100,106', 1, '/system/login-log', '/system/log/index', 'SystemLoginLog', 'C', '0', '0', 'system:login-log:list', 'User', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1062, '操作日志', 106, '0,100,106', 2, '/system/oper-log', '/system/log/index', 'SystemOperLog', 'C', '0', '0', 'system:oper-log:list', 'Tickets', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1101, '查询', 11, '0,10,11', 1, NULL, NULL, NULL, 'F', '1', '0', 'usr:customer:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1102, '新增', 11, '0,10,11', 2, NULL, NULL, NULL, 'F', '1', '0', 'usr:customer:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1103, '修改', 11, '0,10,11', 3, NULL, NULL, NULL, 'F', '1', '0', 'usr:customer:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1104, '删除', 11, '0,10,11', 4, NULL, NULL, NULL, 'F', '1', '0', 'usr:customer:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1103, '修改', 11, '0,10,11', 3, NULL, NULL, NULL, 'F', '1', '0', 'usr:customer:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1104, '删除', 11, '0,10,11', 4, NULL, NULL, NULL, 'F', '1', '0', 'usr:customer:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1105, '导出', 11, '0,10,11', 5, NULL, NULL, NULL, 'F', '1', '0', 'usr:customer:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1201, '查询', 12, '0,10,12', 1, NULL, NULL, NULL, 'F', '1', '0', 'usr:body:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1202, '导出', 12, '0,10,12', 2, NULL, NULL, NULL, 'F', '1', '0', 'usr:body:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1301, '查询', 13, '0,10,13', 1, NULL, NULL, NULL, 'F', '1', '0', 'usr:coach:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1302, '新增', 13, '0,10,13', 2, NULL, NULL, NULL, 'F', '1', '0', 'usr:coach:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1303, '修改', 13, '0,10,13', 3, NULL, NULL, NULL, 'F', '1', '0', 'usr:coach:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1304, '删除', 13, '0,10,13', 4, NULL, NULL, NULL, 'F', '1', '0', 'usr:coach:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1303, '修改', 13, '0,10,13', 3, NULL, NULL, NULL, 'F', '1', '0', 'usr:coach:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1304, '删除', 13, '0,10,13', 4, NULL, NULL, NULL, 'F', '1', '0', 'usr:coach:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1305, '导出', 13, '0,10,13', 5, NULL, NULL, NULL, 'F', '1', '0', 'usr:coach:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1401, '查询', 14, '0,10,14', 1, NULL, NULL, NULL, 'F', '1', '0', 'usr:segment:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1402, '新增', 14, '0,10,14', 2, NULL, NULL, NULL, 'F', '1', '0', 'usr:segment:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1403, '修改', 14, '0,10,14', 3, NULL, NULL, NULL, 'F', '1', '0', 'usr:segment:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1404, '删除', 14, '0,10,14', 4, NULL, NULL, NULL, 'F', '1', '0', 'usr:segment:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1403, '修改', 14, '0,10,14', 3, NULL, NULL, NULL, 'F', '1', '0', 'usr:segment:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1404, '删除', 14, '0,10,14', 4, NULL, NULL, NULL, 'F', '1', '0', 'usr:segment:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1405, '导出', 14, '0,10,14', 5, NULL, NULL, NULL, 'F', '1', '0', 'usr:segment:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1501, '查询', 15, '0,10,15', 1, NULL, NULL, NULL, 'F', '1', '0', 'mem:package:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1502, '新增', 15, '0,10,15', 2, NULL, NULL, NULL, 'F', '1', '0', 'mem:package:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1503, '修改', 15, '0,10,15', 3, NULL, NULL, NULL, 'F', '1', '0', 'mem:package:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1504, '删除', 15, '0,10,15', 4, NULL, NULL, NULL, 'F', '1', '0', 'mem:package:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1505, '导出', 15, '0,10,15', 5, NULL, NULL, NULL, 'F', '1', '0', 'mem:package:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1501, '查询', 15, '0,10,15', 1, NULL, NULL, NULL, 'F', '1', '0', 'vip:plan:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1502, '新增', 15, '0,10,15', 2, NULL, NULL, NULL, 'F', '1', '0', 'vip:plan:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1503, '修改', 15, '0,10,15', 3, NULL, NULL, NULL, 'F', '1', '0', 'vip:plan:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1504, '删除', 15, '0,10,15', 4, NULL, NULL, NULL, 'F', '1', '0', 'vip:plan:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1505, '导出', 15, '0,10,15', 5, NULL, NULL, NULL, 'F', '1', '0', 'vip:plan:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1601, '查询', 16, '0,10,16', 1, NULL, NULL, NULL, 'F', '1', '0', 'mem:level:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1602, '新增', 16, '0,10,16', 2, NULL, NULL, NULL, 'F', '1', '0', 'mem:level:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1603, '修改', 16, '0,10,16', 3, NULL, NULL, NULL, 'F', '1', '0', 'mem:level:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1604, '删除', 16, '0,10,16', 4, NULL, NULL, NULL, 'F', '1', '0', 'mem:level:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1603, '修改', 16, '0,10,16', 3, NULL, NULL, NULL, 'F', '1', '0', 'mem:level:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1604, '删除', 16, '0,10,16', 4, NULL, NULL, NULL, 'F', '1', '0', 'mem:level:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1605, '导出', 16, '0,10,16', 5, NULL, NULL, NULL, 'F', '1', '0', 'mem:level:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1701, '查询', 17, '0,10,17', 1, NULL, NULL, NULL, 'F', '1', '0', 'mem:benefit:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1702, '新增', 17, '0,10,17', 2, NULL, NULL, NULL, 'F', '1', '0', 'mem:benefit:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1703, '修改', 17, '0,10,17', 3, NULL, NULL, NULL, 'F', '1', '0', 'mem:benefit:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1704, '删除', 17, '0,10,17', 4, NULL, NULL, NULL, 'F', '1', '0', 'mem:benefit:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1705, '导出', 17, '0,10,17', 5, NULL, NULL, NULL, 'F', '1', '0', 'mem:benefit:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1801, '查询', 18, '0,10,18', 1, NULL, NULL, NULL, 'F', '1', '0', 'mem:points:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1802, '新增', 18, '0,10,18', 2, NULL, NULL, NULL, 'F', '1', '0', 'mem:points:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1803, '修改', 18, '0,10,18', 3, NULL, NULL, NULL, 'F', '1', '0', 'mem:points:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1804, '删除', 18, '0,10,18', 4, NULL, NULL, NULL, 'F', '1', '0', 'mem:points:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1805, '导出', 18, '0,10,18', 5, NULL, NULL, NULL, 'F', '1', '0', 'mem:points:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (1806, '积分调整', 18, '0,10,18', 6, NULL, NULL, NULL, 'F', '1', '0', 'mem:points:adjust', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1701, '查询', 17, '0,10,17', 1, NULL, NULL, NULL, 'F', '1', '0', 'vip:benefit:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1702, '新增', 17, '0,10,17', 2, NULL, NULL, NULL, 'F', '1', '0', 'vip:benefit:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1703, '修改', 17, '0,10,17', 3, NULL, NULL, NULL, 'F', '1', '0', 'vip:benefit:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1704, '删除', 17, '0,10,17', 4, NULL, NULL, NULL, 'F', '1', '0', 'vip:benefit:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1705, '导出', 17, '0,10,17', 5, NULL, NULL, NULL, 'F', '1', '0', 'vip:benefit:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1801, '查询', 18, '0,10,18', 1, NULL, NULL, NULL, 'F', '1', '0', 'mem:points-log:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1802, '新增', 18, '0,10,18', 2, NULL, NULL, NULL, 'F', '1', '0', 'mem:points-log:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1803, '修改', 18, '0,10,18', 3, NULL, NULL, NULL, 'F', '1', '0', 'mem:points-log:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1804, '删除', 18, '0,10,18', 4, NULL, NULL, NULL, 'F', '1', '0', 'mem:points-log:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1805, '导出', 18, '0,10,18', 5, NULL, NULL, NULL, 'F', '1', '0', 'mem:points-log:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (1806, '积分调整', 18, '0,10,18', 6, NULL, NULL, NULL, 'F', '1', '0', 'mem:points-log:adjust', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (1901, '审核操作', 19, '0,10,19', 1, NULL, NULL, NULL, 'F', '1', '0', 'usr:booking:audit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11501, '查询', 115, '0,10,115', 1, NULL, NULL, NULL, 'F', '1', '0', 'vip:subscription:list', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11502, '修改', 115, '0,10,115', 2, NULL, NULL, NULL, 'F', '1', '0', 'vip:subscription:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11601, '查询', 116, '0,10,116', 1, NULL, NULL, NULL, 'F', '1', '0', 'mem:badge:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11602, '新增', 116, '0,10,116', 2, NULL, NULL, NULL, 'F', '1', '0', 'mem:badge:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11603, '修改', 116, '0,10,116', 3, NULL, NULL, NULL, 'F', '1', '0', 'mem:badge:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11604, '删除', 116, '0,10,116', 4, NULL, NULL, NULL, 'F', '1', '0', 'mem:badge:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11605, '发放徽章', 116, '0,10,116', 5, NULL, NULL, NULL, 'F', '1', '0', 'mem:badge:grant', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11701, '查询', 117, '0,10,117', 1, NULL, NULL, NULL, 'F', '1', '0', 'mem:checkin:list', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11702, '删除', 117, '0,10,117', 2, NULL, NULL, NULL, 'F', '1', '0', 'mem:checkin:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11801, '查询', 118, '0,10,118', 1, NULL, NULL, NULL, 'F', '1', '0', 'mem:points-rule:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11802, '新增', 118, '0,10,118', 2, NULL, NULL, NULL, 'F', '1', '0', 'mem:points-rule:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11803, '修改', 118, '0,10,118', 3, NULL, NULL, NULL, 'F', '1', '0', 'mem:points-rule:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11804, '删除', 118, '0,10,118', 4, NULL, NULL, NULL, 'F', '1', '0', 'mem:points-rule:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11901, '查询', 119, '0,10,119', 1, NULL, NULL, NULL, 'F', '1', '0', 'usr:coach:list', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (11902, '修改', 119, '0,10,119', 2, NULL, NULL, NULL, 'F', '1', '0', 'usr:coach:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (12001, '查询', 120, '0,10,120', 1, NULL, NULL, NULL, 'F', '1', '0', 'usr:coach:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (12002, '修改', 120, '0,10,120', 2, NULL, NULL, NULL, 'F', '1', '0', 'usr:coach:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (12301, '查询', 123, '0,10,123', 1, NULL, NULL, NULL, 'F', '1', '0', 'usr:address:list', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (12302, '删除', 123, '0,10,123', 2, NULL, NULL, NULL, 'F', '1', '0', 'usr:address:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (12401, '查询', 124, '0,10,124', 1, NULL, NULL, NULL, 'F', '1', '0', 'usr:setting:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (12402, '修改', 124, '0,10,124', 2, NULL, NULL, NULL, 'F', '1', '0', 'usr:setting:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (2101, '查询', 21, '0,20,21', 1, NULL, NULL, NULL, 'F', '1', '0', 'crs:category:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (2102, '新增', 21, '0,20,21', 2, NULL, NULL, NULL, 'F', '1', '0', 'crs:category:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2103, '修改', 21, '0,20,21', 3, NULL, NULL, NULL, 'F', '1', '0', 'crs:category:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2104, '删除', 21, '0,20,21', 4, NULL, NULL, NULL, 'F', '1', '0', 'crs:category:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2103, '修改', 21, '0,20,21', 3, NULL, NULL, NULL, 'F', '1', '0', 'crs:category:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2104, '删除', 21, '0,20,21', 4, NULL, NULL, NULL, 'F', '1', '0', 'crs:category:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (2105, '导出', 21, '0,20,21', 5, NULL, NULL, NULL, 'F', '1', '0', 'crs:category:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (2201, '查询', 22, '0,20,22', 1, NULL, NULL, NULL, 'F', '1', '0', 'crs:course:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (2202, '新增', 22, '0,20,22', 2, NULL, NULL, NULL, 'F', '1', '0', 'crs:course:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2203, '修改', 22, '0,20,22', 3, NULL, NULL, NULL, 'F', '1', '0', 'crs:course:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2204, '删除', 22, '0,20,22', 4, NULL, NULL, NULL, 'F', '1', '0', 'crs:course:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2203, '修改', 22, '0,20,22', 3, NULL, NULL, NULL, 'F', '1', '0', 'crs:course:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2204, '删除', 22, '0,20,22', 4, NULL, NULL, NULL, 'F', '1', '0', 'crs:course:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (2205, '导出', 22, '0,20,22', 5, NULL, NULL, NULL, 'F', '1', '0', 'crs:course:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (2301, '查询', 23, '0,20,23', 1, NULL, NULL, NULL, 'F', '1', '0', 'crs:video:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (2302, '新增', 23, '0,20,23', 2, NULL, NULL, NULL, 'F', '1', '0', 'crs:video:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2303, '修改', 23, '0,20,23', 3, NULL, NULL, NULL, 'F', '1', '0', 'crs:video:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2304, '删除', 23, '0,20,23', 4, NULL, NULL, NULL, 'F', '1', '0', 'crs:video:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2303, '修改', 23, '0,20,23', 3, NULL, NULL, NULL, 'F', '1', '0', 'crs:video:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2304, '删除', 23, '0,20,23', 4, NULL, NULL, NULL, 'F', '1', '0', 'crs:video:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (2305, '导出', 23, '0,20,23', 5, NULL, NULL, NULL, 'F', '1', '0', 'crs:video:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (2401, '查询', 24, '0,20,24', 1, NULL, NULL, NULL, 'F', '1', '0', 'media:asset:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (2402, '上传媒资', 24, '0,20,24', 2, NULL, NULL, NULL, 'F', '1', '0', 'media:asset:upload', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2403, '修改', 24, '0,20,24', 3, NULL, NULL, NULL, 'F', '1', '0', 'media:asset:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2404, '删除', 24, '0,20,24', 4, NULL, NULL, NULL, 'F', '1', '0', 'media:asset:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2403, '修改', 24, '0,20,24', 3, NULL, NULL, NULL, 'F', '1', '0', 'media:asset:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2404, '删除', 24, '0,20,24', 4, NULL, NULL, NULL, 'F', '1', '0', 'media:asset:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (2405, '导出', 24, '0,20,24', 5, NULL, NULL, NULL, 'F', '1', '0', 'media:asset:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2501, '查询', 25, '0,20,25', 1, NULL, NULL, NULL, 'F', '1', '0', 'cms:post:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2502, '新增', 25, '0,20,25', 2, NULL, NULL, NULL, 'F', '1', '0', 'cms:post:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2503, '修改', 25, '0,20,25', 3, NULL, NULL, NULL, 'F', '1', '0', 'cms:post:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2504, '删除', 25, '0,20,25', 4, NULL, NULL, NULL, 'F', '1', '0', 'cms:post:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2505, '导出', 25, '0,20,25', 5, NULL, NULL, NULL, 'F', '1', '0', 'cms:post:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2601, '查询', 26, '0,20,26', 1, NULL, NULL, NULL, 'F', '1', '0', 'cms:moderation:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2602, '审核通过', 26, '0,20,26', 2, NULL, NULL, NULL, 'F', '1', '0', 'cms:moderation:audit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2603, '审核拒绝', 26, '0,20,26', 3, NULL, NULL, NULL, 'F', '1', '0', 'cms:moderation:reject', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (2604, '导出', 26, '0,20,26', 4, NULL, NULL, NULL, 'F', '1', '0', 'cms:moderation:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (3101, '查询', 31, '0,30,31', 1, NULL, NULL, NULL, 'F', '1', '0', 'train:action:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (3102, '新增', 31, '0,30,31', 2, NULL, NULL, NULL, 'F', '1', '0', 'train:action:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (3103, '修改', 31, '0,30,31', 3, NULL, NULL, NULL, 'F', '1', '0', 'train:action:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (3104, '删除', 31, '0,30,31', 4, NULL, NULL, NULL, 'F', '1', '0', 'train:action:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (3105, '导出', 31, '0,30,31', 5, NULL, NULL, NULL, 'F', '1', '0', 'train:action:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2501, '查询', 25, '0,20,25', 1, NULL, NULL, NULL, 'F', '1', '0', 'community:post:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2502, '新增', 25, '0,20,25', 2, NULL, NULL, NULL, 'F', '1', '0', 'community:post:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2503, '修改', 25, '0,20,25', 3, NULL, NULL, NULL, 'F', '1', '0', 'community:post:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2504, '删除', 25, '0,20,25', 4, NULL, NULL, NULL, 'F', '1', '0', 'community:post:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2505, '导出', 25, '0,20,25', 5, NULL, NULL, NULL, 'F', '1', '0', 'community:post:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2601, '查询', 26, '0,20,26', 1, NULL, NULL, NULL, 'F', '1', '0', 'community:audit:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2602, '审核通过', 26, '0,20,26', 2, NULL, NULL, NULL, 'F', '1', '0', 'community:audit:pass', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2603, '审核拒绝', 26, '0,20,26', 3, NULL, NULL, NULL, 'F', '1', '0', 'community:audit:reject', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2604, '导出', 26, '0,20,26', 4, NULL, NULL, NULL, 'F', '1', '0', 'community:audit:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2701, '查询', 27, '0,20,27', 1, NULL, NULL, NULL, 'F', '1', '0', 'crs:progress:list', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2702, '重置进度', 27, '0,20,27', 2, NULL, NULL, NULL, 'F', '1', '0', 'crs:progress:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2801, '查询', 28, '0,20,28', 1, NULL, NULL, NULL, 'F', '1', '0', 'community:comment:list', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2802, '删除', 28, '0,20,28', 2, NULL, NULL, NULL, 'F', '1', '0', 'community:comment:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (2803, '修改', 28, '0,20,28', 3, NULL, NULL, NULL, 'F', '1', '0', 'community:comment:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (3101, '查询', 31, '0,30,31', 1, NULL, NULL, NULL, 'F', '1', '0', 'train:exercise:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (3102, '新增', 31, '0,30,31', 2, NULL, NULL, NULL, 'F', '1', '0', 'train:exercise:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (3103, '修改', 31, '0,30,31', 3, NULL, NULL, NULL, 'F', '1', '0', 'train:exercise:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (3104, '删除', 31, '0,30,31', 4, NULL, NULL, NULL, 'F', '1', '0', 'train:exercise:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (3105, '导出', 31, '0,30,31', 5, NULL, NULL, NULL, 'F', '1', '0', 'train:exercise:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (3201, '查询', 32, '0,30,32', 1, NULL, NULL, NULL, 'F', '1', '0', 'train:plan:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (3202, '新增', 32, '0,30,32', 2, NULL, NULL, NULL, 'F', '1', '0', 'train:plan:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (3203, '修改', 32, '0,30,32', 3, NULL, NULL, NULL, 'F', '1', '0', 'train:plan:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (3204, '删除', 32, '0,30,32', 4, NULL, NULL, NULL, 'F', '1', '0', 'train:plan:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (3203, '修改', 32, '0,30,32', 3, NULL, NULL, NULL, 'F', '1', '0', 'train:plan:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (3204, '删除', 32, '0,30,32', 4, NULL, NULL, NULL, 'F', '1', '0', 'train:plan:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (3205, '导出', 32, '0,30,32', 5, NULL, NULL, NULL, 'F', '1', '0', 'train:plan:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (3301, '查询', 33, '0,30,33', 1, NULL, NULL, NULL, 'F', '1', '0', 'train:record:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (3302, '导出', 33, '0,30,33', 2, NULL, NULL, NULL, 'F', '1', '0', 'train:record:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (3401, '查询', 34, '0,30,34', 1, NULL, NULL, NULL, 'F', '1', '0', 'train:device:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (3402, '新增', 34, '0,30,34', 2, NULL, NULL, NULL, 'F', '1', '0', 'train:device:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (3403, '修改', 34, '0,30,34', 3, NULL, NULL, NULL, 'F', '1', '0', 'train:device:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (3404, '删除', 34, '0,30,34', 4, NULL, NULL, NULL, 'F', '1', '0', 'train:device:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (3403, '修改', 34, '0,30,34', 3, NULL, NULL, NULL, 'F', '1', '0', 'train:device:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (3404, '删除', 34, '0,30,34', 4, NULL, NULL, NULL, 'F', '1', '0', 'train:device:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (3405, '导出', 34, '0,30,34', 5, NULL, NULL, NULL, 'F', '1', '0', 'train:device:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (4101, '查询', 41, '0,40,41', 1, NULL, NULL, NULL, 'F', '1', '0', 'diet:category:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (4102, '新增', 41, '0,40,41', 2, NULL, NULL, NULL, 'F', '1', '0', 'diet:category:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (4103, '修改', 41, '0,40,41', 3, NULL, NULL, NULL, 'F', '1', '0', 'diet:category:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (4104, '删除', 41, '0,40,41', 4, NULL, NULL, NULL, 'F', '1', '0', 'diet:category:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (4105, '导出', 41, '0,40,41', 5, NULL, NULL, NULL, 'F', '1', '0', 'diet:category:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4101, '查询', 41, '0,40,41', 1, NULL, NULL, NULL, 'F', '1', '0', 'diet:food-category:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4102, '新增', 41, '0,40,41', 2, NULL, NULL, NULL, 'F', '1', '0', 'diet:food-category:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4103, '修改', 41, '0,40,41', 3, NULL, NULL, NULL, 'F', '1', '0', 'diet:food-category:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4104, '删除', 41, '0,40,41', 4, NULL, NULL, NULL, 'F', '1', '0', 'diet:food-category:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4105, '导出', 41, '0,40,41', 5, NULL, NULL, NULL, 'F', '1', '0', 'diet:food-category:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (4201, '查询', 42, '0,40,42', 1, NULL, NULL, NULL, 'F', '1', '0', 'diet:food:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (4202, '新增', 42, '0,40,42', 2, NULL, NULL, NULL, 'F', '1', '0', 'diet:food:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (4203, '修改', 42, '0,40,42', 3, NULL, NULL, NULL, 'F', '1', '0', 'diet:food:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (4204, '删除', 42, '0,40,42', 4, NULL, NULL, NULL, 'F', '1', '0', 'diet:food:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4203, '修改', 42, '0,40,42', 3, NULL, NULL, NULL, 'F', '1', '0', 'diet:food:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4204, '删除', 42, '0,40,42', 4, NULL, NULL, NULL, 'F', '1', '0', 'diet:food:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (4205, '导出', 42, '0,40,42', 5, NULL, NULL, NULL, 'F', '1', '0', 'diet:food:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (4301, '查询', 43, '0,40,43', 1, NULL, NULL, NULL, 'F', '1', '0', 'diet:plan:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (4302, '新增', 43, '0,40,43', 2, NULL, NULL, NULL, 'F', '1', '0', 'diet:plan:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (4303, '修改', 43, '0,40,43', 3, NULL, NULL, NULL, 'F', '1', '0', 'diet:plan:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (4304, '删除', 43, '0,40,43', 4, NULL, NULL, NULL, 'F', '1', '0', 'diet:plan:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (4305, '导出', 43, '0,40,43', 5, NULL, NULL, NULL, 'F', '1', '0', 'diet:plan:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4301, '查询', 43, '0,40,43', 1, NULL, NULL, NULL, 'F', '1', '0', 'diet:meal-plan:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4302, '新增', 43, '0,40,43', 2, NULL, NULL, NULL, 'F', '1', '0', 'diet:meal-plan:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4303, '修改', 43, '0,40,43', 3, NULL, NULL, NULL, 'F', '1', '0', 'diet:meal-plan:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4304, '删除', 43, '0,40,43', 4, NULL, NULL, NULL, 'F', '1', '0', 'diet:meal-plan:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4305, '导出', 43, '0,40,43', 5, NULL, NULL, NULL, 'F', '1', '0', 'diet:meal-plan:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (4401, '查询', 44, '0,40,44', 1, NULL, NULL, NULL, 'F', '1', '0', 'diet:record:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (4402, '导出', 44, '0,40,44', 2, NULL, NULL, NULL, 'F', '1', '0', 'diet:record:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (4403, '新增', 44, '', 3, NULL, NULL, NULL, 'F', '1', '0', 'diet:record:add', NULL, '0', '超级管理员', '2026-05-27 13:50:33', '', '2026-05-27 13:50:33');
-INSERT INTO `sys_menu` VALUES (4404, '修改', 44, '', 4, NULL, NULL, NULL, 'F', '1', '0', 'diet:record:edit', NULL, '0', '超级管理员', '2026-05-27 13:50:33', '', '2026-05-27 13:50:33');
-INSERT INTO `sys_menu` VALUES (4405, '删除', 44, '', 5, NULL, NULL, NULL, 'F', '1', '0', 'diet:record:remove', NULL, '0', '超级管理员', '2026-05-27 13:50:33', '', '2026-05-27 13:50:33');
-INSERT INTO `sys_menu` VALUES (5001, '对话服务', 50, '0,50', 1, NULL, NULL, NULL, 'M', '0', '0', NULL, 'ChatDotRound', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5002, '知识与检索', 50, '0,50', 2, NULL, NULL, NULL, 'M', '0', '0', NULL, 'Document', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5003, '模型与编排', 50, '0,50', 3, NULL, NULL, NULL, 'M', '0', '0', NULL, 'Operation', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5004, '运营监控', 50, '0,50', 4, NULL, NULL, NULL, 'M', '0', '0', NULL, 'Monitor', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (4404, '修改', 44, '', 4, NULL, NULL, NULL, 'F', '1', '0', 'diet:record:update', NULL, '0', '超级管理员', '2026-05-27 13:50:33', '', '2026-05-27 13:50:33');
+INSERT INTO `sys_menu` VALUES (4405, '删除', 44, '', 5, NULL, NULL, NULL, 'F', '1', '0', 'diet:record:delete', NULL, '0', '超级管理员', '2026-05-27 13:50:33', '', '2026-05-27 13:50:33');
+INSERT INTO `sys_menu` VALUES (5001, '对话服务', 50, '0,50', 1, '/ai/assistant-group', NULL, 'AiAssistantGroup', 'M', '0', '0', NULL, 'ChatDotRound', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5002, '知识与检索', 50, '0,50', 2, '/ai/knowledge-group', NULL, 'AiKnowledgeGroup', 'M', '0', '0', NULL, 'Document', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5003, '模型与编排', 50, '0,50', 3, '/ai/model-group', NULL, 'AiModelGroup', 'M', '0', '0', NULL, 'Operation', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5004, '运营监控', 50, '0,50', 4, '/ai/ops-group', NULL, 'AiOpsGroup', 'M', '0', '0', NULL, 'Monitor', '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (5101, '查询', 51, '0,50,5004,51', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:stats:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (5102, '导出', 51, '0,50,5004,51', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:stats:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (5201, '查询', 52, '0,50,5002,52', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:knowledge:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (5202, '新增', 52, '0,50,5002,52', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:knowledge:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5203, '修改', 52, '0,50,5002,52', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:knowledge:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5204, '删除', 52, '0,50,5002,52', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:knowledge:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5203, '修改', 52, '0,50,5002,52', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:knowledge:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5204, '删除', 52, '0,50,5002,52', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:knowledge:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (5205, '导出', 52, '0,50,5002,52', 5, NULL, NULL, NULL, 'F', '1', '0', 'ai:knowledge:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5301, '查询', 53, '0,50,5001,53', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:chat:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5302, '导出', 53, '0,50,5001,53', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:chat:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5301, '查询', 53, '0,50,5001,53', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:conversation:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5302, '导出', 53, '0,50,5001,53', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:conversation:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5303, '修改', 53, '0,50,5001,53', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:conversation:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5304, '删除', 53, '0,50,5001,53', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:conversation:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5801, '查询', 58, '0,50,5001,58', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:session:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5802, '修改', 58, '0,50,5001,58', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:session:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5803, '删除', 58, '0,50,5001,58', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:session:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5804, '导出', 58, '0,50,5001,58', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:session:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6911, '查询', 691, '0,50,65,691', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:quota:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6912, '赠送', 691, '0,50,65,691', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:quota:gift', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6913, '删除', 691, '0,50,65,691', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:quota:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (5401, '查询', 54, '0,50,5003,54', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:model:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (5402, '新增', 54, '0,50,5003,54', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:model:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5403, '修改', 54, '0,50,5003,54', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:model:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5404, '删除', 54, '0,50,5003,54', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:model:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5403, '修改', 54, '0,50,5003,54', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:model:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5404, '删除', 54, '0,50,5003,54', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:model:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (5405, '导出', 54, '0,50,5003,54', 5, NULL, NULL, NULL, 'F', '1', '0', 'ai:model:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (5501, '查询', 55, '0,50,5001,55', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:prompt:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (5502, '新增', 55, '0,50,5001,55', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:prompt:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5503, '修改', 55, '0,50,5001,55', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:prompt:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5504, '删除', 55, '0,50,5001,55', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:prompt:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5503, '修改', 55, '0,50,5001,55', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:prompt:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5504, '删除', 55, '0,50,5001,55', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:prompt:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (5505, '导出', 55, '0,50,5001,55', 5, NULL, NULL, NULL, 'F', '1', '0', 'ai:prompt:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5601, '查询', 56, '0,50,5002,56', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:rag:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5602, '新增', 56, '0,50,5002,56', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:rag:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5603, '修改', 56, '0,50,5002,56', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:rag:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5604, '删除', 56, '0,50,5002,56', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:rag:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5605, '导出', 56, '0,50,5002,56', 5, NULL, NULL, NULL, 'F', '1', '0', 'ai:rag:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5701, '查询', 57, '0,50,5001,57', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:plan:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5702, '审核通过', 57, '0,50,5001,57', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:plan:audit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5703, '审核拒绝', 57, '0,50,5001,57', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:plan:reject', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (5704, '导出', 57, '0,50,5001,57', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:plan:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5601, '查询', 56, '0,50,5002,56', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:rag-eval:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5602, '新增', 56, '0,50,5002,56', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:rag-eval:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5603, '修改', 56, '0,50,5002,56', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:rag-eval:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5604, '删除', 56, '0,50,5002,56', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:rag-eval:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5605, '导出', 56, '0,50,5002,56', 5, NULL, NULL, NULL, 'F', '1', '0', 'ai:rag-eval:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5701, '查询', 57, '0,50,5001,57', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:plan-review:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5702, '审核通过', 57, '0,50,5001,57', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:plan-review:audit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5703, '审核拒绝', 57, '0,50,5001,57', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:plan-review:reject', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (5704, '导出', 57, '0,50,5001,57', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:plan-review:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6101, '查询', 61, '0,50,5003,61', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:agent:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6102, '新增', 61, '0,50,5003,61', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:agent:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6103, '修改', 61, '0,50,5003,61', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:agent:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6104, '删除', 61, '0,50,5003,61', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:agent:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6103, '修改', 61, '0,50,5003,61', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:agent:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6104, '删除', 61, '0,50,5003,61', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:agent:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6105, '导出', 61, '0,50,5003,61', 5, NULL, NULL, NULL, 'F', '1', '0', 'ai:agent:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6201, '查询', 62, '0,50,5003,62', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:tool:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6202, '新增', 62, '0,50,5003,62', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:tool:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6203, '修改', 62, '0,50,5003,62', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:tool:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6204, '删除', 62, '0,50,5003,62', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:tool:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6203, '修改', 62, '0,50,5003,62', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:tool:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6204, '删除', 62, '0,50,5003,62', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:tool:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6205, '导出', 62, '0,50,5003,62', 5, NULL, NULL, NULL, 'F', '1', '0', 'ai:tool:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6301, '查询', 63, '0,50,5002,63', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:dataset:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6302, '新增', 63, '0,50,5002,63', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:dataset:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6303, '修改', 63, '0,50,5002,63', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:dataset:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6304, '删除', 63, '0,50,5002,63', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:dataset:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6303, '修改', 63, '0,50,5002,63', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:dataset:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6304, '删除', 63, '0,50,5002,63', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:dataset:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6305, '导出', 63, '0,50,5002,63', 5, NULL, NULL, NULL, 'F', '1', '0', 'ai:dataset:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6401, '查询', 64, '0,50,5003,64', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:evaluation:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6402, '新增', 64, '0,50,5003,64', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:evaluation:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6403, '修改', 64, '0,50,5003,64', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:evaluation:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6404, '删除', 64, '0,50,5003,64', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:evaluation:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6403, '修改', 64, '0,50,5003,64', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:evaluation:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6404, '删除', 64, '0,50,5003,64', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:evaluation:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6405, '导出', 64, '0,50,5003,64', 5, NULL, NULL, NULL, 'F', '1', '0', 'ai:evaluation:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6501, '查询', 65, '0,50,65', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:cost:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6502, '导出', 65, '0,50,65', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:cost:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6601, '查询', 66, '0,50,5004,66', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:guardrail:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6602, '新增', 66, '0,50,5004,66', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:guardrail:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6603, '修改', 66, '0,50,5004,66', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:guardrail:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6604, '删除', 66, '0,50,5004,66', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:guardrail:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6603, '修改', 66, '0,50,5004,66', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:guardrail:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6604, '删除', 66, '0,50,5004,66', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:guardrail:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6605, '导出', 66, '0,50,5004,66', 5, NULL, NULL, NULL, 'F', '1', '0', 'ai:guardrail:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6701, '查询', 67, '0,50,5002,67', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:vector:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6702, '新增', 67, '0,50,5002,67', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:vector:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6703, '修改', 67, '0,50,5002,67', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:vector:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6704, '删除', 67, '0,50,5002,67', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:vector:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (6705, '导出', 67, '0,50,5002,67', 5, NULL, NULL, NULL, 'F', '1', '0', 'ai:vector:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6701, '查询', 67, '0,50,5002,67', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:vector-index:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6702, '新增', 67, '0,50,5002,67', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:vector-index:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6703, '修改', 67, '0,50,5002,67', 3, NULL, NULL, NULL, 'F', '1', '0', 'ai:vector-index:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6704, '删除', 67, '0,50,5002,67', 4, NULL, NULL, NULL, 'F', '1', '0', 'ai:vector-index:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (6705, '导出', 67, '0,50,5002,67', 5, NULL, NULL, NULL, 'F', '1', '0', 'ai:vector-index:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6801, '查询', 68, '0,50,5004,68', 1, NULL, NULL, NULL, 'F', '1', '0', 'ai:trace:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (6802, '导出', 68, '0,50,5004,68', 2, NULL, NULL, NULL, 'F', '1', '0', 'ai:trace:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7101, '查询', 71, '0,70,71', 1, NULL, NULL, NULL, 'F', '1', '0', 'prd:category:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7102, '新增', 71, '0,70,71', 2, NULL, NULL, NULL, 'F', '1', '0', 'prd:category:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (7103, '修改', 71, '0,70,71', 3, NULL, NULL, NULL, 'F', '1', '0', 'prd:category:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (7104, '删除', 71, '0,70,71', 4, NULL, NULL, NULL, 'F', '1', '0', 'prd:category:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (7103, '修改', 71, '0,70,71', 3, NULL, NULL, NULL, 'F', '1', '0', 'prd:category:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (7104, '删除', 71, '0,70,71', 4, NULL, NULL, NULL, 'F', '1', '0', 'prd:category:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7105, '导出', 71, '0,70,71', 5, NULL, NULL, NULL, 'F', '1', '0', 'prd:category:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7201, '查询', 72, '0,70,72', 1, NULL, NULL, NULL, 'F', '1', '0', 'prd:brand:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7202, '新增', 72, '0,70,72', 2, NULL, NULL, NULL, 'F', '1', '0', 'prd:brand:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (7203, '修改', 72, '0,70,72', 3, NULL, NULL, NULL, 'F', '1', '0', 'prd:brand:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (7204, '删除', 72, '0,70,72', 4, NULL, NULL, NULL, 'F', '1', '0', 'prd:brand:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (7203, '修改', 72, '0,70,72', 3, NULL, NULL, NULL, 'F', '1', '0', 'prd:brand:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (7204, '删除', 72, '0,70,72', 4, NULL, NULL, NULL, 'F', '1', '0', 'prd:brand:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7205, '导出', 72, '0,70,72', 5, NULL, NULL, NULL, 'F', '1', '0', 'prd:brand:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7301, '查询', 73, '0,70,73', 1, NULL, NULL, NULL, 'F', '1', '0', 'prd:product:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7302, '新增', 73, '0,70,73', 2, NULL, NULL, NULL, 'F', '1', '0', 'prd:product:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (7303, '修改', 73, '0,70,73', 3, NULL, NULL, NULL, 'F', '1', '0', 'prd:product:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (7304, '删除', 73, '0,70,73', 4, NULL, NULL, NULL, 'F', '1', '0', 'prd:product:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (7303, '修改', 73, '0,70,73', 3, NULL, NULL, NULL, 'F', '1', '0', 'prd:product:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (7304, '删除', 73, '0,70,73', 4, NULL, NULL, NULL, 'F', '1', '0', 'prd:product:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7305, '导出', 73, '0,70,73', 5, NULL, NULL, NULL, 'F', '1', '0', 'prd:product:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7401, '查询', 74, '0,70,74', 1, NULL, NULL, NULL, 'F', '1', '0', 'prd:stock:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (7402, '修改', 74, '0,70,74', 2, NULL, NULL, NULL, 'F', '1', '0', 'prd:stock:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (7402, '修改', 74, '0,70,74', 2, NULL, NULL, NULL, 'F', '1', '0', 'prd:stock:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7403, '导出', 74, '0,70,74', 3, NULL, NULL, NULL, 'F', '1', '0', 'prd:stock:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7404, '库存调整', 74, '0,70,74', 4, NULL, NULL, NULL, 'F', '1', '0', 'prd:stock:adjust', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (7501, '查询', 75, '', 1, NULL, NULL, NULL, 'F', '1', '0', 'prd:attr:query', NULL, '0', '超级管理员', '2025-05-20 10:00:00', '', '2025-05-20 10:00:00');
 INSERT INTO `sys_menu` VALUES (7502, '新增', 75, '', 2, NULL, NULL, NULL, 'F', '1', '0', 'prd:attr:add', NULL, '0', '超级管理员', '2025-05-20 10:00:00', '', '2025-05-20 10:00:00');
-INSERT INTO `sys_menu` VALUES (7503, '修改', 75, '', 3, NULL, NULL, NULL, 'F', '1', '0', 'prd:attr:edit', NULL, '0', '超级管理员', '2025-05-20 10:00:00', '', '2025-05-20 10:00:00');
-INSERT INTO `sys_menu` VALUES (7504, '删除', 75, '', 4, NULL, NULL, NULL, 'F', '1', '0', 'prd:attr:remove', NULL, '0', '超级管理员', '2025-05-20 10:00:00', '', '2025-05-20 10:00:00');
+INSERT INTO `sys_menu` VALUES (7503, '修改', 75, '', 3, NULL, NULL, NULL, 'F', '1', '0', 'prd:attr:update', NULL, '0', '超级管理员', '2025-05-20 10:00:00', '', '2025-05-20 10:00:00');
+INSERT INTO `sys_menu` VALUES (7504, '删除', 75, '', 4, NULL, NULL, NULL, 'F', '1', '0', 'prd:attr:delete', NULL, '0', '超级管理员', '2025-05-20 10:00:00', '', '2025-05-20 10:00:00');
+INSERT INTO `sys_menu` VALUES (7601, '查询', 76, '0,70,76', 1, NULL, NULL, NULL, 'F', '1', '0', 'prd:es:list', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (7602, '重建/维护', 76, '0,70,76', 2, NULL, NULL, NULL, 'F', '1', '0', 'prd:es:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (8101, '查询', 81, '0,80,81', 1, NULL, NULL, NULL, 'F', '1', '0', 'ord:order:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (8102, '导出', 81, '0,80,81', 2, NULL, NULL, NULL, 'F', '1', '0', 'ord:order:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (8103, '发货', 81, '0,80,81', 3, NULL, NULL, NULL, 'F', '1', '0', 'ord:order:ship', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (8104, '取消订单', 81, '0,80,81', 4, NULL, NULL, NULL, 'F', '1', '0', 'ord:order:cancel', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (8105, '订单详情', 81, '0,80,81', 5, NULL, NULL, NULL, 'F', '1', '0', 'ord:order:detail', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8201, '查询', 82, '0,80,82', 1, NULL, NULL, NULL, 'F', '1', '0', 'ord:member:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8202, '新增', 82, '0,80,82', 2, NULL, NULL, NULL, 'F', '1', '0', 'ord:member:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8203, '修改', 82, '0,80,82', 3, NULL, NULL, NULL, 'F', '1', '0', 'ord:member:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8204, '删除', 82, '0,80,82', 4, NULL, NULL, NULL, 'F', '1', '0', 'ord:member:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8205, '导出', 82, '0,80,82', 5, NULL, NULL, NULL, 'F', '1', '0', 'ord:member:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8301, '查询', 83, '0,80,83', 1, NULL, NULL, NULL, 'F', '1', '0', 'ord:refund:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8302, '审核通过', 83, '0,80,83', 2, NULL, NULL, NULL, 'F', '1', '0', 'ord:refund:audit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8303, '审核拒绝', 83, '0,80,83', 3, NULL, NULL, NULL, 'F', '1', '0', 'ord:refund:reject', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8304, '导出', 83, '0,80,83', 4, NULL, NULL, NULL, 'F', '1', '0', 'ord:refund:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8401, '查询', 84, '0,80,84', 1, NULL, NULL, NULL, 'F', '1', '0', 'ord:payment:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8402, '新增', 84, '0,80,84', 2, NULL, NULL, NULL, 'F', '1', '0', 'ord:payment:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8403, '修改', 84, '0,80,84', 3, NULL, NULL, NULL, 'F', '1', '0', 'ord:payment:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8404, '删除', 84, '0,80,84', 4, NULL, NULL, NULL, 'F', '1', '0', 'ord:payment:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8405, '导出', 84, '0,80,84', 5, NULL, NULL, NULL, 'F', '1', '0', 'ord:payment:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8201, '查询', 82, '0,80,82', 1, NULL, NULL, NULL, 'F', '1', '0', 'vip:order:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8202, '新增', 82, '0,80,82', 2, NULL, NULL, NULL, 'F', '1', '0', 'vip:order:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8203, '修改', 82, '0,80,82', 3, NULL, NULL, NULL, 'F', '1', '0', 'vip:order:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8204, '删除', 82, '0,80,82', 4, NULL, NULL, NULL, 'F', '1', '0', 'vip:order:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8205, '导出', 82, '0,80,82', 5, NULL, NULL, NULL, 'F', '1', '0', 'vip:order:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8301, '查询', 83, '0,80,83', 1, NULL, NULL, NULL, 'F', '1', '0', 'pay:refund:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8302, '审核通过', 83, '0,80,83', 2, NULL, NULL, NULL, 'F', '1', '0', 'pay:refund:audit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8303, '审核拒绝', 83, '0,80,83', 3, NULL, NULL, NULL, 'F', '1', '0', 'pay:refund:reject', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8304, '导出', 83, '0,80,83', 4, NULL, NULL, NULL, 'F', '1', '0', 'pay:refund:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8401, '查询', 84, '0,80,84', 1, NULL, NULL, NULL, 'F', '1', '0', 'pay:channel:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8402, '新增', 84, '0,80,84', 2, NULL, NULL, NULL, 'F', '1', '0', 'pay:channel:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8403, '修改', 84, '0,80,84', 3, NULL, NULL, NULL, 'F', '1', '0', 'pay:channel:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8404, '删除', 84, '0,80,84', 4, NULL, NULL, NULL, 'F', '1', '0', 'pay:channel:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8405, '导出', 84, '0,80,84', 5, NULL, NULL, NULL, 'F', '1', '0', 'pay:channel:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (8501, '查询', 85, '0,80,85', 1, NULL, NULL, NULL, 'F', '1', '0', 'ord:logistics:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (8502, '新增', 85, '0,80,85', 2, NULL, NULL, NULL, 'F', '1', '0', 'ord:logistics:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8503, '修改', 85, '0,80,85', 3, NULL, NULL, NULL, 'F', '1', '0', 'ord:logistics:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (8504, '删除', 85, '0,80,85', 4, NULL, NULL, NULL, 'F', '1', '0', 'ord:logistics:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8503, '修改', 85, '0,80,85', 3, NULL, NULL, NULL, 'F', '1', '0', 'ord:logistics:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (8504, '删除', 85, '0,80,85', 4, NULL, NULL, NULL, 'F', '1', '0', 'ord:logistics:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (8505, '导出', 85, '0,80,85', 5, NULL, NULL, NULL, 'F', '1', '0', 'ord:logistics:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (9101, '查询', 91, '0,90,91', 1, NULL, NULL, NULL, 'F', '1', '0', 'mkt:banner:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (9102, '新增', 91, '0,90,91', 2, NULL, NULL, NULL, 'F', '1', '0', 'mkt:banner:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (9103, '修改', 91, '0,90,91', 3, NULL, NULL, NULL, 'F', '1', '0', 'mkt:banner:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (9104, '删除', 91, '0,90,91', 4, NULL, NULL, NULL, 'F', '1', '0', 'mkt:banner:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9103, '修改', 91, '0,90,91', 3, NULL, NULL, NULL, 'F', '1', '0', 'mkt:banner:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9104, '删除', 91, '0,90,91', 4, NULL, NULL, NULL, 'F', '1', '0', 'mkt:banner:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (9105, '导出', 91, '0,90,91', 5, NULL, NULL, NULL, 'F', '1', '0', 'mkt:banner:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (9201, '查询', 92, '0,90,92', 1, NULL, NULL, NULL, 'F', '1', '0', 'mkt:coupon:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (9202, '新增', 92, '0,90,92', 2, NULL, NULL, NULL, 'F', '1', '0', 'mkt:coupon:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (9203, '修改', 92, '0,90,92', 3, NULL, NULL, NULL, 'F', '1', '0', 'mkt:coupon:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (9204, '删除', 92, '0,90,92', 4, NULL, NULL, NULL, 'F', '1', '0', 'mkt:coupon:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9203, '修改', 92, '0,90,92', 3, NULL, NULL, NULL, 'F', '1', '0', 'mkt:coupon:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9204, '删除', 92, '0,90,92', 4, NULL, NULL, NULL, 'F', '1', '0', 'mkt:coupon:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (9205, '导出', 92, '0,90,92', 5, NULL, NULL, NULL, 'F', '1', '0', 'mkt:coupon:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (9301, '查询', 93, '0,90,93', 1, NULL, NULL, NULL, 'F', '1', '0', 'mkt:flash:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (9302, '新增', 93, '0,90,93', 2, NULL, NULL, NULL, 'F', '1', '0', 'mkt:flash:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (9303, '修改', 93, '0,90,93', 3, NULL, NULL, NULL, 'F', '1', '0', 'mkt:flash:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (9304, '删除', 93, '0,90,93', 4, NULL, NULL, NULL, 'F', '1', '0', 'mkt:flash:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (9305, '导出', 93, '0,90,93', 5, NULL, NULL, NULL, 'F', '1', '0', 'mkt:flash:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9301, '查询', 93, '0,90,93', 1, NULL, NULL, NULL, 'F', '1', '0', 'seckill:activity:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9302, '新增', 93, '0,90,93', 2, NULL, NULL, NULL, 'F', '1', '0', 'seckill:activity:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9303, '修改', 93, '0,90,93', 3, NULL, NULL, NULL, 'F', '1', '0', 'seckill:activity:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9304, '删除', 93, '0,90,93', 4, NULL, NULL, NULL, 'F', '1', '0', 'seckill:activity:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9305, '导出', 93, '0,90,93', 5, NULL, NULL, NULL, 'F', '1', '0', 'seckill:activity:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (9401, '查询', 94, '0,90,94', 1, NULL, NULL, NULL, 'F', '1', '0', 'mkt:challenge:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (9402, '新增', 94, '0,90,94', 2, NULL, NULL, NULL, 'F', '1', '0', 'mkt:challenge:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (9403, '修改', 94, '0,90,94', 3, NULL, NULL, NULL, 'F', '1', '0', 'mkt:challenge:edit', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
-INSERT INTO `sys_menu` VALUES (9404, '删除', 94, '0,90,94', 4, NULL, NULL, NULL, 'F', '1', '0', 'mkt:challenge:remove', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9403, '修改', 94, '0,90,94', 3, NULL, NULL, NULL, 'F', '1', '0', 'mkt:challenge:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9404, '删除', 94, '0,90,94', 4, NULL, NULL, NULL, 'F', '1', '0', 'mkt:challenge:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (9405, '导出', 94, '0,90,94', 5, NULL, NULL, NULL, 'F', '1', '0', 'mkt:challenge:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9501, '查询', 95, '0,90,95', 1, NULL, NULL, NULL, 'F', '1', '0', 'mkt:coupon-receive:list', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9502, '修改', 95, '0,90,95', 2, NULL, NULL, NULL, 'F', '1', '0', 'mkt:coupon-receive:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
+INSERT INTO `sys_menu` VALUES (9601, '查询', 96, '0,90,96', 1, NULL, NULL, NULL, 'F', '1', '0', 'seckill:activity:list', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (10101, '查询', 101, '0,100,101', 1, NULL, NULL, NULL, 'F', '1', '0', 'system:user:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (10102, '新增', 101, '0,100,101', 2, NULL, NULL, NULL, 'F', '1', '0', 'system:user:add', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
 INSERT INTO `sys_menu` VALUES (10103, '修改', 101, '0,100,101', 3, NULL, NULL, NULL, 'F', '1', '0', 'system:user:update', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:26');
@@ -3304,14 +3213,14 @@ INSERT INTO `sys_menu` VALUES (10903, '修改', 109, '0,100,109', 3, NULL, NULL,
 INSERT INTO `sys_menu` VALUES (10904, '删除', 109, '0,100,109', 4, NULL, NULL, NULL, 'F', '1', '0', 'system:notice:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
 INSERT INTO `sys_menu` VALUES (10905, '导出', 109, '0,100,109', 5, NULL, NULL, NULL, 'F', '1', '0', 'system:notice:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
 INSERT INTO `sys_menu` VALUES (10906, '发布推送', 109, '0,100,109', 6, NULL, NULL, NULL, 'F', '1', '0', 'system:notice:publish', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
-INSERT INTO `sys_menu` VALUES (106101, '查询', 1061, '0,100,106,1061', 1, NULL, NULL, NULL, 'F', '1', '0', 'system:loginlog:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
-INSERT INTO `sys_menu` VALUES (106102, '删除', 1061, '0,100,106,1061', 2, NULL, NULL, NULL, 'F', '1', '0', 'system:loginlog:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
-INSERT INTO `sys_menu` VALUES (106103, '导出', 1061, '0,100,106,1061', 3, NULL, NULL, NULL, 'F', '1', '0', 'system:loginlog:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
-INSERT INTO `sys_menu` VALUES (106104, '清空', 1061, '0,100,106,1061', 4, NULL, NULL, NULL, 'F', '1', '0', 'system:loginlog:clean', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
-INSERT INTO `sys_menu` VALUES (106201, '查询', 1062, '0,100,106,1062', 1, NULL, NULL, NULL, 'F', '1', '0', 'system:operlog:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
-INSERT INTO `sys_menu` VALUES (106202, '删除', 1062, '0,100,106,1062', 2, NULL, NULL, NULL, 'F', '1', '0', 'system:operlog:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
-INSERT INTO `sys_menu` VALUES (106203, '导出', 1062, '0,100,106,1062', 3, NULL, NULL, NULL, 'F', '1', '0', 'system:operlog:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
-INSERT INTO `sys_menu` VALUES (106204, '清空', 1062, '0,100,106,1062', 4, NULL, NULL, NULL, 'F', '1', '0', 'system:operlog:clean', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
+INSERT INTO `sys_menu` VALUES (106101, '查询', 1061, '0,100,106,1061', 1, NULL, NULL, NULL, 'F', '1', '0', 'system:login-log:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
+INSERT INTO `sys_menu` VALUES (106102, '删除', 1061, '0,100,106,1061', 2, NULL, NULL, NULL, 'F', '1', '0', 'system:login-log:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
+INSERT INTO `sys_menu` VALUES (106103, '导出', 1061, '0,100,106,1061', 3, NULL, NULL, NULL, 'F', '1', '0', 'system:login-log:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
+INSERT INTO `sys_menu` VALUES (106104, '清空', 1061, '0,100,106,1061', 4, NULL, NULL, NULL, 'F', '1', '0', 'system:login-log:clear', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
+INSERT INTO `sys_menu` VALUES (106201, '查询', 1062, '0,100,106,1062', 1, NULL, NULL, NULL, 'F', '1', '0', 'system:oper-log:query', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
+INSERT INTO `sys_menu` VALUES (106202, '删除', 1062, '0,100,106,1062', 2, NULL, NULL, NULL, 'F', '1', '0', 'system:oper-log:delete', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
+INSERT INTO `sys_menu` VALUES (106203, '导出', 1062, '0,100,106,1062', 3, NULL, NULL, NULL, 'F', '1', '0', 'system:oper-log:export', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
+INSERT INTO `sys_menu` VALUES (106204, '清空', 1062, '0,100,106,1062', 4, NULL, NULL, NULL, 'F', '1', '0', 'system:oper-log:clear', NULL, '0', '超级管理员', '2026-05-26 16:38:26', '', '2026-05-28 11:48:27');
 
 -- ----------------------------
 -- Table structure for sys_notice
@@ -3320,7 +3229,7 @@ DROP TABLE IF EXISTS `sys_notice`;
 CREATE TABLE `sys_notice`  (
                                `notice_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '公告ID',
                                `notice_title` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '公告标题',
-                               `notice_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '类型（1通知 2公告 3推送）',
+                               `notice_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '类型（1公告 2推送）',
                                `notice_content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '内容',
                                `target_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '目标（0全部 1指定用户 2用户分群）',
                                `target_ids` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '目标ID列表(JSON)',
@@ -3330,17 +3239,17 @@ CREATE TABLE `sys_notice`  (
                                `publish_time` datetime NULL DEFAULT NULL COMMENT '发布时间',
                                `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                               `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                               `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                PRIMARY KEY (`notice_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '消息推送' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '消息管理' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of sys_notice
 -- ----------------------------
-INSERT INTO `sys_notice` VALUES (1, '春季健身挑战赛开启', '3', '参与30天打卡赢500积分，完成训练还可抽取年卡会员。', '0', NULL, 'app', '1', '0', '2025-05-01 09:00:00', '超级管理员', '2026-05-26 16:46:00', '', '2026-05-26 16:46:00');
-INSERT INTO `sys_notice` VALUES (2, '系统维护通知', '1', '5月25日 02:00-04:00 进行数据库升级，期间部分功能不可用。', '0', NULL, 'app', '1', '0', '2025-05-20 18:00:00', '超级管理员', '2026-05-26 16:46:00', '', '2026-05-26 16:46:00');
-INSERT INTO `sys_notice` VALUES (3, '新用户专享券到账', '3', '您有一张满199减30优惠券，有效期至5月31日。', '1', NULL, 'app', '1', '0', '2025-05-18 10:00:00', '超级管理员', '2026-05-26 16:46:00', '', '2026-05-26 16:46:00');
+INSERT INTO `sys_notice` VALUES (1, '春季健身挑战赛开启', '2', '参与30天打卡赢500积分，完成训练还可抽取年卡会员。', '0', NULL, 'app', '1', '0', '2025-05-01 09:00:00', '超级管理员', '2026-05-26 16:46:00', '', '2026-05-26 16:46:00');
+INSERT INTO `sys_notice` VALUES (2, '系统维护公告', '1', '5月25日 02:00-04:00 进行数据库升级，期间部分功能不可用。', '0', NULL, NULL, '1', '0', '2025-05-20 18:00:00', '超级管理员', '2026-05-26 16:46:00', '', '2026-05-26 16:46:00');
+INSERT INTO `sys_notice` VALUES (3, '新用户专享券到账', '2', '您有一张满199减30优惠券，有效期至5月31日。', '1', NULL, 'app', '1', '0', '2025-05-18 10:00:00', '超级管理员', '2026-05-26 16:46:00', '', '2026-05-26 16:46:00');
 
 -- ----------------------------
 -- Table structure for sys_notice_read
@@ -3349,17 +3258,20 @@ DROP TABLE IF EXISTS `sys_notice_read`;
 CREATE TABLE `sys_notice_read`  (
                                     `read_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '已读ID',
                                     `notice_id` bigint UNSIGNED NOT NULL COMMENT '公告ID',
-                                    `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
+                                    `customer_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT 'C端用户ID',
+                                    `user_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '管理端用户ID',
                                     `read_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '阅读时间',
                                     PRIMARY KEY (`read_id`) USING BTREE,
-                                    UNIQUE INDEX `uk_sys_notice_read`(`notice_id` ASC, `customer_id` ASC) USING BTREE,
-                                    INDEX `idx_sys_notice_read_customer`(`customer_id` ASC) USING BTREE
+                                    UNIQUE INDEX `uk_notice_customer`(`notice_id` ASC, `customer_id` ASC) USING BTREE,
+                                    UNIQUE INDEX `uk_notice_user`(`notice_id` ASC, `user_id` ASC) USING BTREE,
+                                    INDEX `idx_sys_notice_read_customer`(`customer_id` ASC) USING BTREE,
+                                    INDEX `idx_sys_notice_read_user`(`user_id` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '消息已读记录' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of sys_notice_read
 -- ----------------------------
-INSERT INTO `sys_notice_read` VALUES (1, 1, 1, '2025-05-02 08:30:00');
+INSERT INTO `sys_notice_read` VALUES (1, 1, 1, NULL, '2025-05-02 08:30:00');
 
 -- ----------------------------
 -- Table structure for sys_oper_log
@@ -3390,7 +3302,7 @@ CREATE TABLE `sys_oper_log`  (
 INSERT INTO `sys_oper_log` VALUES (1, 'C端用户', 1, 'com.fitai.web.controller.usr.CustomerController.add()', 'POST', 'admin', '/api/usr/customer', '127.0.0.1', NULL, NULL, '0', NULL, '2025-05-20 10:00:00', 85);
 INSERT INTO `sys_oper_log` VALUES (2, '课程管理', 2, 'com.fitai.web.controller.crs.CourseController.edit()', 'PUT', 'admin', '/api/crs/course/1', '127.0.0.1', NULL, NULL, '0', NULL, '2025-05-20 11:30:00', 120);
 INSERT INTO `sys_oper_log` VALUES (3, '优惠券', 1, 'com.fitai.web.controller.mkt.CouponController.add()', 'POST', 'operator', '/api/mkt/coupon', '192.168.1.105', NULL, NULL, '0', NULL, '2025-05-21 14:20:00', 96);
-INSERT INTO `sys_oper_log` VALUES (4, '内容审核', 2, 'com.fitai.web.controller.cms.ModerationController.audit()', 'PUT', 'operator', '/api/cms/moderation/1', '192.168.1.105', NULL, NULL, '0', NULL, '2025-05-21 15:05:00', 45);
+INSERT INTO `sys_oper_log` VALUES (4, '内容审核', 2, 'net.wanho.fitai.modules.community.controller.admin.AdminAuditController.pass()', 'PUT', 'operator', '/admin/community/audit/1/pass', '192.168.1.105', NULL, NULL, '0', NULL, '2025-05-21 15:05:00', 45);
 INSERT INTO `sys_oper_log` VALUES (5, 'AI模型配置', 2, 'com.fitai.web.controller.ai.ModelController.edit()', 'PUT', 'admin', '/api/ai/model/1', '127.0.0.1', NULL, NULL, '0', NULL, '2025-05-22 09:30:00', 210);
 INSERT INTO `sys_oper_log` VALUES (6, '新建 OSS 分类', 1, 'net.wanho.media.admin.MediaOssController.createCategory()', 'POST', 'admin', '/admin/media/oss/category', '127.0.0.1', '{\"categoryName\":\"人物头像\"}', '{\"msg\":\"success\",\"code\":200}', '0', NULL, '2026-05-26 14:25:02', 85);
 INSERT INTO `sys_oper_log` VALUES (7, 'OSS 分类排序', 2, 'net.wanho.media.admin.MediaOssController.moveCategory()', 'PUT', 'admin', '/admin/media/oss/category/move', '127.0.0.1', '{\"categoryId\":6,\"direction\":\"down\"}', '{\"msg\":\"success\",\"code\":200}', '0', NULL, '2026-05-26 14:25:04', 48);
@@ -3622,7 +3534,7 @@ CREATE TABLE `sys_role`  (
                              `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                              `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                              `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                              `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                              PRIMARY KEY (`role_id`) USING BTREE,
                              UNIQUE INDEX `uk_sys_role_key`(`role_key` ASC) USING BTREE
@@ -3674,6 +3586,14 @@ INSERT INTO `sys_role_menu` VALUES (2, 16);
 INSERT INTO `sys_role_menu` VALUES (2, 17);
 INSERT INTO `sys_role_menu` VALUES (2, 18);
 INSERT INTO `sys_role_menu` VALUES (2, 19);
+INSERT INTO `sys_role_menu` VALUES (2, 115);
+INSERT INTO `sys_role_menu` VALUES (2, 116);
+INSERT INTO `sys_role_menu` VALUES (2, 117);
+INSERT INTO `sys_role_menu` VALUES (2, 118);
+INSERT INTO `sys_role_menu` VALUES (2, 119);
+INSERT INTO `sys_role_menu` VALUES (2, 120);
+INSERT INTO `sys_role_menu` VALUES (2, 123);
+INSERT INTO `sys_role_menu` VALUES (2, 124);
 INSERT INTO `sys_role_menu` VALUES (2, 20);
 INSERT INTO `sys_role_menu` VALUES (2, 21);
 INSERT INTO `sys_role_menu` VALUES (2, 22);
@@ -3681,6 +3601,8 @@ INSERT INTO `sys_role_menu` VALUES (2, 23);
 INSERT INTO `sys_role_menu` VALUES (2, 24);
 INSERT INTO `sys_role_menu` VALUES (2, 25);
 INSERT INTO `sys_role_menu` VALUES (2, 26);
+INSERT INTO `sys_role_menu` VALUES (2, 27);
+INSERT INTO `sys_role_menu` VALUES (2, 28);
 INSERT INTO `sys_role_menu` VALUES (2, 30);
 INSERT INTO `sys_role_menu` VALUES (2, 31);
 INSERT INTO `sys_role_menu` VALUES (2, 32);
@@ -3714,6 +3636,7 @@ INSERT INTO `sys_role_menu` VALUES (2, 72);
 INSERT INTO `sys_role_menu` VALUES (2, 73);
 INSERT INTO `sys_role_menu` VALUES (2, 74);
 INSERT INTO `sys_role_menu` VALUES (2, 75);
+INSERT INTO `sys_role_menu` VALUES (2, 76);
 INSERT INTO `sys_role_menu` VALUES (2, 80);
 INSERT INTO `sys_role_menu` VALUES (2, 81);
 INSERT INTO `sys_role_menu` VALUES (2, 82);
@@ -3725,6 +3648,8 @@ INSERT INTO `sys_role_menu` VALUES (2, 91);
 INSERT INTO `sys_role_menu` VALUES (2, 92);
 INSERT INTO `sys_role_menu` VALUES (2, 93);
 INSERT INTO `sys_role_menu` VALUES (2, 94);
+INSERT INTO `sys_role_menu` VALUES (2, 95);
+INSERT INTO `sys_role_menu` VALUES (2, 96);
 INSERT INTO `sys_role_menu` VALUES (2, 100);
 INSERT INTO `sys_role_menu` VALUES (2, 101);
 INSERT INTO `sys_role_menu` VALUES (2, 102);
@@ -3884,6 +3809,37 @@ INSERT INTO `sys_role_menu` VALUES (2, 106201);
 INSERT INTO `sys_role_menu` VALUES (2, 106202);
 INSERT INTO `sys_role_menu` VALUES (2, 106203);
 INSERT INTO `sys_role_menu` VALUES (2, 106204);
+INSERT INTO `sys_role_menu` VALUES (2, 11501);
+INSERT INTO `sys_role_menu` VALUES (2, 11502);
+INSERT INTO `sys_role_menu` VALUES (2, 11601);
+INSERT INTO `sys_role_menu` VALUES (2, 11602);
+INSERT INTO `sys_role_menu` VALUES (2, 11603);
+INSERT INTO `sys_role_menu` VALUES (2, 11604);
+INSERT INTO `sys_role_menu` VALUES (2, 11605);
+INSERT INTO `sys_role_menu` VALUES (2, 11701);
+INSERT INTO `sys_role_menu` VALUES (2, 11702);
+INSERT INTO `sys_role_menu` VALUES (2, 11801);
+INSERT INTO `sys_role_menu` VALUES (2, 11802);
+INSERT INTO `sys_role_menu` VALUES (2, 11803);
+INSERT INTO `sys_role_menu` VALUES (2, 11804);
+INSERT INTO `sys_role_menu` VALUES (2, 11901);
+INSERT INTO `sys_role_menu` VALUES (2, 11902);
+INSERT INTO `sys_role_menu` VALUES (2, 12001);
+INSERT INTO `sys_role_menu` VALUES (2, 12002);
+INSERT INTO `sys_role_menu` VALUES (2, 12301);
+INSERT INTO `sys_role_menu` VALUES (2, 12302);
+INSERT INTO `sys_role_menu` VALUES (2, 12401);
+INSERT INTO `sys_role_menu` VALUES (2, 12402);
+INSERT INTO `sys_role_menu` VALUES (2, 2701);
+INSERT INTO `sys_role_menu` VALUES (2, 2702);
+INSERT INTO `sys_role_menu` VALUES (2, 2801);
+INSERT INTO `sys_role_menu` VALUES (2, 2802);
+INSERT INTO `sys_role_menu` VALUES (2, 2803);
+INSERT INTO `sys_role_menu` VALUES (2, 7601);
+INSERT INTO `sys_role_menu` VALUES (2, 7602);
+INSERT INTO `sys_role_menu` VALUES (2, 9501);
+INSERT INTO `sys_role_menu` VALUES (2, 9502);
+INSERT INTO `sys_role_menu` VALUES (2, 9601);
 
 -- ----------------------------
 -- Table structure for sys_user
@@ -3906,7 +3862,7 @@ CREATE TABLE `sys_user`  (
                              `login_date` datetime NULL DEFAULT NULL COMMENT '最后登录时间',
                              `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                              `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                             `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                              `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                              PRIMARY KEY (`user_id`) USING BTREE,
                              UNIQUE INDEX `uk_sys_user_name`(`user_name` ASC) USING BTREE,
@@ -3953,21 +3909,21 @@ CREATE TABLE `train_action`  (
                                  `action_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '动作编码',
                                  `muscle_group` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '肌群',
                                  `equipment` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '器械',
-                                 `difficulty` tinyint UNSIGNED NULL DEFAULT 1 COMMENT '难度 1入门 2进阶 3高级',
+                                 `difficulty` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '1' COMMENT '难度（1入门 2进阶 3高级）',
                                  `calories_per_min` decimal(5, 2) NULL DEFAULT NULL COMMENT '每分钟消耗kcal',
                                  `tips` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '动作要点',
                                  `common_mistakes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '常见错误',
-                                 `sort_order` int NOT NULL DEFAULT 0 COMMENT '排序',
+                                 `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
                                  `vod_asset_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '示范视频ID(media_vod)',
-                                 `vod_video_id` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'VOD VideoId或播放URL(冗余，管理端videoUrl)',
-                                 `vod_cover_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '封面(冗余)',
+                                 `vod_video_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'VOD VideoId(冗余)',
+                                 `vod_cover_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '封面URL(冗余)',
                                  `vod_duration` decimal(10, 2) NULL DEFAULT NULL COMMENT '时长(冗余)',
-                                 `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '说明',
+                                 `description` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '描述',
                                  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                                  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                 `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                  `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                  PRIMARY KEY (`action_id`) USING BTREE,
                                  UNIQUE INDEX `uk_train_action_code`(`action_code` ASC) USING BTREE,
@@ -3994,7 +3950,7 @@ CREATE TABLE `train_device`  (
                                  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                 `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                  `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                  PRIMARY KEY (`device_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '穿戴设备' ROW_FORMAT = DYNAMIC;
@@ -4014,7 +3970,7 @@ CREATE TABLE `train_device_bind`  (
                                       `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID',
                                       `device_id` bigint UNSIGNED NOT NULL COMMENT '设备ID',
                                       `device_sn` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '设备序列号',
-                                      `bind_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0已绑定 1已解绑）',
+                                      `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0已绑定 1已解绑）',
                                       `last_sync_time` datetime NULL DEFAULT NULL COMMENT '最后同步',
                                       `create_time` datetime NULL DEFAULT NULL COMMENT '绑定时间',
                                       `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -4036,16 +3992,16 @@ CREATE TABLE `train_plan`  (
                                `plan_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '计划名称',
                                `customer_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '用户ID(个人计划)',
                                `coach_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '教练ID',
-                               `plan_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '1' COMMENT '类型（1系统 2个人 3AI生成）',
+                               `plan_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '1' COMMENT '方案类型（1系统 2个人 3AI生成）',
                                `goal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '目标 fat_loss/muscle/keep',
                                `weeks` tinyint UNSIGNED NOT NULL DEFAULT 4 COMMENT '周期周数',
                                `days_per_week` tinyint UNSIGNED NOT NULL DEFAULT 3 COMMENT '每周训练天',
-                               `fitness_level` tinyint UNSIGNED NULL DEFAULT 1 COMMENT '难度 1入门 2进阶 3高级',
+                               `difficulty` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '1' COMMENT '难度（1入门 2进阶 3高级）',
                                `start_date` date NULL DEFAULT NULL COMMENT '开始日期',
                                `end_date` date NULL DEFAULT NULL COMMENT '结束日期',
                                `plan_json` json NULL COMMENT 'AI计划JSON(可选冗余)',
                                `ai_session_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT 'AI会话ID',
-                               `audit_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '审核（0待审 1通过 2拒绝）',
+                               `audit_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '审核状态（0待审 1通过 2拒绝）',
                                `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                                `lifecycle_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT 'C端生命周期（0草稿 1进行中 2已完成 3已放弃）',
                                `gen_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '1' COMMENT 'AI生成态（0生成中 1完成 2失败）',
@@ -4053,7 +4009,7 @@ CREATE TABLE `train_plan`  (
                                `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                               `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                               `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                PRIMARY KEY (`plan_id`) USING BTREE,
                                INDEX `idx_train_plan_customer`(`customer_id` ASC) USING BTREE,
@@ -4130,7 +4086,7 @@ CREATE TABLE `train_record_item`  (
                                       `action_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '动作名(冗余)',
                                       `sets_done` tinyint UNSIGNED NOT NULL DEFAULT 0 COMMENT '完成组数',
                                       `reps_done` tinyint UNSIGNED NOT NULL DEFAULT 0 COMMENT '每组次数',
-                                      `weight_kg` decimal(6, 2) NULL DEFAULT NULL COMMENT '负重kg',
+                                      `load_kg` decimal(6, 2) NULL DEFAULT NULL COMMENT '负重kg',
                                       `sets_json` json NULL COMMENT '组数明细JSON',
                                       `duration_sec` int UNSIGNED NULL DEFAULT NULL COMMENT '耗时秒',
                                       `calories` decimal(8, 2) NULL DEFAULT NULL COMMENT '消耗kcal',
@@ -4166,7 +4122,7 @@ CREATE TABLE `usr_address`  (
                                 `district` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '区',
                                 `detail_addr` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '详细地址',
                                 `postal_code` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '邮编',
-                                `is_default` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '默认（0否 1是）',
+                                `default_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '默认（0否 1是）',
                                 `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
                                 `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                 `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
@@ -4200,7 +4156,7 @@ CREATE TABLE `usr_body_metric`  (
                                     `thigh_cm` decimal(5, 2) NULL DEFAULT NULL COMMENT '大腿围cm',
                                     `source` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'manual' COMMENT '来源 manual/device/ai',
                                     `device_id` bigint UNSIGNED NULL DEFAULT NULL COMMENT '设备ID',
-                                    `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+                                    `remark` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
                                     `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
                                     PRIMARY KEY (`metric_id`) USING BTREE,
                                     INDEX `idx_usr_body_customer_date`(`customer_id` ASC, `record_date` ASC) USING BTREE,
@@ -4225,7 +4181,7 @@ CREATE TABLE `usr_coach`  (
                               `coach_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '教练ID',
                               `coach_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '姓名',
                               `title` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '头衔',
-                              `avatar` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '头像',
+                              `avatar` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '头像URL',
                               `mobile` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '手机号',
                               `specialty` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '专长标签',
                               `intro` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '简介',
@@ -4236,7 +4192,7 @@ CREATE TABLE `usr_coach`  (
                               `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                               `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                               `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                              `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                               `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                               PRIMARY KEY (`coach_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '教练' ROW_FORMAT = DYNAMIC;
@@ -4258,7 +4214,7 @@ CREATE TABLE `usr_coach_bind`  (
                                    `coach_id` bigint UNSIGNED NOT NULL COMMENT '教练ID',
                                    `coach_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '教练名(冗余)',
                                    `bind_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '1' COMMENT '类型（1跟练 2私教）',
-                                   `bind_status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0有效 1已解绑）',
+                                   `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0有效 1已解绑）',
                                    `start_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '开始时间',
                                    `end_time` datetime NULL DEFAULT NULL COMMENT '结束时间',
                                    `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
@@ -4287,7 +4243,7 @@ CREATE TABLE `usr_coach_booking`  (
                                       `customer_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '昵称(冗余)',
                                       `booking_date` date NOT NULL COMMENT '预约日期',
                                       `time_slot` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '时段(如 09:00-10:00)',
-                                      `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注(训练目标等)',
+                                      `remark` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注(训练目标等)',
                                       `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0待确认 1已确认 2已完成 3已取消）',
                                       `cancel_reason` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '取消原因',
                                       `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
@@ -4336,7 +4292,7 @@ CREATE TABLE `usr_customer`  (
                                  `mobile` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '手机号',
                                  `email` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '邮箱',
                                  `password` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '密码',
-                                 `avatar` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '头像',
+                                 `avatar` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '头像URL',
                                  `gender` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '2' COMMENT '性别（0男 1女 2未知）',
                                  `birthday` date NULL DEFAULT NULL COMMENT '生日',
                                  `height_cm` decimal(5, 2) NULL DEFAULT NULL COMMENT '身高cm(冗余最新体测)',
@@ -4382,7 +4338,7 @@ CREATE TABLE `usr_segment`  (
                                 `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                 `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                 `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '操作人',
+                                `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                 `update_time` datetime NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                 PRIMARY KEY (`segment_id`) USING BTREE,
                                 UNIQUE INDEX `uk_usr_segment_code`(`segment_code` ASC) USING BTREE
@@ -4429,7 +4385,7 @@ CREATE TABLE `usr_setting`  (
                                 `session_duration_min` int UNSIGNED NOT NULL DEFAULT 45 COMMENT '单次训练时长(分钟)',
                                 `diet_preference` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '口味偏好',
                                 `diet_restrictions` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '忌口',
-                                `is_vegetarian` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '是否素食 0否 1是',
+                                `vegetarian_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '素食（0否 1是）',
                                 `reminder_time` time NULL DEFAULT NULL COMMENT '训练提醒时间',
                                 `push_enabled` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '1' COMMENT '推送开关 0关 1开',
                                 `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
@@ -4448,8 +4404,10 @@ INSERT INTO `usr_setting` VALUES (2, 3, '[\"杠铃\", \"器械\"]', 5, 60, NULL,
 
 -- ==============================================
 -- 模块: community（管理端社区：动态 / 评论 / 审核）
+-- 表字段与实体 CommunityPost / CommunityComment / CommunityModeration 对齐
 -- ==============================================
 
+DROP TABLE IF EXISTS `community_audit`;
 DROP TABLE IF EXISTS `community_moderation`;
 DROP TABLE IF EXISTS `community_comment`;
 DROP TABLE IF EXISTS `community_post`;
@@ -4464,6 +4422,7 @@ CREATE TABLE `community_post` (
                                   `like_count` int DEFAULT 0 COMMENT '点赞数',
                                   `comment_count` int DEFAULT 0 COMMENT '评论数',
                                   `status` tinyint DEFAULT 1 COMMENT '状态：0-已删除 1-正常',
+                                  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                                   PRIMARY KEY (`id`) USING BTREE,
                                   INDEX `idx_community_post_user_status`(`user_id` ASC, `status` ASC) USING BTREE,
@@ -4471,10 +4430,10 @@ CREATE TABLE `community_post` (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '社区动态表' ROW_FORMAT = DYNAMIC;
 
 INSERT INTO `community_post` VALUES
-                                 (1867000001, 1, '今天完成了第一天HIIT，累但爽！体重终于开始下降了 💪', '[\"https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400\"]', 'checkin', NULL, 28, 2, 1, '2025-05-20 21:30:00'),
-                                 (1867000002, 3, '卧推100kg达成！感谢教练的周期化安排。', '[\"https://images.unsplash.com/photo-1581009146145-b5ef050c149a?w=400\"]', 'normal', NULL, 86, 1, 1, '2025-05-19 18:00:00'),
-                                 (1867000003, 2, '晨间瑜伽第7天，肩颈放松很多～', NULL, 'checkin', NULL, 15, 1, 1, '2025-05-18 07:15:00'),
-                                 (1867000004, 5, '第一次跟练产后修复课，强度刚好。', NULL, 'normal', NULL, 8, 0, 1, '2025-05-22 10:00:00');
+                                 (1867000001, 1, '今天完成了第一天HIIT，累但爽！体重终于开始下降了 💪', '[\"https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400\"]', 'checkin', NULL, 28, 2, 1, '0', '2025-05-20 21:30:00'),
+                                 (1867000002, 3, '卧推100kg达成！感谢教练的周期化安排。', '[\"https://images.unsplash.com/photo-1581009146145-b5ef050c149a?w=400\"]', 'normal', NULL, 86, 1, 1, '0', '2025-05-19 18:00:00'),
+                                 (1867000003, 2, '晨间瑜伽第7天，肩颈放松很多～', NULL, 'checkin', NULL, 15, 1, 1, '0', '2025-05-18 07:15:00'),
+                                 (1867000004, 5, '第一次跟练产后修复课，强度刚好。', NULL, 'normal', NULL, 8, 0, 1, '0', '2025-05-22 10:00:00');
 
 CREATE TABLE `community_comment` (
                                      `id` bigint NOT NULL COMMENT '评论ID',
@@ -4485,7 +4444,8 @@ CREATE TABLE `community_comment` (
                                      `content` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '评论内容',
                                      `like_count` int DEFAULT 0 COMMENT '点赞数',
                                      `status` tinyint DEFAULT 1 COMMENT '状态：0-已删除 1-正常',
-                                     `is_top` tinyint DEFAULT 0 COMMENT '是否置顶：0-否 1-是',
+                                     `top` tinyint DEFAULT 0 COMMENT '是否置顶：0-否 1-是',
+                                     `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
                                      `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                                      PRIMARY KEY (`id`) USING BTREE,
                                      INDEX `idx_community_comment_post_status`(`post_id` ASC, `status` ASC) USING BTREE,
@@ -4493,10 +4453,10 @@ CREATE TABLE `community_comment` (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '社区评论表' ROW_FORMAT = DYNAMIC;
 
 INSERT INTO `community_comment` VALUES
-                                    (2020749366733623298, 1867000001, 2, NULL, NULL, '加油！前三天最难，坚持就是胜利！', 3, 1, 1, '2025-05-20 22:00:00'),
-                                    (2020749366733623299, 1867000001, 3, NULL, NULL, '第一天感觉怎么样？心率大概多少？', 1, 1, 0, '2025-05-20 22:15:00'),
-                                    (2020749366733623300, 1867000002, 1, NULL, NULL, '太强了！向大佬学习', 0, 1, 0, '2025-05-19 19:00:00'),
-                                    (2020749366733623301, 1867000003, 4, NULL, NULL, '我也该试试瑜伽了', 0, 1, 0, '2025-05-18 08:00:00');
+                                    (2020749366733623298, 1867000001, 2, NULL, NULL, '加油！前三天最难，坚持就是胜利！', 3, 1, 1, '0', '2025-05-20 22:00:00'),
+                                    (2020749366733623299, 1867000001, 3, NULL, NULL, '第一天感觉怎么样？心率大概多少？', 1, 1, 0, '0', '2025-05-20 22:15:00'),
+                                    (2020749366733623300, 1867000002, 1, NULL, NULL, '太强了！向大佬学习', 0, 1, 0, '0', '2025-05-19 19:00:00'),
+                                    (2020749366733623301, 1867000003, 4, NULL, NULL, '我也该试试瑜伽了', 0, 1, 0, '0', '2025-05-18 08:00:00');
 
 CREATE TABLE `community_moderation` (
                                         `id` bigint NOT NULL AUTO_INCREMENT COMMENT '审核ID',
@@ -4520,100 +4480,107 @@ INSERT INTO `community_moderation` VALUES
 
 
 -- ==============================================
--- 模块: member（管理端会员：套餐 / 订单 / 权益 / 订阅视图）
+-- 模块: vip（付费会员：套餐 / 订单 / 权益；订阅由 vip_order 派生）
 -- ==============================================
 
 DROP TABLE IF EXISTS `member_level_benefit`;
 DROP TABLE IF EXISTS `member_benefit`;
 DROP TABLE IF EXISTS `member_order`;
 DROP TABLE IF EXISTS `member_plan`;
+DROP TABLE IF EXISTS `vip_level_benefit`;
+DROP TABLE IF EXISTS `vip_benefit`;
+DROP TABLE IF EXISTS `vip_order`;
+DROP TABLE IF EXISTS `vip_plan`;
 
-CREATE TABLE `member_plan` (
-                               `id` bigint NOT NULL AUTO_INCREMENT COMMENT '套餐ID',
-                               `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '套餐名称',
-                               `type` tinyint NOT NULL COMMENT '套餐类型：1-月卡 2-季卡 3-年卡',
-                               `duration_days` int NOT NULL COMMENT '有效天数',
-                               `price` decimal(10,2) NOT NULL COMMENT '价格',
-                               `original_price` decimal(10,2) DEFAULT NULL COMMENT '原价',
-                               `description` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '套餐描述',
-                               `benefits` json DEFAULT NULL COMMENT '权益列表',
-                               `ai_token_quota_monthly` int DEFAULT NULL COMMENT '每月加赠AI Token',
-                               `sort_order` int DEFAULT 0 COMMENT '排序',
-                               `status` tinyint DEFAULT 1 COMMENT '状态：0-下架 1-上架',
+CREATE TABLE `vip_plan` (
+                            `plan_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '套餐ID',
+                            `plan_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '套餐名称',
+                            `package_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '套餐类型（1月卡 2季卡 3年卡）',
+                            `duration_days` int UNSIGNED NOT NULL COMMENT '有效天数',
+                            `price` decimal(10, 2) NOT NULL COMMENT '价格',
+                            `original_price` decimal(10, 2) DEFAULT NULL COMMENT '原价',
+                            `description` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '套餐描述',
+                            `benefits` json DEFAULT NULL COMMENT '权益列表',
+                            `ai_quota_monthly` int DEFAULT NULL COMMENT '每月加赠AI Token',
+                            `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
+                            `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0上架 1下架）',
+                            `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
+                            `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                            `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
+                            `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                            `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
+                            PRIMARY KEY (`plan_id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'VIP套餐' ROW_FORMAT = DYNAMIC;
+
+INSERT INTO `vip_plan` VALUES
+                           (1, '月度会员', '1', 30, 29.90, 39.90, '适合短期体验，轻量体验 AI 能力', '[\"商城课程 9 折\",\"每月加赠 AI 约 2 万 tokens\",\"AI 训练计划生成\"]', 20000, 1, '0', '超级管理员', '2025-05-01 10:00:00', '', '2025-05-01 10:00:00', '0'),
+                           (2, '季度会员', '2', 90, 69.90, 99.90, '性价比之选，AI 用量更充足', '[\"商城课程 9 折\",\"每月加赠 AI 约 8 万 tokens\",\"AI 训练计划生成\",\"优先客服响应\"]', 80000, 2, '0', '超级管理员', '2025-05-01 10:00:00', '', '2025-05-01 10:00:00', '0'),
+                           (3, '年度会员', '3', 365, 199.00, 399.00, '全年畅享，重度 AI 用户', '[\"商城课程 9 折\",\"每月加赠 AI 约 30 万 tokens\",\"AI 训练计划生成\",\"优先客服\",\"生日礼包\"]', 300000, 3, '0', '超级管理员', '2025-05-01 10:00:00', '', '2025-05-01 10:00:00', '0'),
+                           (4, '周卡体验', '1', 7, 9.90, 19.90, '7 天轻量体验，适合新用户试水', '[\"商城课程 9.5 折\",\"每日加赠 AI 约 5 千 tokens（按周折算展示）\"]', 5000, 4, '0', '超级管理员', '2025-05-01 10:00:00', '', '2025-05-01 10:00:00', '0'),
+                           (5, '【测试】下架套餐', '1', 30, 0.01, 99.00, '仅用于管理端下架态展示，用户端不应出现', '[\"不应展示\"]', 0, 99, '1', '超级管理员', '2025-05-01 10:00:00', '', '2025-05-01 10:00:00', '0');
+
+CREATE TABLE `vip_order` (
+                             `vip_order_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '订单ID',
+                             `order_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '订单号',
+                             `customer_id` bigint UNSIGNED NOT NULL COMMENT '用户ID（usr_customer.customer_id）',
+                             `plan_id` bigint UNSIGNED NOT NULL COMMENT '套餐ID',
+                             `plan_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '套餐名称快照',
+                             `pay_amount` decimal(10, 2) NOT NULL COMMENT '实付金额',
+                             `pay_channel` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '支付渠道',
+                             `pay_time` datetime DEFAULT NULL COMMENT '支付时间',
+                             `start_time` datetime DEFAULT NULL COMMENT '会员开始时间',
+                             `end_time` datetime DEFAULT NULL COMMENT '会员结束时间',
+                             `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0待支付 1已支付 2已取消 3已退款）',
+                             `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                             `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                             PRIMARY KEY (`vip_order_id`) USING BTREE,
+                             UNIQUE INDEX `uk_vip_order_no`(`order_no` ASC) USING BTREE,
+                             INDEX `idx_vip_order_customer_status`(`customer_id` ASC, `status` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 10006 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'VIP订单' ROW_FORMAT = DYNAMIC;
+
+INSERT INTO `vip_order` VALUES
+                            (10001, 'M202505010001', 1, 1, '月度会员', 29.90, 'alipay', '2026-07-01 10:00:00', '2026-07-01 10:00:00', '2027-07-01 10:00:00', '1', '2026-07-01 09:55:00', '2026-07-01 10:00:00'),
+                            (10002, 'M202505010002', 2, 2, '季度会员', 69.90, 'wechat', '2026-06-15 10:00:00', '2026-06-15 10:00:00', '2026-09-13 10:00:00', '1', '2026-06-15 09:50:00', '2026-06-15 10:00:00'),
+                            (10003, 'M202505010003', 1, 4, '周卡体验', 9.90, NULL, NULL, NULL, NULL, '0', '2026-07-22 11:00:00', '2026-07-22 11:00:00'),
+                            (10004, 'M202505010004', 3, 3, '年度会员', 199.00, NULL, NULL, NULL, NULL, '2', '2026-07-21 14:00:00', '2026-07-21 15:00:00'),
+                            (10005, 'M202505010005', 2, 1, '月度会员', 29.90, 'alipay', '2025-02-01 10:00:00', '2025-02-01 10:00:00', '2025-03-03 10:00:00', '3', '2025-02-01 09:55:00', '2025-03-04 10:00:00');
+
+CREATE TABLE `vip_benefit` (
+                               `benefit_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '权益ID',
+                               `benefit_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '权益编码',
+                               `benefit_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '权益名称',
+                               `description` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '描述',
+                               `icon_url` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标URL',
+                               `min_level` tinyint DEFAULT 1 COMMENT '最低会员等级',
+                               `benefit_value` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '权益值',
+                               `order_num` int NOT NULL DEFAULT 0 COMMENT '排序',
+                               `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
+                               `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '创建人',
                                `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                               `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '更新人',
                                `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                               `deleted` tinyint DEFAULT 0 COMMENT '删除标志：0-正常 1-删除',
-                               PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '会员套餐表' ROW_FORMAT = DYNAMIC;
+                               `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '删除标志（0正常 2删除）',
+                               PRIMARY KEY (`benefit_id`) USING BTREE,
+                               UNIQUE INDEX `uk_vip_benefit_code`(`benefit_code` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'VIP权益' ROW_FORMAT = DYNAMIC;
 
-INSERT INTO `member_plan` VALUES
-                              (1, '月度会员', 1, 30, 29.90, 39.90, '适合短期体验，轻量体验 AI 能力', '[\"商城课程 9 折\",\"每月加赠 AI 约 2 万 tokens\",\"AI 训练计划生成\"]', 20000, 1, 1, '2025-05-01 10:00:00', '2025-05-01 10:00:00', 0),
-                              (2, '季度会员', 2, 90, 69.90, 99.90, '性价比之选，AI 用量更充足', '[\"商城课程 9 折\",\"每月加赠 AI 约 8 万 tokens\",\"AI 训练计划生成\",\"优先客服响应\"]', 80000, 2, 1, '2025-05-01 10:00:00', '2025-05-01 10:00:00', 0),
-                              (3, '年度会员', 3, 365, 199.00, 399.00, '全年畅享，重度 AI 用户', '[\"商城课程 9 折\",\"每月加赠 AI 约 30 万 tokens\",\"AI 训练计划生成\",\"优先客服\",\"生日礼包\"]', 300000, 3, 1, '2025-05-01 10:00:00', '2025-05-01 10:00:00', 0),
-                              (4, '周卡体验', 1, 7, 9.90, 19.90, '7 天轻量体验，适合新用户试水', '[\"商城课程 9.5 折\",\"每日加赠 AI 约 5 千 tokens（按周折算展示）\"]', 5000, 4, 1, '2025-05-01 10:00:00', '2025-05-01 10:00:00', 0),
-                              (5, '【测试】下架套餐', 1, 30, 0.01, 99.00, '仅用于管理端下架态展示，用户端不应出现', '[\"不应展示\"]', 0, 99, 0, '2025-05-01 10:00:00', '2025-05-01 10:00:00', 0);
+INSERT INTO `vip_benefit` VALUES
+                              (1, 'course_90off', '课程9折', '商城课程享受9折优惠', NULL, 1, '0.90', 1, '0', '超级管理员', '2025-05-01 10:00:00', '', '2025-05-01 10:00:00', '0'),
+                              (2, 'ai_quota_20k', 'AI加赠2万Token', '每月加赠约2万 AI tokens', NULL, 1, '20000', 2, '0', '超级管理员', '2025-05-01 10:00:00', '', '2025-05-01 10:00:00', '0'),
+                              (3, 'priority_service', '优先客服', '会员专属优先客服通道', NULL, 2, '1', 3, '0', '超级管理员', '2025-05-01 10:00:00', '', '2025-05-01 10:00:00', '0');
 
-CREATE TABLE `member_order` (
-                                `id` bigint NOT NULL AUTO_INCREMENT COMMENT '订单ID',
-                                `order_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '订单号',
-                                `user_id` bigint NOT NULL COMMENT '用户ID（usr_customer.customer_id）',
-                                `plan_id` bigint NOT NULL COMMENT '套餐ID',
-                                `plan_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '套餐名称快照',
-                                `amount` decimal(10,2) NOT NULL COMMENT '支付金额',
-                                `pay_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '支付方式：alipay/wxpay',
-                                `pay_time` datetime DEFAULT NULL COMMENT '支付时间',
-                                `start_time` datetime DEFAULT NULL COMMENT '会员开始时间',
-                                `end_time` datetime DEFAULT NULL COMMENT '会员结束时间',
-                                `status` tinyint DEFAULT 0 COMMENT '状态：0-待支付 1-已支付 2-已取消 3-已退款',
-                                `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                                PRIMARY KEY (`id`) USING BTREE,
-                                UNIQUE INDEX `uk_member_order_no`(`order_no` ASC) USING BTREE,
-                                INDEX `idx_member_order_user_status`(`user_id` ASC, `status` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '会员订单表' ROW_FORMAT = DYNAMIC;
+CREATE TABLE `vip_level_benefit` (
+                                     `level_benefit_id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '关联ID',
+                                     `level_id` bigint UNSIGNED NOT NULL COMMENT '等级ID',
+                                     `benefit_id` bigint UNSIGNED NOT NULL COMMENT '权益ID',
+                                     `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                     PRIMARY KEY (`level_benefit_id`) USING BTREE,
+                                     UNIQUE INDEX `uk_vip_level_benefit`(`level_id` ASC, `benefit_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '等级与VIP权益关联' ROW_FORMAT = DYNAMIC;
 
-INSERT INTO `member_order` VALUES
-                               (10001, 'M202505010001', 1, 1, '月度会员', 29.90, 'alipay', '2025-05-20 10:00:00', '2025-05-20 10:00:00', '2025-06-19 10:00:00', 1, '2025-05-20 09:55:00', '2025-05-20 10:00:00'),
-                               (10002, 'M202505010002', 2, 2, '季度会员', 69.90, 'wxpay', '2025-04-15 10:00:00', '2025-04-15 10:00:00', '2025-07-14 10:00:00', 1, '2025-04-15 09:50:00', '2025-04-15 10:00:00'),
-                               (10003, 'M202505010003', 1, 4, '周卡体验', 9.90, NULL, NULL, NULL, NULL, 0, '2025-05-22 11:00:00', '2025-05-22 11:00:00'),
-                               (10004, 'M202505010004', 3, 3, '年度会员', 199.00, NULL, NULL, NULL, NULL, 2, '2025-05-21 14:00:00', '2025-05-21 15:00:00'),
-                               (10005, 'M202505010005', 2, 1, '月度会员', 29.90, 'alipay', '2025-02-01 10:00:00', '2025-02-01 10:00:00', '2025-03-03 10:00:00', 3, '2025-02-01 09:55:00', '2025-03-04 10:00:00');
-
-CREATE TABLE `member_benefit` (
-                                  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '权益ID',
-                                  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '权益代码',
-                                  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '权益名称',
-                                  `description` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '权益描述',
-                                  `icon` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标',
-                                  `min_level` tinyint DEFAULT 1 COMMENT '最低会员等级',
-                                  `value` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '权益值',
-                                  `sort_order` int DEFAULT 0 COMMENT '排序',
-                                  `status` tinyint DEFAULT 1 COMMENT '状态：0-停用 1-启用',
-                                  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-                                  `deleted` tinyint DEFAULT 0 COMMENT '删除标志：0-正常 1-删除',
-                                  PRIMARY KEY (`id`) USING BTREE,
-                                  UNIQUE INDEX `uk_member_benefit_code`(`code` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '会员权益表' ROW_FORMAT = DYNAMIC;
-
-INSERT INTO `member_benefit` VALUES
-                                 (1, 'course_90off', '课程9折', '商城课程享受9折优惠', NULL, 1, '0.90', 1, 1, '2025-05-01 10:00:00', '2025-05-01 10:00:00', 0),
-                                 (2, 'ai_quota_20k', 'AI加赠2万Token', '每月加赠约2万 AI tokens', NULL, 1, '20000', 2, 1, '2025-05-01 10:00:00', '2025-05-01 10:00:00', 0),
-                                 (3, 'priority_service', '优先客服', '会员专属优先客服通道', NULL, 2, '1', 3, 1, '2025-05-01 10:00:00', '2025-05-01 10:00:00', 0);
-
-CREATE TABLE `member_level_benefit` (
-                                        `id` bigint NOT NULL AUTO_INCREMENT COMMENT '关联ID',
-                                        `level_id` bigint NOT NULL COMMENT '等级ID',
-                                        `benefit_id` bigint NOT NULL COMMENT '权益ID',
-                                        `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                        PRIMARY KEY (`id`) USING BTREE,
-                                        UNIQUE INDEX `uk_member_level_benefit`(`level_id` ASC, `benefit_id` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '等级权益关联表' ROW_FORMAT = DYNAMIC;
-
-INSERT INTO `member_level_benefit` VALUES
-                                       (1, 2, 1, '2025-05-01 10:00:00'),
-                                       (2, 3, 1, '2025-05-01 10:00:00'),
-                                       (3, 3, 3, '2025-05-01 10:00:00');
-
+INSERT INTO `vip_level_benefit` VALUES
+                                    (1, 2, 1, '2025-05-01 10:00:00'),
+                                    (2, 3, 1, '2025-05-01 10:00:00'),
+                                    (3, 3, 3, '2025-05-01 10:00:00');
 
 SET FOREIGN_KEY_CHECKS = 1;

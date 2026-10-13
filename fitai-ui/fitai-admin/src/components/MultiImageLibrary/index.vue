@@ -36,18 +36,19 @@
           <div class="sidebar-title">分类</div>
           <div class="folder-list">
             <div
-              v-for="folder in folders"
-              :key="folder.key"
+              v-for="cat in categories"
+              :key="cat.categoryId"
               class="folder-item"
-              :class="{ active: currentFolder === folder.key }"
-              @click="selectFolder(folder.key)"
+              :class="{ active: currentCategoryId === cat.categoryId }"
+              :style="{ paddingLeft: 12 + cat.depth * 12 + 'px' }"
+              @click="selectCategory(cat.categoryId)"
             >
               <el-icon class="folder-icon">
-                <Folder v-if="currentFolder !== folder.key" />
+                <Folder v-if="currentCategoryId !== cat.categoryId" />
                 <FolderOpened v-else />
               </el-icon>
-              <span class="folder-name">{{ folder.label }}</span>
-              <span class="folder-count">{{ folder.count }}</span>
+              <span class="folder-name">{{ cat.categoryName }}</span>
+              <span class="folder-count">{{ cat.imageCount || 0 }}</span>
             </div>
           </div>
         </div>
@@ -63,14 +64,16 @@
               <el-upload
                 :action="uploadUrl"
                 :headers="uploadHeaders"
+                :data="uploadData"
                 :show-file-list="false"
+                :disabled="!currentCategoryId"
                 :before-upload="beforeLibraryUpload"
                 :on-success="handleUploadSuccess"
                 :on-error="handleUploadError"
                 accept="image/*"
                 multiple
               >
-                <el-button type="success" :icon="Upload">上传图片</el-button>
+                <el-button type="success" :icon="Upload" :disabled="!currentCategoryId">上传图片</el-button>
               </el-upload>
               <el-button :icon="Refresh" @click="loadLibrary">刷新</el-button>
             </div>
@@ -78,19 +81,20 @@
 
           <!-- 图片网格 -->
           <div v-loading="loading" class="image-grid-container">
-            <el-empty v-if="!loading && images.length === 0" description="暂无图片，请上传" />
+            <el-empty v-if="!loading && !currentCategoryId" description="请先选择分类" />
+            <el-empty v-else-if="!loading && images.length === 0" description="暂无图片，请上传" />
             <div v-else class="image-grid">
               <div
                 v-for="img in images"
-                :key="img.url"
+                :key="img.ossId"
                 class="image-card"
-                :class="{ selected: selectedUrls.includes(img.url) }"
-                @click="toggleSelect(img.url)"
+                :class="{ selected: selectedUrls.includes(img.ossUrl) }"
+                @click="toggleSelect(img.ossUrl)"
               >
-                <el-image :src="img.url" fit="cover" class="grid-image" />
+                <el-image :src="img.ossUrl" fit="cover" class="grid-image" />
                 <div class="select-indicator">
-                  <el-icon v-if="selectedUrls.includes(img.url)" class="check-icon"><Check /></el-icon>
-                  <span v-else class="select-order">{{ getSelectOrder(img.url) }}</span>
+                  <el-icon v-if="selectedUrls.includes(img.ossUrl)" class="check-icon"><Check /></el-icon>
+                  <span v-else class="select-order">{{ getSelectOrder(img.ossUrl) }}</span>
                 </div>
               </div>
             </div>
@@ -117,7 +121,16 @@ import { ElMessage } from "element-plus";
 import { Plus, Delete, Folder, FolderOpened, Upload, Refresh, Check } from "@element-plus/icons-vue";
 import draggable from "vuedraggable";
 import { useUserStore } from "@/stores/modules/user";
-import { getImageLibrary, getImageFolders } from "@/api/modules/upload";
+import { getMediaOssPageApi, getMediaOssCategoryTreeApi } from "@/api/modules/media";
+
+const FOLDER_HINT_MAP = {
+  course: ["课程封面", "课程图片", "课时封面"],
+  exercise: ["动作图片"],
+  product: ["商品图片", "商品封面", "商品相关"],
+  banner: ["轮播图片"],
+  seckill: ["秒杀商品"],
+  coach: ["人物头像"]
+};
 
 const props = defineProps({
   modelValue: {
@@ -141,66 +154,92 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue"]);
 
 const userStore = useUserStore();
-const uploadUrl = computed(() => import.meta.env.VITE_API_URL + props.uploadAction);
+const uploadUrl = computed(() => import.meta.env.VITE_API_URL + "/admin/media/oss/upload");
 const uploadHeaders = computed(() => ({
   Authorization: userStore.token
 }));
+const uploadData = computed(() => ({ categoryId: currentCategoryId.value }));
 
-// 本地图片列表
 const localImages = ref([]);
 
-// 同步 props
-watch(() => props.modelValue, (val) => {
-  localImages.value = [...(val || [])];
-}, { immediate: true });
+watch(
+  () => props.modelValue,
+  val => {
+    localImages.value = [...(val || [])];
+  },
+  { immediate: true }
+);
 
-// 是否可以继续添加
 const canAddMore = computed(() => localImages.value.length < props.limit);
 
-// 拖拽结束
 const handleDragEnd = () => {
   emit("update:modelValue", [...localImages.value]);
 };
 
-// 移除图片
-const removeImage = (index) => {
+const removeImage = index => {
   localImages.value.splice(index, 1);
   emit("update:modelValue", [...localImages.value]);
 };
 
-// 图片库相关
 const showLibrary = ref(false);
 const loading = ref(false);
-const folders = ref([]);
+const categories = ref([]);
 const images = ref([]);
-const currentFolder = ref("");
+const currentCategoryId = ref(null);
 const selectedUrls = ref([]);
 
-// 打开图片库
-const openLibrary = () => {
-  showLibrary.value = true;
-  currentFolder.value = props.folder || "";
-  selectedUrls.value = [];
-  loadFolders();
-  loadLibrary();
+const flattenTree = (nodes, depth = 0, list = []) => {
+  (nodes || []).forEach(n => {
+    list.push({ ...n, depth, children: undefined });
+    if (n.children?.length) flattenTree(n.children, depth + 1, list);
+  });
+  return list;
 };
 
-// 加载分类
-const loadFolders = async () => {
+const resolveDefaultCategoryId = flat => {
+  if (!flat.length) return null;
+  const hints = FOLDER_HINT_MAP[props.folder] || [];
+  for (const hint of hints) {
+    const found = flat.find(c => c.categoryName === hint);
+    if (found) return found.categoryId;
+  }
+  return flat[0].categoryId;
+};
+
+const openLibrary = () => {
+  showLibrary.value = true;
+  selectedUrls.value = [];
+  loadCategories().then(() => loadLibrary());
+};
+
+const loadCategories = async () => {
   try {
-    const res = await getImageFolders();
-    folders.value = res.data || [];
+    const res = await getMediaOssCategoryTreeApi({ loading: false });
+    categories.value = flattenTree(res.data || []);
+    if (!currentCategoryId.value || !categories.value.some(c => c.categoryId === currentCategoryId.value)) {
+      currentCategoryId.value = resolveDefaultCategoryId(categories.value);
+    }
   } catch (error) {
-    folders.value = [{ key: "", label: "全部", count: 0 }];
+    categories.value = [];
   }
 };
 
-// 加载图片
 const loadLibrary = async () => {
+  if (!currentCategoryId.value) {
+    images.value = [];
+    return;
+  }
   loading.value = true;
   try {
-    const res = await getImageLibrary(currentFolder.value, 200);
-    images.value = res.data || [];
+    const res = await getMediaOssPageApi(
+      {
+        categoryId: currentCategoryId.value,
+        pageNum: 1,
+        pageSize: 200
+      },
+      { loading: false }
+    );
+    images.value = res.data?.records || [];
   } catch (error) {
     images.value = [];
   } finally {
@@ -208,19 +247,16 @@ const loadLibrary = async () => {
   }
 };
 
-// 选择分类
-const selectFolder = (key) => {
-  currentFolder.value = key;
+const selectCategory = id => {
+  currentCategoryId.value = id;
   loadLibrary();
 };
 
-// 切换选择
-const toggleSelect = (url) => {
+const toggleSelect = url => {
   const index = selectedUrls.value.indexOf(url);
   if (index > -1) {
     selectedUrls.value.splice(index, 1);
   } else {
-    // 检查是否超过限制
     const total = localImages.value.length + selectedUrls.value.length;
     if (total >= props.limit) {
       ElMessage.warning(`最多只能选择 ${props.limit} 张图片`);
@@ -230,13 +266,11 @@ const toggleSelect = (url) => {
   }
 };
 
-// 获取选择顺序
-const getSelectOrder = (url) => {
+const getSelectOrder = url => {
   const index = selectedUrls.value.indexOf(url);
   return index > -1 ? index + 1 : "";
 };
 
-// 确认选择
 const handleConfirm = () => {
   const newImages = [...localImages.value, ...selectedUrls.value];
   localImages.value = newImages;
@@ -249,7 +283,11 @@ const uploadPendingCount = ref(0);
 const uploadBatchOk = ref(0);
 const uploadBatchFail = ref(0);
 
-const beforeLibraryUpload = (file) => {
+const beforeLibraryUpload = file => {
+  if (!currentCategoryId.value) {
+    ElMessage.warning("请先选择分类");
+    return false;
+  }
   const isImage = file.type.startsWith("image/");
   const isLt5M = file.size / 1024 / 1024 < 5;
   if (!isImage) {
@@ -270,11 +308,9 @@ const beforeLibraryUpload = (file) => {
 
 const finishUploadBatch = () => {
   loadLibrary();
-  loadFolders();
+  loadCategories();
   if (uploadBatchFail.value === 0) {
-    ElMessage.success(
-      uploadBatchOk.value <= 1 ? "上传成功" : `成功上传 ${uploadBatchOk.value} 张图片`
-    );
+    ElMessage.success(uploadBatchOk.value <= 1 ? "上传成功" : `成功上传 ${uploadBatchOk.value} 张图片`);
   } else if (uploadBatchOk.value === 0) {
     ElMessage.error("上传失败，请重试");
   } else {
@@ -282,30 +318,19 @@ const finishUploadBatch = () => {
   }
 };
 
-// 上传成功
-const handleUploadSuccess = (response) => {
+const handleUploadSuccess = response => {
   uploadPendingCount.value--;
   if (uploadPendingCount.value < 0) uploadPendingCount.value = 0;
-
-  if (response.code === 200) {
-    uploadBatchOk.value++;
-  } else {
-    uploadBatchFail.value++;
-  }
-
-  if (uploadPendingCount.value === 0) {
-    finishUploadBatch();
-  }
+  if (response?.code === 200) uploadBatchOk.value++;
+  else uploadBatchFail.value++;
+  if (uploadPendingCount.value === 0) finishUploadBatch();
 };
 
 const handleUploadError = () => {
   uploadPendingCount.value--;
   if (uploadPendingCount.value < 0) uploadPendingCount.value = 0;
   uploadBatchFail.value++;
-
-  if (uploadPendingCount.value === 0) {
-    finishUploadBatch();
-  }
+  if (uploadPendingCount.value === 0) finishUploadBatch();
 };
 </script>
 

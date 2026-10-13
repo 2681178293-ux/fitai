@@ -1,14 +1,12 @@
 <template>
   <div class="table-box p-5">
     <vxe-grid ref="xGrid" v-bind="gridOptions">
-      <!-- 工具栏按钮 -->
       <template #toolbar_buttons>
         <el-button type="primary" :icon="Plus" @click="handleAdd">新增教练</el-button>
         <el-button type="danger" :icon="Delete" @click="handleBatchDelete">批量删除</el-button>
         <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
       </template>
 
-      <!-- 头像列 -->
       <template #avatar="{ row }">
         <div class="table-thumb-cell">
           <el-image
@@ -25,14 +23,12 @@
         </div>
       </template>
 
-      <!-- 性别列 -->
-      <template #gender="{ row }">
-        <el-tag v-if="row.gender === 1" type="primary">男</el-tag>
-        <el-tag v-else-if="row.gender === 2" type="danger">女</el-tag>
+      <template #sex="{ row }">
+        <el-tag v-if="row.sex == 1 || row.sex === '1'" type="primary">男</el-tag>
+        <el-tag v-else-if="row.sex == 2 || row.sex === '2'" type="danger">女</el-tag>
         <el-tag v-else type="info">未知</el-tag>
       </template>
 
-      <!-- 专长列 -->
       <template #specialty="{ row }">
         <template v-if="row.specialty">
           <el-tag v-for="tag in splitTags(row.specialty)" :key="tag" class="mr-1" type="success" size="small">
@@ -42,33 +38,33 @@
         <span v-else class="text-gray-400">-</span>
       </template>
 
-      <!-- 课时费列 -->
-      <template #price="{ row }">
-        <span>{{ row.price != null ? "¥" + Number(row.price).toFixed(2) : "-" }}</span>
+      <template #hourlyFee="{ row }">
+        <span>{{ row.hourlyFee != null ? "¥" + Number(row.hourlyFee).toFixed(2) : "-" }}</span>
       </template>
 
-      <!-- 评分列 -->
       <template #rating="{ row }">
         <span>{{ row.rating != null ? Number(row.rating).toFixed(2) : "-" }}</span>
       </template>
 
-      <!-- 状态列 -->
       <template #status="{ row }">
-        <el-switch v-model="row.status" :active-value="1" :inactive-value="0" @change="handleStatusChange(row)" />
+        <el-switch
+          v-model="row.status"
+          active-value="0"
+          inactive-value="1"
+          @change="handleStatusChange(row)"
+        />
       </template>
 
-      <!-- 操作列 -->
       <template #action="{ row }">
         <el-button type="primary" link :icon="Edit" @click="handleEdit(row)">编辑</el-button>
         <el-button type="danger" link :icon="Delete" @click="handleDelete(row)">删除</el-button>
       </template>
     </vxe-grid>
 
-    <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑教练' : '新增教练'" width="680px" destroy-on-close>
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
-        <el-form-item label="教练姓名" prop="name">
-          <el-input v-model="formData.name" placeholder="请输入教练姓名" />
+        <el-form-item label="教练姓名" prop="coachName">
+          <el-input v-model="formData.coachName" placeholder="请输入教练姓名" />
         </el-form-item>
         <el-form-item label="头衔">
           <el-input v-model="formData.title" placeholder="如：高级私教" />
@@ -82,21 +78,11 @@
             height="100px"
           />
         </el-form-item>
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="formData.phone" placeholder="请输入手机号" />
-        </el-form-item>
-        <el-form-item label="性别">
-          <el-radio-group v-model="formData.gender">
-            <el-radio :value="0">未知</el-radio>
-            <el-radio :value="1">男</el-radio>
-            <el-radio :value="2">女</el-radio>
-          </el-radio-group>
+        <el-form-item label="手机号" prop="mobile">
+          <el-input v-model="formData.mobile" placeholder="请输入手机号" />
         </el-form-item>
         <el-form-item label="专长标签">
           <el-input v-model="formData.specialty" placeholder="多个标签用英文逗号分隔，如：力量训练,减脂" />
-        </el-form-item>
-        <el-form-item label="课时费">
-          <el-input-number v-model="formData.price" :min="0" :precision="2" style="width: 100%" />
         </el-form-item>
         <el-form-item label="教练简介">
           <el-input v-model="formData.intro" type="textarea" :rows="3" placeholder="请输入教练简介" />
@@ -106,16 +92,13 @@
             v-model="certificatesText"
             type="textarea"
             :rows="4"
-            placeholder="每行一条证书，将保存为列表展示在用户端"
+            placeholder="每行一条证书，将保存为 JSON 列表"
           />
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="formData.sortOrder" :min="0" style="width: 100%" />
         </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="formData.status">
-            <el-radio :value="1">正常</el-radio>
-            <el-radio :value="0">停用</el-radio>
+            <el-radio value="0">正常</el-radio>
+            <el-radio value="1">停用</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -136,8 +119,7 @@ import {
   getCoachPageApi,
   createCoachApi,
   updateCoachApi,
-  deleteCoachApi,
-  updateCoachStatusApi
+  deleteCoachApi
 } from "@/api/modules/coach";
 
 const defaultAvatar = "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png";
@@ -150,22 +132,19 @@ const submitLoading = ref(false);
 const certificatesText = ref("");
 
 const formData = reactive({
-  id: null,
-  name: "",
+  coachId: null,
+  coachName: "",
   title: "",
   avatar: "",
-  phone: "",
-  gender: 0,
+  mobile: "",
   specialty: "",
   intro: "",
-  price: null,
-  sortOrder: 0,
-  status: 1
+  status: "0"
 });
 
 const formRules = {
-  name: [{ required: true, message: "请输入教练姓名", trigger: "blur" }],
-  phone: [{ pattern: /^1[3-9]\d{9}$/, message: "手机号格式不正确", trigger: "blur" }]
+  coachName: [{ required: true, message: "请输入教练姓名", trigger: "blur" }],
+  mobile: [{ pattern: /^1[3-9]\d{9}$/, message: "手机号格式不正确", trigger: "blur" }]
 };
 
 function splitTags(text) {
@@ -177,16 +156,24 @@ function splitTags(text) {
 }
 
 function parseCertificates(text) {
-  if (!text || !String(text).trim()) return [];
-  return String(text)
+  if (!text || !String(text).trim()) return "";
+  const list = String(text)
     .split(/\r?\n/)
     .map(s => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map(name => ({ name }));
+  return JSON.stringify(list);
 }
 
-function certificatesToText(list) {
-  if (!list || !Array.isArray(list)) return "";
-  return list.join("\n");
+function certificatesToText(certJson) {
+  if (!certJson) return "";
+  try {
+    const list = typeof certJson === "string" ? JSON.parse(certJson) : certJson;
+    if (!Array.isArray(list)) return String(certJson);
+    return list.map(item => (typeof item === "string" ? item : item?.name || "")).filter(Boolean).join("\n");
+  } catch {
+    return String(certJson);
+  }
 }
 
 const gridOptions = reactive({
@@ -194,7 +181,7 @@ const gridOptions = reactive({
   showOverflow: true,
   height: 600,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "coachId", isHover: true },
   columnConfig: { resizable: true },
   checkboxConfig: { highlight: true },
   pagerConfig: {
@@ -213,7 +200,12 @@ const gridOptions = reactive({
   },
   formConfig: {
     items: [
-      { field: "name", title: "教练姓名", span: 8, itemRender: { name: "$input", props: { placeholder: "请输入教练姓名" } } },
+      {
+        field: "coachName",
+        title: "教练姓名",
+        span: 8,
+        itemRender: { name: "$input", props: { placeholder: "请输入教练姓名" } }
+      },
       {
         field: "specialty",
         title: "专长",
@@ -228,8 +220,8 @@ const gridOptions = reactive({
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "正常", value: 1 },
-            { label: "停用", value: 0 }
+            { label: "正常", value: "0" },
+            { label: "停用", value: "1" }
           ],
           props: { placeholder: "请选择状态" }
         }
@@ -256,7 +248,9 @@ const gridOptions = reactive({
         const params = {
           pageNum: page.currentPage,
           pageSize: page.pageSize,
-          ...form
+          coachName: form.coachName || undefined,
+          specialty: form.specialty || undefined,
+          status: form.status !== "" && form.status != null ? form.status : undefined
         };
         try {
           const res = await getCoachPageApi(params);
@@ -272,97 +266,85 @@ const gridOptions = reactive({
     { type: "checkbox", width: 50 },
     { type: "seq", title: "序号", width: 60 },
     { field: "avatar", title: "头像", width: 80, slots: { default: "avatar" } },
-    { field: "name", title: "教练姓名", width: 110 },
+    { field: "coachName", title: "教练姓名", width: 110 },
     { field: "title", title: "头衔", width: 120 },
-    { field: "phone", title: "手机号", width: 130 },
-    { field: "gender", title: "性别", width: 80, slots: { default: "gender" } },
+    { field: "mobile", title: "手机号", width: 130 },
+    { field: "sex", title: "性别", width: 80, slots: { default: "sex" } },
     { field: "specialty", title: "专长", minWidth: 180, slots: { default: "specialty" } },
-    { field: "price", title: "课时费", width: 100, slots: { default: "price" } },
+    { field: "hourlyFee", title: "课时费", width: 100, slots: { default: "hourlyFee" } },
     { field: "rating", title: "评分", width: 80, slots: { default: "rating" } },
     { field: "studentCount", title: "学员数", width: 80 },
-    { field: "sortOrder", title: "排序", width: 70 },
+    { field: "sort", title: "排序", width: 70 },
     { field: "status", title: "状态", width: 80, slots: { default: "status" } },
     { field: "createTime", title: "创建时间", width: 170 },
     { title: "操作", width: 140, fixed: "right", slots: { default: "action" } }
   ]
 });
 
-// 刷新
 const handleRefresh = () => {
   xGrid.value?.commitProxy("query");
 };
 
-// 启用停用
+/** 后端无 /status 接口，走通用修改 */
 const handleStatusChange = async row => {
+  const prev = row.status == 0 || row.status === "0" ? "1" : "0";
   try {
-    await updateCoachStatusApi(row.id, row.status);
-    ElMessage.success(row.status === 1 ? "已启用" : "已停用");
+    await updateCoachApi({ coachId: row.coachId, status: String(row.status) });
+    ElMessage.success(row.status == 0 || row.status === "0" ? "已启用" : "已停用");
   } catch {
-    row.status = row.status === 1 ? 0 : 1;
+    row.status = prev;
     ElMessage.error("状态更新失败");
   }
 };
 
-// 新增
 const handleAdd = () => {
   isEdit.value = false;
   certificatesText.value = "";
   Object.assign(formData, {
-    id: null,
-    name: "",
+    coachId: null,
+    coachName: "",
     title: "",
     avatar: "",
-    phone: "",
-    gender: 0,
+    mobile: "",
     specialty: "",
     intro: "",
-    price: null,
-    sortOrder: 0,
-    status: 1
+    status: "0"
   });
   dialogVisible.value = true;
 };
 
-// 编辑
 const handleEdit = row => {
   isEdit.value = true;
-  certificatesText.value = certificatesToText(row.certificates);
+  certificatesText.value = certificatesToText(row.certJson);
   Object.assign(formData, {
-    id: row.id,
-    name: row.name || "",
+    coachId: row.coachId,
+    coachName: row.coachName || "",
     title: row.title || "",
     avatar: row.avatar || "",
-    phone: row.phone || "",
-    gender: row.gender ?? 0,
+    mobile: row.mobile || "",
     specialty: row.specialty || "",
     intro: row.intro || "",
-    price: row.price != null ? Number(row.price) : null,
-    sortOrder: row.sortOrder ?? 0,
-    status: row.status ?? 1
+    status: row.status != null ? String(row.status) : "0"
   });
   dialogVisible.value = true;
 };
 
-// 提交
 const handleSubmit = async () => {
   try {
     await formRef.value.validate();
     submitLoading.value = true;
     const payload = {
-      name: formData.name,
+      coachName: formData.coachName,
       title: formData.title,
       avatar: formData.avatar,
-      phone: formData.phone,
-      gender: formData.gender,
+      mobile: formData.mobile,
       specialty: formData.specialty,
       intro: formData.intro,
-      certificates: parseCertificates(certificatesText.value),
-      price: formData.price,
-      sortOrder: formData.sortOrder,
+      certJson: parseCertificates(certificatesText.value) || undefined,
       status: formData.status
     };
     if (isEdit.value) {
-      await updateCoachApi(formData.id, payload);
+      await updateCoachApi({ ...payload, coachId: formData.coachId });
       ElMessage.success("更新成功");
     } else {
       await createCoachApi(payload);
@@ -375,27 +357,25 @@ const handleSubmit = async () => {
   }
 };
 
-// 删除
 const handleDelete = row => {
-  ElMessageBox.confirm(`确定删除教练「${row.name}」吗？`, "提示", {
+  ElMessageBox.confirm(`确定删除教练「${row.coachName}」吗？`, "提示", {
     type: "warning"
   })
     .then(async () => {
-      await deleteCoachApi(row.id);
+      await deleteCoachApi(row.coachId);
       ElMessage.success("已删除");
       handleRefresh();
     })
     .catch(() => {});
 };
 
-// 批量删除
 const handleBatchDelete = () => {
   const records = xGrid.value?.getCheckboxRecords() || [];
   if (records.length === 0) {
     ElMessage.warning("请选择要删除的数据");
     return;
   }
-  const ids = records.map(r => r.id).join(",");
+  const ids = records.map(r => r.coachId).join(",");
   ElMessageBox.confirm(`确定删除选中的 ${records.length} 位教练吗？`, "提示", {
     type: "warning"
   })

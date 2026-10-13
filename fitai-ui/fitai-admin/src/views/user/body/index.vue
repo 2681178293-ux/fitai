@@ -1,6 +1,5 @@
 <template>
   <div class="table-box p-5">
-    <!-- KPI 卡片 -->
     <el-row :gutter="16" class="mb-5">
       <el-col :xs="24" :sm="12" :md="6">
         <el-card shadow="hover" class="stat-card">
@@ -35,7 +34,6 @@
         <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
       </template>
 
-      <!-- 日期区间查询 -->
       <template #form_dateRange="{ data }">
         <el-date-picker
           v-model="data.dateRange"
@@ -48,8 +46,8 @@
         />
       </template>
 
-      <template #bodyFat="{ row }">
-        <span>{{ row.bodyFat != null ? Number(row.bodyFat).toFixed(1) + "%" : "-" }}</span>
+      <template #bodyFatPct="{ row }">
+        <span>{{ row.bodyFatPct != null ? Number(row.bodyFatPct).toFixed(1) + "%" : "-" }}</span>
       </template>
 
       <template #recordDate="{ row }">
@@ -63,13 +61,12 @@
       </template>
     </vxe-grid>
 
-    <!-- 新增/编辑记录 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑身体数据' : '新增身体数据'" width="680px" destroy-on-close>
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="110px">
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="用户ID" prop="userId">
-              <el-input-number v-model="formData.userId" :min="1" :controls="false" style="width: 100%" :disabled="isEdit" />
+            <el-form-item label="用户ID" prop="customerId">
+              <el-input-number v-model="formData.customerId" :min="1" :controls="false" style="width: 100%" :disabled="isEdit" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -78,38 +75,38 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="体重(kg)" prop="weight">
-              <el-input-number v-model="formData.weight" :min="0" :max="500" :precision="1" style="width: 100%" />
+            <el-form-item label="体重(kg)" prop="weightKg">
+              <el-input-number v-model="formData.weightKg" :min="0" :max="500" :precision="1" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="体脂率(%)">
-              <el-input-number v-model="formData.bodyFat" :min="0" :max="100" :precision="1" style="width: 100%" />
+              <el-input-number v-model="formData.bodyFatPct" :min="0" :max="100" :precision="1" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="胸围(cm)">
-              <el-input-number v-model="formData.chest" :min="0" :max="300" :precision="1" style="width: 100%" />
+              <el-input-number v-model="formData.chestCm" :min="0" :max="300" :precision="1" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="腰围(cm)">
-              <el-input-number v-model="formData.waist" :min="0" :max="300" :precision="1" style="width: 100%" />
+              <el-input-number v-model="formData.waistCm" :min="0" :max="300" :precision="1" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="臀围(cm)">
-              <el-input-number v-model="formData.hip" :min="0" :max="300" :precision="1" style="width: 100%" />
+              <el-input-number v-model="formData.hipCm" :min="0" :max="300" :precision="1" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="臂围(cm)">
-              <el-input-number v-model="formData.arm" :min="0" :max="200" :precision="1" style="width: 100%" />
+              <el-input-number v-model="formData.armCm" :min="0" :max="200" :precision="1" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="腿围(cm)">
-              <el-input-number v-model="formData.thigh" :min="0" :max="200" :precision="1" style="width: 100%" />
+              <el-input-number v-model="formData.thighCm" :min="0" :max="200" :precision="1" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -120,10 +117,9 @@
       </template>
     </el-dialog>
 
-    <!-- 趋势图 -->
     <el-dialog
       v-model="trendVisible"
-      :title="`体重 / 体脂趋势 - ${trendUser.userNickname || trendUser.userId || ''}`"
+      :title="`体重 / 体脂趋势 - ${trendUser.nickName || trendUser.customerId || ''}`"
       width="900px"
       destroy-on-close
       @opened="initTrendChart"
@@ -167,21 +163,21 @@ const kpi = ref({ recordTotal: 0, userCount: 0, monthNewCount: 0, avgBodyFat: nu
 let trendChart = null;
 
 const formData = reactive({
-  id: null,
-  userId: null,
-  weight: null,
-  bodyFat: null,
-  chest: null,
-  waist: null,
-  hip: null,
-  arm: null,
-  thigh: null,
+  metricId: null,
+  customerId: null,
+  weightKg: null,
+  bodyFatPct: null,
+  chestCm: null,
+  waistCm: null,
+  hipCm: null,
+  armCm: null,
+  thighCm: null,
   recordDate: dayjs().format("YYYY-MM-DD")
 });
 
 const formRules = {
-  userId: [{ required: true, message: "请输入用户ID", trigger: "blur" }],
-  weight: [{ required: true, message: "请输入体重", trigger: "blur" }],
+  customerId: [{ required: true, message: "请输入用户ID", trigger: "blur" }],
+  weightKg: [{ required: true, message: "请输入体重", trigger: "blur" }],
   recordDate: [{ required: true, message: "请选择记录日期", trigger: "change" }]
 };
 
@@ -192,7 +188,7 @@ const gridOptions = reactive({
   showOverflow: true,
   height: 560,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "metricId", isHover: true },
   columnConfig: { resizable: true },
   checkboxConfig: { highlight: true },
   toolbarConfig: {
@@ -206,9 +202,9 @@ const gridOptions = reactive({
     types: ["xlsx", "csv", "pdf", "html", "xml", "txt"]
   },
   formConfig: {
-    data: { userId: "", dateRange: [] },
+    data: { customerId: "", dateRange: [] },
     items: [
-      { field: "userId", title: "用户ID", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
+      { field: "customerId", title: "用户ID", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
       { field: "dateRange", title: "日期区间", span: 10, slots: { default: "form_dateRange" } },
       {
         span: 8,
@@ -239,7 +235,7 @@ const gridOptions = reactive({
           const params = {
             pageNum: page.currentPage,
             pageSize: page.pageSize,
-            userId: form.userId ? Number(form.userId) : undefined,
+            customerId: form.customerId ? Number(form.customerId) : undefined,
             startDate: range[0] || undefined,
             endDate: range[1] || undefined
           };
@@ -255,15 +251,15 @@ const gridOptions = reactive({
   columns: [
     { type: "checkbox", width: 50 },
     { type: "seq", title: "序号", width: 60 },
-    { field: "userId", title: "用户ID", width: 100 },
-    { field: "userNickname", title: "用户昵称", minWidth: 130 },
-    { field: "weight", title: "体重(kg)", width: 100 },
-    { field: "bodyFat", title: "体脂率", width: 100, slots: { default: "bodyFat" } },
-    { field: "chest", title: "胸围(cm)", width: 100 },
-    { field: "waist", title: "腰围(cm)", width: 100 },
-    { field: "hip", title: "臀围(cm)", width: 100 },
-    { field: "arm", title: "臂围(cm)", width: 100 },
-    { field: "thigh", title: "腿围(cm)", width: 100 },
+    { field: "customerId", title: "用户ID", width: 100 },
+    { field: "nickName", title: "用户昵称", minWidth: 130 },
+    { field: "weightKg", title: "体重(kg)", width: 100 },
+    { field: "bodyFatPct", title: "体脂率", width: 100, slots: { default: "bodyFatPct" } },
+    { field: "chestCm", title: "胸围(cm)", width: 100 },
+    { field: "waistCm", title: "腰围(cm)", width: 100 },
+    { field: "hipCm", title: "臀围(cm)", width: 100 },
+    { field: "armCm", title: "臂围(cm)", width: 100 },
+    { field: "thighCm", title: "腿围(cm)", width: 100 },
     { field: "recordDate", title: "记录日期", width: 120, slots: { default: "recordDate" } },
     { title: "操作", width: 210, fixed: "right", slots: { default: "action" } }
   ]
@@ -272,9 +268,10 @@ const gridOptions = reactive({
 const loadKpi = async () => {
   try {
     const res = await getBodyRecordKpiApi();
-    kpi.value = res.data || {};
+    kpi.value = res.data || { recordTotal: 0, userCount: 0, monthNewCount: 0, avgBodyFat: null };
   } catch (e) {
     console.error("获取身体数据KPI失败:", e);
+    kpi.value = { recordTotal: 0, userCount: 0, monthNewCount: 0, avgBodyFat: null };
   }
 };
 
@@ -286,15 +283,15 @@ const handleRefresh = () => {
 const handleAdd = () => {
   isEdit.value = false;
   Object.assign(formData, {
-    id: null,
-    userId: null,
-    weight: null,
-    bodyFat: null,
-    chest: null,
-    waist: null,
-    hip: null,
-    arm: null,
-    thigh: null,
+    metricId: null,
+    customerId: null,
+    weightKg: null,
+    bodyFatPct: null,
+    chestCm: null,
+    waistCm: null,
+    hipCm: null,
+    armCm: null,
+    thighCm: null,
     recordDate: dayjs().format("YYYY-MM-DD")
   });
   dialogVisible.value = true;
@@ -303,15 +300,15 @@ const handleAdd = () => {
 const handleEdit = row => {
   isEdit.value = true;
   Object.assign(formData, {
-    id: row.id,
-    userId: row.userId ?? null,
-    weight: row.weight != null ? Number(row.weight) : null,
-    bodyFat: row.bodyFat != null ? Number(row.bodyFat) : null,
-    chest: row.chest != null ? Number(row.chest) : null,
-    waist: row.waist != null ? Number(row.waist) : null,
-    hip: row.hip != null ? Number(row.hip) : null,
-    arm: row.arm != null ? Number(row.arm) : null,
-    thigh: row.thigh != null ? Number(row.thigh) : null,
+    metricId: row.metricId,
+    customerId: row.customerId ?? null,
+    weightKg: row.weightKg != null ? Number(row.weightKg) : null,
+    bodyFatPct: row.bodyFatPct != null ? Number(row.bodyFatPct) : null,
+    chestCm: row.chestCm != null ? Number(row.chestCm) : null,
+    waistCm: row.waistCm != null ? Number(row.waistCm) : null,
+    hipCm: row.hipCm != null ? Number(row.hipCm) : null,
+    armCm: row.armCm != null ? Number(row.armCm) : null,
+    thighCm: row.thighCm != null ? Number(row.thighCm) : null,
     recordDate: row.recordDate ? dayjs(row.recordDate).format("YYYY-MM-DD") : ""
   });
   dialogVisible.value = true;
@@ -322,18 +319,18 @@ const handleSubmit = async () => {
   try {
     submitLoading.value = true;
     const payload = {
-      userId: formData.userId,
-      weight: formData.weight,
-      bodyFat: formData.bodyFat,
-      chest: formData.chest,
-      waist: formData.waist,
-      hip: formData.hip,
-      arm: formData.arm,
-      thigh: formData.thigh,
+      customerId: formData.customerId,
+      weightKg: formData.weightKg,
+      bodyFatPct: formData.bodyFatPct,
+      chestCm: formData.chestCm,
+      waistCm: formData.waistCm,
+      hipCm: formData.hipCm,
+      armCm: formData.armCm,
+      thighCm: formData.thighCm,
       recordDate: formData.recordDate
     };
     if (isEdit.value) {
-      await updateBodyRecordApi(formData.id, payload);
+      await updateBodyRecordApi({ ...payload, metricId: formData.metricId });
       ElMessage.success("更新成功");
     } else {
       await createBodyRecordApi(payload);
@@ -349,7 +346,7 @@ const handleSubmit = async () => {
 const handleDelete = row => {
   ElMessageBox.confirm(`确定删除该条身体数据（${formatDate(row.recordDate)}）吗？`, "提示", { type: "warning" })
     .then(async () => {
-      await deleteBodyRecordApi(row.id);
+      await deleteBodyRecordApi(row.metricId);
       ElMessage.success("删除成功");
       handleRefresh();
     })
@@ -364,7 +361,7 @@ const handleBatchDelete = () => {
   }
   ElMessageBox.confirm(`确定删除选中的 ${records.length} 条记录吗？`, "提示", { type: "warning" })
     .then(async () => {
-      await deleteBodyRecordApi(records.map(r => r.id).join(","));
+      await deleteBodyRecordApi(records.map(r => r.metricId).join(","));
       ElMessage.success("批量删除成功");
       handleRefresh();
     })
@@ -372,12 +369,12 @@ const handleBatchDelete = () => {
 };
 
 const handleTrend = async row => {
-  trendUser.value = { userId: row.userId, userNickname: row.userNickname };
+  trendUser.value = { customerId: row.customerId, nickName: row.nickName };
   trendData.value = [];
   trendVisible.value = true;
   try {
     trendLoading.value = true;
-    const res = await getBodyRecordTrendApi(row.userId, 30);
+    const res = await getBodyRecordTrendApi(row.customerId, 30);
     trendData.value = Array.isArray(res.data) ? res.data : [];
   } catch (e) {
     console.error("获取趋势数据失败:", e);
@@ -412,7 +409,7 @@ const renderTrendChart = () => {
         smooth: true,
         symbolSize: 6,
         itemStyle: { color: "#409EFF" },
-        data: list.map(item => (item.weight != null ? Number(item.weight) : null))
+        data: list.map(item => (item.weightKg != null ? Number(item.weightKg) : null))
       },
       {
         name: "体脂率(%)",
@@ -421,7 +418,7 @@ const renderTrendChart = () => {
         smooth: true,
         symbolSize: 6,
         itemStyle: { color: "#E6A23C" },
-        data: list.map(item => (item.bodyFat != null ? Number(item.bodyFat) : null))
+        data: list.map(item => (item.bodyFatPct != null ? Number(item.bodyFatPct) : null))
       }
     ]
   };

@@ -17,9 +17,42 @@ Object.keys(modules).forEach(key => {
   }
 });
 
-// 调试：打印 modules 的 key
-console.log("Dynamic Router - Original modules:", Object.keys(modules));
-console.log("Dynamic Router - Normalized modules:", Object.keys(normalizedModules));
+/**
+ * 库表 sys_menu.component 与 views 实际路径不一致时的兼容映射
+ *（后端有 component 值时不会走 PATH_COMPONENT_MAP，需在前端兜底）
+ */
+const COMPONENT_ALIASES = {
+  "/media/index": "/media/library/index",
+  "/course/index": "/course/list/index",
+  "/community/audit": "/community/moderation/index",
+  "/community/audit/index": "/community/moderation/index",
+  "/product/index": "/product/list/index",
+  "/user/index": "/user/list/index",
+  "/order/index": "/order/list/index",
+  "/coach/index": "/coach/list/index",
+  "/system/user": "/system/account/index",
+  "/system/user/index": "/system/account/index",
+  "/system/dept": "/system/department/index",
+  "/system/dept/index": "/system/department/index",
+  "/system/job": "/system/task/index",
+  "/system/job/index": "/system/task/index",
+  "/system/login-log": "/system/log/index",
+  "/system/login-log/index": "/system/log/index",
+  "/system/oper-log": "/system/log/index",
+  "/system/oper-log/index": "/system/log/index"
+};
+
+const resolveViewComponent = rawPath => {
+  if (!rawPath || typeof rawPath !== "string") return null;
+  let componentPath = COMPONENT_ALIASES[rawPath] || rawPath;
+  let component = normalizedModules[componentPath];
+  if (!component && !componentPath.endsWith("/index")) {
+    const withIndex = `${componentPath}/index`;
+    componentPath = COMPONENT_ALIASES[withIndex] || withIndex;
+    component = normalizedModules[componentPath];
+  }
+  return component ? { component, componentPath } : null;
+};
 
 /**
  * @description 初始化动态路由
@@ -32,9 +65,6 @@ export const initDynamicRouter = async () => {
     // 1.获取菜单列表 && 按钮权限列表
     await authStore.getAuthMenuList();
     await authStore.getAuthButtonList();
-
-    console.log("Dynamic Router - authMenuListGet:", authStore.authMenuListGet);
-    console.log("Dynamic Router - flatMenuListGet:", authStore.flatMenuListGet);
 
     // 2.判断当前用户有没有菜单权限
     if (!authStore.authMenuListGet.length) {
@@ -53,11 +83,9 @@ export const initDynamicRouter = async () => {
     authStore.flatMenuListGet.forEach(item => {
       item.children && delete item.children;
       if (item.component && typeof item.component == "string") {
-        // 使用 normalizedModules 查找组件
-        const component = normalizedModules[item.component];
-        console.log("Dynamic Router - Loading component:", item.component, "exists:", !!component);
-        if (component) {
-          item.component = component;
+        const resolved = resolveViewComponent(item.component);
+        if (resolved) {
+          item.component = resolved.component;
         } else {
           console.warn("Dynamic Router - Component not found:", item.component);
         }

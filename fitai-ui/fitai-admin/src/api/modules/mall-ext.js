@@ -36,6 +36,8 @@ export const updateAttrApi = data => http.put("/admin/product/attr", data);
 export const deleteAttrApi = id => http.delete(`/admin/product/attr/${id}`);
 export const getCategoryAttrsApi = categoryId => http.get(`/admin/product/attr/category/${categoryId}`);
 export const setCategoryAttrsApi = (categoryId, attrIds) => http.put(`/admin/product/attr/category/${categoryId}`, attrIds);
+/** 分类-属性关联分页（prd_category_attr） */
+export const getCategoryAttrPageApi = params => http.get("/admin/product/category-attr/list", params);
 
 /* ================= 库存管理 /admin/product/stock ================= */
 export const getStockPageApi = params => http.get("/admin/product/stock/page", params);

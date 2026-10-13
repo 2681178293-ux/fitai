@@ -1,61 +1,74 @@
 <template>
   <div class="message">
-    <el-popover placement="bottom" :width="310" trigger="click">
+    <el-popover placement="bottom" :width="320" trigger="click" @show="loadNotices">
       <template #reference>
-        <el-badge :value="5" class="item">
+        <el-badge :value="unreadCount || undefined" :hidden="!unreadCount" class="item">
           <el-icon class="toolBar-icon" :size="20"><Bell /></el-icon>
         </el-badge>
       </template>
       <el-tabs v-model="activeName">
-        <el-tab-pane label="通知(5)" name="first">
-          <div class="message-list">
-            <div class="message-item">
-              <img src="@/assets/images/msg01.png" alt="" class="message-icon" />
-              <div class="message-content">
-                <span class="message-title">一键三连 FitAI-Admin 🧡</span>
-                <span class="message-date">一分钟前</span>
+        <el-tab-pane name="announce">
+          <template #label>
+            <span class="tab-label">
+              公告
+              <el-badge
+                v-if="announceUnread"
+                :value="announceUnread"
+                class="tab-badge"
+              />
+            </span>
+          </template>
+          <div v-if="announceList.length" class="message-list">
+            <div
+              v-for="item in announceList"
+              :key="item.noticeId"
+              class="message-item"
+              :class="{ unread: !isRead(item.noticeId) }"
+              @click="handleClick(item)"
+            >
+              <div class="message-icon announce">
+                <el-icon :size="18"><Notification /></el-icon>
               </div>
-            </div>
-            <div class="message-item">
-              <img src="@/assets/images/msg02.png" alt="" class="message-icon" />
               <div class="message-content">
-                <span class="message-title">一键三连 FitAI-Admin 💙</span>
-                <span class="message-date">一小时前</span>
-              </div>
-            </div>
-            <div class="message-item">
-              <img src="@/assets/images/msg03.png" alt="" class="message-icon" />
-              <div class="message-content">
-                <span class="message-title">一键三连 FitAI-Admin 💚</span>
-                <span class="message-date">半天前</span>
-              </div>
-            </div>
-            <div class="message-item">
-              <img src="@/assets/images/msg04.png" alt="" class="message-icon" />
-              <div class="message-content">
-                <span class="message-title">一键三连 FitAI-Admin 💜</span>
-                <span class="message-date">一星期前</span>
-              </div>
-            </div>
-            <div class="message-item">
-              <img src="@/assets/images/msg05.png" alt="" class="message-icon" />
-              <div class="message-content">
-                <span class="message-title">一键三连 FitAI-Admin 💛</span>
-                <span class="message-date">一个月前</span>
+                <span class="message-title">{{ item.noticeTitle }}</span>
+                <span class="message-date">{{ formatTime(item.publishTime || item.createTime) }}</span>
               </div>
             </div>
           </div>
-        </el-tab-pane>
-        <el-tab-pane label="消息(0)" name="second">
-          <div class="message-empty">
-            <img src="@/assets/images/notData.png" alt="notData" />
-            <div>暂无消息</div>
+          <div v-else class="message-empty">
+            <div>暂无公告</div>
           </div>
         </el-tab-pane>
-        <el-tab-pane label="待办(0)" name="third">
-          <div class="message-empty">
-            <img src="@/assets/images/notData.png" alt="notData" />
-            <div>暂无待办</div>
+        <el-tab-pane name="push">
+          <template #label>
+            <span class="tab-label">
+              推送
+              <el-badge
+                v-if="pushUnread"
+                :value="pushUnread"
+                class="tab-badge"
+              />
+            </span>
+          </template>
+          <div v-if="pushList.length" class="message-list">
+            <div
+              v-for="item in pushList"
+              :key="item.noticeId"
+              class="message-item"
+              :class="{ unread: !isRead(item.noticeId) }"
+              @click="handleClick(item)"
+            >
+              <div class="message-icon push">
+                <el-icon :size="18"><Promotion /></el-icon>
+              </div>
+              <div class="message-content">
+                <span class="message-title">{{ item.noticeTitle }}</span>
+                <span class="message-date">{{ formatTime(item.publishTime || item.createTime) }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="message-empty">
+            <div>暂无推送</div>
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -64,45 +77,164 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { Bell } from "@element-plus/icons-vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { Bell, Notification, Promotion } from "@element-plus/icons-vue";
+import { ElMessageBox } from "element-plus";
+import {
+  getNoticePageApi,
+  getMyNoticeReadIdsApi,
+  readNoticeBatchApi
+} from "@/api/modules/biz-ext";
+import mittBus from "@/utils/mittBus";
 
-const activeName = ref("first");
+/** 类型：1 公告，2 推送（与 sys_notice / 字典一致） */
+const TYPE_ANNOUNCE = "1";
+const TYPE_PUSH = "2";
+
+const activeName = ref("announce");
+const noticeList = ref([]);
+const readIds = ref([]);
+const loading = ref(false);
+
+const announceList = computed(() =>
+  noticeList.value.filter(n => String(n.noticeType) === TYPE_ANNOUNCE)
+);
+const pushList = computed(() =>
+  noticeList.value.filter(n => String(n.noticeType) === TYPE_PUSH)
+);
+const announceUnread = computed(
+  () => announceList.value.filter(n => !isRead(n.noticeId)).length
+);
+const pushUnread = computed(
+  () => pushList.value.filter(n => !isRead(n.noticeId)).length
+);
+const unreadCount = computed(() => announceUnread.value + pushUnread.value);
+
+const isRead = id => readIds.value.includes(Number(id));
+
+const formatTime = val => {
+  if (!val) return "";
+  const s = String(val).replace("T", " ");
+  return s.length > 19 ? s.slice(0, 19) : s;
+};
+
+const loadNotices = async () => {
+  if (loading.value) return;
+  loading.value = true;
+  try {
+    const [listRes, readRes] = await Promise.all([
+      getNoticePageApi({ pageNum: 1, pageSize: 50, status: "1" }),
+      getMyNoticeReadIdsApi().catch(() => ({ data: [] }))
+    ]);
+    const page = listRes.data || {};
+    noticeList.value = page.records || [];
+    readIds.value = (readRes.data || []).map(id => Number(id));
+  } catch (e) {
+    noticeList.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleClick = async item => {
+  await ElMessageBox.alert(item.noticeContent || "暂无内容", item.noticeTitle || "消息详情", {
+    confirmButtonText: "知道了"
+  }).catch(() => {});
+  if (isRead(item.noticeId)) return;
+  try {
+    await readNoticeBatchApi({ noticeIds: [item.noticeId] });
+    readIds.value = [...readIds.value, Number(item.noticeId)];
+  } catch (e) {
+    // ignore
+  }
+};
+
+onMounted(() => {
+  loadNotices();
+  mittBus.on("noticePublished", loadNotices);
+});
+
+onBeforeUnmount(() => {
+  mittBus.off("noticePublished", loadNotices);
+});
 </script>
 
 <style scoped>
+.tab-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding-right: 10px;
+}
+.tab-badge {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  transform: scale(0.85);
+  transform-origin: left center;
+}
+.tab-badge :deep(.el-badge__content) {
+  border: none;
+}
 .message-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 260px;
-  line-height: 45px;
+  height: 220px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
 }
 .message-list {
   display: flex;
   flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
 }
 .message-item {
   display: flex;
   align-items: center;
-  padding: 20px 0;
+  padding: 14px 0;
   border-bottom: 1px solid var(--el-border-color-light);
+  cursor: pointer;
 }
 .message-item:last-child {
   border: none;
 }
+.message-item:hover .message-title {
+  color: var(--el-color-primary);
+}
+.message-item.unread .message-title {
+  font-weight: 600;
+}
 .message-icon {
-  width: 40px;
-  height: 40px;
-  margin: 0 20px 0 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0 14px 0 4px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.message-icon.announce {
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.12);
+}
+.message-icon.push {
+  color: #67c23a;
+  background: rgba(103, 194, 58, 0.12);
 }
 .message-content {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 .message-title {
-  margin-bottom: 5px;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .message-date {
   font-size: 12px;

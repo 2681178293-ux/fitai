@@ -55,7 +55,7 @@
       <template #action="{ row }">
         <el-button type="primary" link :icon="View" @click="handleView(row)">详情</el-button>
         <el-button
-          v-if="row.status === 1"
+          v-if="Number(row.status) === 1"
           type="danger"
           link
           :icon="Delete"
@@ -118,13 +118,30 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { Refresh, View, Delete } from "@element-plus/icons-vue";
 import {
   getCommunityPostPageApi,
-  getCommunityPostDetailApi,
   deleteCommunityPostApi
 } from "@/api/modules/community";
 
 const xGrid = ref();
 const detailVisible = ref(false);
 const currentPost = ref({});
+
+/** 后端 images 为 JSON 字符串，前端转为数组展示 */
+const parseImages = images => {
+  if (!images) return [];
+  if (Array.isArray(images)) return images;
+  try {
+    const parsed = JSON.parse(images);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+/** 规范化列表行数据 */
+const normalizePostRow = row => ({
+  ...row,
+  images: parseImages(row.images)
+});
 
 // 类型映射
 const typeMap = {
@@ -133,10 +150,12 @@ const typeMap = {
   challenge: { label: "挑战", type: "warning" }
 };
 
-// 状态映射
+// 状态映射（后端 VO status 为 Integer，查询参数 status 为 String）
 const statusMap = {
   0: { label: "已删除", type: "info" },
-  1: { label: "正常", type: "success" }
+  1: { label: "正常", type: "success" },
+  "0": { label: "已删除", type: "info" },
+  "1": { label: "正常", type: "success" }
 };
 
 // 表格配置
@@ -170,10 +189,10 @@ const gridOptions = reactive({
         itemRender: { name: "$input", props: { placeholder: "搜索动态内容" } }
       },
       {
-        field: "userId",
-        title: "用户ID",
+        field: "userNickname",
+        title: "用户昵称",
         span: 6,
-        itemRender: { name: "$input", props: { placeholder: "用户ID" } }
+        itemRender: { name: "$input", props: { placeholder: "搜索用户昵称" } }
       },
       {
         field: "type",
@@ -198,8 +217,8 @@ const gridOptions = reactive({
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "正常", value: 1 },
-            { label: "已删除", value: 0 }
+            { label: "正常", value: "1" },
+            { label: "已删除", value: "0" }
           ],
           props: { placeholder: "请选择状态" }
         }
@@ -226,11 +245,15 @@ const gridOptions = reactive({
         const params = {
           pageNum: page.currentPage,
           pageSize: page.pageSize,
-          ...form
+          keyword: form.keyword || undefined,
+          userNickname: form.userNickname || undefined,
+          type: form.type || undefined,
+          status: form.status !== "" && form.status != null ? String(form.status) : undefined
         };
         try {
           const res = await getCommunityPostPageApi(params);
-          return { list: res.data?.records || [], total: res.data?.total || 0 };
+          const records = (res.data?.records || []).map(normalizePostRow);
+          return { list: records, total: res.data?.total || 0 };
         } catch (error) {
           console.error("获取社区动态列表失败:", error);
           return { list: [], total: 0 };
@@ -260,7 +283,7 @@ const handleRefresh = () => {
 
 // 查看详情
 const handleView = row => {
-  currentPost.value = { ...row };
+  currentPost.value = normalizePostRow(row);
   detailVisible.value = true;
 };
 

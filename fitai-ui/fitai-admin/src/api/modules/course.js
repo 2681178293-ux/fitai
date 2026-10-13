@@ -14,9 +14,9 @@ export const addCourseApi = data => {
   return http.post(`/admin/course`, data);
 };
 
-// 编辑课程
-export const updateCourseApi = (id, data) => {
-  return http.put(`/admin/course/${id}`, data);
+// 编辑课程（与后端 PUT /admin/course + body.courseId 对齐）
+export const updateCourseApi = data => {
+  return http.put(`/admin/course`, data);
 };
 
 // 删除课程
@@ -34,9 +34,9 @@ export const addCourseCategoryApi = data => {
   return http.post(`/admin/course/category`, data);
 };
 
-// 编辑课程分类
-export const updateCourseCategoryApi = (id, data) => {
-  return http.put(`/admin/course/category/${id}`, data);
+// 编辑课程分类（body 含 categoryId，与后端 UpdateDTO / PUT /admin/course/category 一致）
+export const updateCourseCategoryApi = data => {
+  return http.put(`/admin/course/category`, data);
 };
 
 // 删除课程分类

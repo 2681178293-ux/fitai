@@ -28,4 +28,5 @@ public class SysConfigAddDTO implements Serializable {
     private String status;
     @Schema(description = "系统配置备注")
     private String remark;
+
 }

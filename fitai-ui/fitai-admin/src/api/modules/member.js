@@ -9,8 +9,9 @@ export const createMemberPlanApi = data => {
   return http.post(`/admin/member/plans`, data);
 };
 
-export const updateMemberPlanApi = (id, data) => {
-  return http.put(`/admin/member/plans/${id}`, data);
+/** 修改：PUT body 含 id */
+export const updateMemberPlanApi = data => {
+  return http.put(`/admin/member/plans`, data);
 };
 
 export const deleteMemberPlanApi = id => {
@@ -28,7 +29,7 @@ export const getMemberOrderDetailApi = id => {
 
 /* ==================== 徽章管理 /admin/member/badge ==================== */
 
-/** 徽章分页 BadgeQueryDTO(name, code, category, status) */
+/** 徽章分页 MemBadgeQueryDTO(badgeName, badgeCode, category, status) */
 export const getBadgePageApi = params => {
   return http.get(`/admin/member/badge/page`, params);
 };
@@ -41,8 +42,9 @@ export const createBadgeApi = data => {
   return http.post(`/admin/member/badge`, data);
 };
 
-export const updateBadgeApi = (id, data) => {
-  return http.put(`/admin/member/badge/${id}`, data);
+/** 修改：PUT body 含 badgeId */
+export const updateBadgeApi = data => {
+  return http.put(`/admin/member/badge`, data);
 };
 
 /** 批量删除，ids 支持逗号分隔 */
@@ -66,9 +68,10 @@ export const getLevelPageApi = params => {
   return http.get(`/admin/member/level/page`, params);
 };
 
-/** 全部等级（升序），供下拉使用 */
-export const getLevelListApi = () => {
-  return http.get(`/admin/member/level/list`, {}, { loading: false });
+/** 全部等级：后端无 list，用分页拉取 */
+export const getLevelListApi = async () => {
+  const res = await http.get(`/admin/member/level/page`, { pageNum: 1, pageSize: 200 }, { loading: false });
+  return { ...res, data: res?.data?.records || [] };
 };
 
 export const getLevelDetailApi = id => {
@@ -79,8 +82,9 @@ export const createLevelApi = data => {
   return http.post(`/admin/member/level`, data);
 };
 
-export const updateLevelApi = (id, data) => {
-  return http.put(`/admin/member/level/${id}`, data);
+/** 修改：body 含 levelId */
+export const updateLevelApi = data => {
+  return http.put(`/admin/member/level`, data);
 };
 
 export const deleteLevelApi = ids => {
@@ -89,14 +93,19 @@ export const deleteLevelApi = ids => {
 
 /* ==================== 会员权益 /admin/member/benefit ==================== */
 
-/** 权益分页 BenefitQueryDTO(name, code, status) */
+/** 权益分页 MemBenefitQueryDTO(benefitName, benefitCode, status) */
 export const getBenefitPageApi = params => {
   return http.get(`/admin/member/benefit/page`, params);
 };
 
-/** 全部启用权益（供等级页多选） */
-export const getBenefitListApi = () => {
-  return http.get(`/admin/member/benefit/list`, {}, { loading: false });
+/** 全部启用权益：后端无 list，用分页拉取 */
+export const getBenefitListApi = async () => {
+  const res = await http.get(
+    `/admin/member/benefit/page`,
+    { pageNum: 1, pageSize: 200, status: "0" },
+    { loading: false }
+  );
+  return { ...res, data: res?.data?.records || [] };
 };
 
 export const getBenefitDetailApi = id => {
@@ -107,8 +116,9 @@ export const createBenefitApi = data => {
   return http.post(`/admin/member/benefit`, data);
 };
 
-export const updateBenefitApi = (id, data) => {
-  return http.put(`/admin/member/benefit/${id}`, data);
+/** 修改：body 含 benefitId */
+export const updateBenefitApi = data => {
+  return http.put(`/admin/member/benefit`, data);
 };
 
 export const deleteBenefitApi = ids => {
@@ -117,7 +127,7 @@ export const deleteBenefitApi = ids => {
 
 /* ==================== 签到记录 /admin/member/checkin ==================== */
 
-/** 签到分页 CheckinQueryDTO(userId, startDate, endDate) */
+/** 签到分页 MemCheckinQueryDTO(customerId, startDate, endDate, pageNum, pageSize) */
 export const getCheckinPageApi = params => {
   return http.get(`/admin/member/checkin/page`, params);
 };
@@ -138,12 +148,12 @@ export const deleteCheckinApi = ids => {
 
 /* ==================== 积分规则 /admin/member/points-rule ==================== */
 
-/** 积分规则分页 PointsRuleQueryDTO(name, eventType, status) */
+/** 积分规则分页 MemPointsRuleQueryDTO(ruleName, eventType, status) */
 export const getPointsRulePageApi = params => {
   return http.get(`/admin/member/points-rule/page`, params);
 };
 
-/** 事件类型枚举 [{value,label}] */
+/** 事件类型枚举 [{value,label}]（后端未实现时前端有兜底） */
 export const getPointsRuleEventsApi = () => {
   return http.get(`/admin/member/points-rule/events`, {}, { loading: false });
 };
@@ -156,8 +166,9 @@ export const createPointsRuleApi = data => {
   return http.post(`/admin/member/points-rule`, data);
 };
 
-export const updatePointsRuleApi = (id, data) => {
-  return http.put(`/admin/member/points-rule/${id}`, data);
+/** 修改：PUT body 含 ruleId（与 MemPointsRuleUpdateDTO 一致） */
+export const updatePointsRuleApi = data => {
+  return http.put(`/admin/member/points-rule`, data);
 };
 
 export const deletePointsRuleApi = ids => {
@@ -166,7 +177,7 @@ export const deletePointsRuleApi = ids => {
 
 /* ==================== 积分流水 /admin/member/points-log ==================== */
 
-/** 积分流水分页 PointsLogQueryDTO(userId, type, source, startTime, endTime) */
+/** 积分流水分页 MemPointsLogQueryDTO(customerId, bizType, registerSource, pointsStartTime, pointsEndTime) */
 export const getPointsLogPageApi = params => {
   return http.get(`/admin/member/points-log/page`, params);
 };
@@ -176,7 +187,7 @@ export const getPointsLogKpiApi = () => {
   return http.get(`/admin/member/points-log/kpi`, {}, { loading: false });
 };
 
-/** 手动调整积分 PointsAdjustDTO(userId, points, remark) */
+/** 手动调整积分 */
 export const adjustPointsApi = data => {
   return http.post(`/admin/member/points-log/adjust`, data);
 };
@@ -188,7 +199,7 @@ export const exportPointsLogApi = params => {
 
 /* ==================== 会员订阅 /admin/member/subscription ==================== */
 
-/** 订阅分页 SubscriptionQueryDTO(userId, planId, status) */
+/** 订阅分页 MemSubscriptionQueryDTO(customerId, packageName, status) */
 export const getSubscriptionPageApi = params => {
   return http.get(`/admin/member/subscription/page`, params);
 };

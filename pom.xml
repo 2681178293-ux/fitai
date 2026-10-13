@@ -30,6 +30,7 @@
   <dependencyManagement>
     <dependencies>
 
+
       <!-- mapstruct-plus -->
       <dependency>
         <groupId>io.github.linpeilie</groupId>

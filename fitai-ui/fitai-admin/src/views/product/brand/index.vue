@@ -1,46 +1,43 @@
 <template>
   <div class="table-box p-5">
     <vxe-grid ref="xGrid" v-bind="gridOptions">
-      <!-- 工具栏按钮 -->
       <template #toolbar_buttons>
         <el-button type="primary" :icon="Plus" @click="handleAdd">新增品牌</el-button>
         <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
       </template>
 
-      <!-- Logo列 -->
-      <template #logo="{ row }">
-        <div v-if="row.logo" class="table-thumb-cell">
-          <el-image :src="row.logo" :preview-src-list="[row.logo]" class="table-thumb-square" />
+      <!-- 后端字段 brandLogo -->
+      <template #brandLogo="{ row }">
+        <div v-if="row.brandLogo" class="table-thumb-cell">
+          <el-image :src="row.brandLogo" :preview-src-list="[row.brandLogo]" class="table-thumb-square" />
         </div>
         <span v-else>-</span>
       </template>
 
-      <!-- 状态列 -->
+      <!-- 后端 status：0正常 1停用 -->
       <template #status="{ row }">
         <el-switch
           v-model="row.status"
-          :active-value="1"
-          :inactive-value="0"
+          active-value="0"
+          inactive-value="1"
           @change="handleStatusChange(row)"
         />
       </template>
 
-      <!-- 操作列 -->
       <template #action="{ row }">
         <el-button type="primary" link :icon="Edit" @click="handleEdit(row)">编辑</el-button>
         <el-button type="danger" link :icon="Delete" @click="handleDelete(row)">删除</el-button>
       </template>
     </vxe-grid>
 
-    <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑品牌' : '新增品牌'" width="500px" destroy-on-close>
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
-        <el-form-item label="品牌名称" prop="name">
-          <el-input v-model="formData.name" placeholder="请输入品牌名称" />
+        <el-form-item label="品牌名称" prop="brandName">
+          <el-input v-model="formData.brandName" placeholder="请输入品牌名称" />
         </el-form-item>
         <el-form-item label="品牌Logo">
           <ImageLibrary
-            v-model="formData.logo"
+            v-model="formData.brandLogo"
             folder="product"
             upload-action="/file/upload/product/brand"
             width="100px"
@@ -50,11 +47,14 @@
         <el-form-item label="品牌描述">
           <el-input v-model="formData.description" type="textarea" :rows="3" placeholder="请输入品牌描述" />
         </el-form-item>
+        <el-form-item label="首字母">
+          <el-input v-model="formData.firstLetter" maxlength="1" placeholder="检索首字母" style="width: 120px" />
+        </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="formData.sortOrder" :min="0" style="width: 100%" />
+          <el-input-number v-model="formData.orderNum" :min="0" style="width: 100%" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-switch v-model="formData.status" :active-value="1" :inactive-value="0" />
+          <el-switch v-model="formData.status" active-value="0" inactive-value="1" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -69,7 +69,12 @@
 import { ref, reactive } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus, Refresh, Edit, Delete } from "@element-plus/icons-vue";
-import { getProductBrandPageApi, addProductBrandApi, updateProductBrandApi, deleteProductBrandApi } from "@/api/modules/product";
+import {
+  getProductBrandPageApi,
+  addProductBrandApi,
+  updateProductBrandApi,
+  deleteProductBrandApi
+} from "@/api/modules/product";
 import ImageLibrary from "@/components/ImageLibrary/index.vue";
 
 const xGrid = ref();
@@ -78,27 +83,27 @@ const dialogVisible = ref(false);
 const isEdit = ref(false);
 const submitLoading = ref(false);
 
-// 表单数据
+/** 与后端 PrdBrandAddDTO / UpdateDTO / VO 字段一致 */
 const formData = reactive({
-  id: null,
-  name: "",
-  logo: "",
+  brandId: null,
+  brandName: "",
+  brandLogo: "",
   description: "",
-  sortOrder: 0,
-  status: 1
+  firstLetter: "",
+  orderNum: 0,
+  status: "0"
 });
 
 const formRules = {
-  name: [{ required: true, message: "请输入品牌名称", trigger: "blur" }]
+  brandName: [{ required: true, message: "请输入品牌名称", trigger: "blur" }]
 };
 
-// 表格配置
 const gridOptions = reactive({
   border: true,
   showOverflow: true,
   height: 600,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "brandId", isHover: true },
   columnConfig: { resizable: true },
   toolbarConfig: {
     slots: { buttons: "toolbar_buttons" },
@@ -115,93 +120,148 @@ const gridOptions = reactive({
     pageSize: 10,
     pageSizes: [10, 20, 50, 100]
   },
+  formConfig: {
+    items: [
+      {
+        field: "brandName",
+        title: "品牌名称",
+        span: 6,
+        itemRender: { name: "$input", props: { placeholder: "品牌名称", clearable: true } }
+      },
+      {
+        field: "status",
+        title: "状态",
+        span: 6,
+        itemRender: {
+          name: "$select",
+          options: [
+            { label: "全部", value: "" },
+            { label: "正常", value: "0" },
+            { label: "停用", value: "1" }
+          ],
+          props: { placeholder: "请选择", clearable: true }
+        }
+      },
+      {
+        span: 6,
+        align: "left",
+        itemRender: {
+          name: "$buttons",
+          children: [
+            { props: { type: "submit", content: "搜索", status: "primary" } },
+            { props: { type: "reset", content: "重置" } }
+          ]
+        }
+      }
+    ]
+  },
   proxyConfig: {
+    form: true,
     seq: true,
     response: {
-      result: "records",
+      result: "list",
       total: "total"
     },
     ajax: {
-      query: async ({ page }) => {
+      query: async ({ page, form }) => {
         try {
-          const res = await getProductBrandPageApi({
+          const params = {
             pageNum: page.currentPage,
             pageSize: page.pageSize
-          });
-          return res.data;
+          };
+          if (form?.brandName) params.brandName = form.brandName;
+          if (form?.status !== undefined && form?.status !== null && form?.status !== "") {
+            params.status = String(form.status);
+          }
+          const res = await getProductBrandPageApi(params);
+          const data = res.data || {};
+          return { list: data.records || [], total: data.total || 0 };
         } catch (error) {
           console.error("获取品牌列表失败:", error);
-          return { records: [], total: 0 };
+          return { list: [], total: 0 };
         }
       }
     }
   },
   columns: [
     { type: "seq", title: "序号", width: 60 },
-    { field: "logo", title: "Logo", width: 80, slots: { default: "logo" } },
-    { field: "name", title: "品牌名称", minWidth: 150 },
+    { field: "brandLogo", title: "Logo", width: 80, slots: { default: "brandLogo" } },
+    { field: "brandName", title: "品牌名称", minWidth: 150 },
     { field: "description", title: "品牌描述", minWidth: 200 },
-    { field: "sortOrder", title: "排序", width: 80 },
-    { field: "status", title: "状态", width: 80, slots: { default: "status" } },
+    { field: "orderNum", title: "排序", width: 80 },
+    { field: "status", title: "状态", width: 90, slots: { default: "status" } },
     { title: "操作", width: 150, fixed: "right", slots: { default: "action" } }
   ]
 });
 
-// 刷新
 const handleRefresh = () => {
   xGrid.value.commitProxy("query");
 };
 
-// 状态变更
 const handleStatusChange = async row => {
+  const prev = row.status === "0" ? "1" : "0";
   try {
-    await updateProductBrandApi(row.id, { status: row.status });
-    ElMessage.success(row.status === 1 ? "已启用" : "已禁用");
+    await updateProductBrandApi({
+      brandId: row.brandId,
+      status: String(row.status)
+    });
+    ElMessage.success(row.status === "0" ? "已启用" : "已停用");
   } catch {
-    row.status = row.status === 1 ? 0 : 1;
+    row.status = prev;
   }
 };
 
-// 新增
 const handleAdd = () => {
   isEdit.value = false;
   Object.assign(formData, {
-    id: null,
-    name: "",
-    logo: "",
+    brandId: null,
+    brandName: "",
+    brandLogo: "",
     description: "",
-    sortOrder: 0,
-    status: 1
+    firstLetter: "",
+    orderNum: 0,
+    status: "0"
   });
   dialogVisible.value = true;
 };
 
-// 编辑
 const handleEdit = row => {
   isEdit.value = true;
   Object.assign(formData, {
-    id: row.id,
-    name: row.name,
-    logo: row.logo || "",
+    brandId: row.brandId,
+    brandName: row.brandName || "",
+    brandLogo: row.brandLogo || "",
     description: row.description || "",
-    sortOrder: row.sortOrder || 0,
-    status: row.status
+    firstLetter: row.firstLetter || "",
+    orderNum: row.orderNum ?? 0,
+    status: row.status != null ? String(row.status) : "0"
   });
   dialogVisible.value = true;
 };
 
-// 提交
 const handleSubmit = async () => {
   try {
     await formRef.value.validate();
     submitLoading.value = true;
-    
+
+    const payload = {
+      brandName: formData.brandName,
+      brandLogo: formData.brandLogo || undefined,
+      description: formData.description || undefined,
+      firstLetter: formData.firstLetter || undefined,
+      orderNum: formData.orderNum,
+      status: formData.status != null ? String(formData.status) : "0"
+    };
+
     if (isEdit.value) {
-      await updateProductBrandApi(formData.id, formData);
+      await updateProductBrandApi({
+        ...payload,
+        brandId: formData.brandId
+      });
     } else {
-      await addProductBrandApi(formData);
+      await addProductBrandApi(payload);
     }
-    
+
     ElMessage.success(isEdit.value ? "编辑成功" : "新增成功");
     dialogVisible.value = false;
     handleRefresh();
@@ -212,13 +272,12 @@ const handleSubmit = async () => {
   }
 };
 
-// 删除
 const handleDelete = row => {
   ElMessageBox.confirm("确定要删除该品牌吗？", "提示", {
     type: "warning"
   }).then(async () => {
     try {
-      await deleteProductBrandApi(row.id);
+      await deleteProductBrandApi(row.brandId);
       ElMessage.success("删除成功");
       handleRefresh();
     } catch (error) {

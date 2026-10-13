@@ -7,7 +7,8 @@ import net.wanho.fitai.infra.exception.ExceptionResult;
  */
 public enum MemberCode implements ExceptionResult {
     USER_NOT_FOUND(3001, "用户不存在"),
-    USER_DISABLED(3002, "用户已禁用");
+    USER_DISABLED(3002, "用户已禁用"),
+    BODY_METRIC_KPI_CALC_ERROR(3003, "体测KPI计算异常：除数或被除数为0");
 
     private final int code;
     private final String msg;

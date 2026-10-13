@@ -7,9 +7,17 @@
       </template>
 
       <template #type="{ row }">
-        <el-tag :type="row.noticeType === 1 ? 'primary' : 'success'" size="small">
+        <el-tag :type="Number(row.noticeType) === 1 ? 'primary' : 'success'" size="small">
           {{ typeMap[row.noticeType] || row.noticeType }}
         </el-tag>
+      </template>
+
+      <template #target="{ row }">
+        <span>{{ formatTarget(row) }}</span>
+      </template>
+
+      <template #channel="{ row }">
+        <span>{{ formatChannel(row) }}</span>
       </template>
 
       <template #status="{ row }">
@@ -21,7 +29,7 @@
       <template #action="{ row }">
         <el-button type="primary" link :icon="Edit" @click="handleEdit(row)">编辑</el-button>
         <el-button
-          v-if="row.status != 1"
+          v-if="Number(row.status) !== 1"
           type="success"
           link
           :icon="Promotion"
@@ -43,15 +51,12 @@
         </el-form-item>
         <el-form-item label="类型" prop="noticeType">
           <el-select v-model="formData.noticeType" placeholder="请选择" style="width: 100%">
-            <el-option label="通知" :value="1" />
-            <el-option label="公告" :value="2" />
+            <el-option label="公告" value="1" />
+            <el-option label="推送" value="2" />
           </el-select>
         </el-form-item>
         <el-form-item label="内容">
           <el-input v-model="formData.noticeContent" type="textarea" :rows="6" placeholder="公告内容" />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="formData.remark" placeholder="选填" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -88,6 +93,8 @@ import {
   getNoticeReadStatsApi,
   getNoticeReadListApi
 } from "@/api/modules/biz-ext";
+import { showNoticeNotification } from "@/utils/noticeNotify";
+import mittBus from "@/utils/mittBus";
 
 const xGrid = ref();
 const formRef = ref();
@@ -100,11 +107,26 @@ const readLoading = ref(false);
 const readCount = ref(0);
 const readList = ref([]);
 
-const typeMap = { 1: "通知", 2: "公告" };
+const typeMap = { 1: "公告", 2: "推送", "1": "公告", "2": "推送" };
+/** 目标：0全部 1指定用户 2用户分群（公告不展示，显示 -） */
+const targetMap = { 0: "全部", 1: "指定用户", 2: "用户分群", "0": "全部", "1": "指定用户", "2": "用户分群" };
 const statusMap = {
   0: { label: "草稿", type: "info" },
   1: { label: "已发布", type: "success" },
-  2: { label: "已撤回", type: "warning" }
+  2: { label: "已撤回", type: "warning" },
+  "0": { label: "草稿", type: "info" },
+  "1": { label: "已发布", type: "success" },
+  "2": { label: "已撤回", type: "warning" }
+};
+
+const isAnnounce = row => String(row.noticeType) === "1";
+const formatTarget = row => {
+  if (isAnnounce(row)) return "-";
+  return targetMap[row.targetType] || row.targetType || "-";
+};
+const formatChannel = row => {
+  if (isAnnounce(row)) return "-";
+  return row.pushChannel || "-";
 };
 
 const readColumns = [
@@ -116,9 +138,8 @@ const readColumns = [
 const formData = reactive({
   noticeId: null,
   noticeTitle: "",
-  noticeType: 1,
-  noticeContent: "",
-  remark: ""
+  noticeType: "1",
+  noticeContent: ""
 });
 
 const formRules = {
@@ -160,8 +181,8 @@ const gridOptions = reactive({
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "通知", value: 1 },
-            { label: "公告", value: 2 }
+            { label: "公告", value: "1" },
+            { label: "推送", value: "2" }
           ],
           props: { placeholder: "请选择" }
         }
@@ -174,9 +195,9 @@ const gridOptions = reactive({
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "草稿", value: 0 },
-            { label: "已发布", value: 1 },
-            { label: "已撤回", value: 2 }
+            { label: "草稿", value: "0" },
+            { label: "已发布", value: "1" },
+            { label: "已撤回", value: "2" }
           ],
           props: { placeholder: "请选择" }
         }
@@ -198,8 +219,10 @@ const gridOptions = reactive({
   columns: [
     { type: "seq", width: 60 },
     { field: "noticeId", title: "主键", width: 90 },
-    { field: "noticeTitle", title: "标题", minWidth: 200 },
+    { field: "noticeTitle", title: "标题", minWidth: 180 },
     { field: "noticeType", title: "类型", width: 90, slots: { default: "type" } },
+    { field: "targetType", title: "目标", width: 100, slots: { default: "target" } },
+    { field: "pushChannel", title: "推送渠道", width: 100, slots: { default: "channel" } },
     { field: "status", title: "状态", width: 100, slots: { default: "status" } },
     { field: "publishTime", title: "发布时间", width: 170 },
     { field: "createBy", title: "创建者", width: 110 },
@@ -212,7 +235,7 @@ const handleRefresh = () => xGrid.value?.commitProxy("query");
 
 const handleAdd = () => {
   isEdit.value = false;
-  Object.assign(formData, { noticeId: null, noticeTitle: "", noticeType: 1, noticeContent: "", remark: "" });
+  Object.assign(formData, { noticeId: null, noticeTitle: "", noticeType: "1", noticeContent: "" });
   dialogVisible.value = true;
 };
 
@@ -221,9 +244,8 @@ const handleEdit = row => {
   Object.assign(formData, {
     noticeId: row.noticeId,
     noticeTitle: row.noticeTitle,
-    noticeType: row.noticeType ?? 1,
-    noticeContent: row.noticeContent || "",
-    remark: row.remark || ""
+    noticeType: row.noticeType != null ? String(row.noticeType) : "1",
+    noticeContent: row.noticeContent || ""
   });
   dialogVisible.value = true;
 };
@@ -234,9 +256,8 @@ const handleSubmit = async () => {
     submitLoading.value = true;
     const payload = {
       noticeTitle: formData.noticeTitle,
-      noticeType: formData.noticeType,
-      noticeContent: formData.noticeContent || null,
-      remark: formData.remark || null
+      noticeType: String(formData.noticeType),
+      noticeContent: formData.noticeContent || null
     };
     if (isEdit.value) await updateNoticeApi({ noticeId: formData.noticeId, ...payload });
     else await addNoticeApi(payload);
@@ -267,6 +288,13 @@ const handlePublish = row => {
     try {
       await publishNoticeApi(row.noticeId);
       ElMessage.success("发布成功");
+      // 右上角通知弹窗（SSE 未连上时也保证发布者能看到）
+      showNoticeNotification({
+        noticeId: row.noticeId,
+        noticeTitle: row.noticeTitle,
+        noticeContent: row.noticeContent
+      });
+      mittBus.emit("noticePublished", row);
       handleRefresh();
     } catch (e) {
       ElMessage.error("发布失败");

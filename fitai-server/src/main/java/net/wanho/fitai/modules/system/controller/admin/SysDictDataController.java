@@ -14,6 +14,8 @@ import net.wanho.fitai.modules.system.model.vo.SysDictDataVO;
 import net.wanho.fitai.modules.system.service.SysDictDataServiceI;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController("AdminSysDictDataController")
 @RequestMapping("/admin/system/dict/data")
 @RequiredArgsConstructor
@@ -21,6 +23,11 @@ import org.springframework.web.bind.annotation.*;
 public class SysDictDataController {
 
     private final SysDictDataServiceI sysDictDataService;
+
+    @GetMapping("/type/{dictType}")
+    public AjaxResult<List<SysDictDataVO>> findByDictType(@PathVariable("dictType") String dictType) {
+        return AjaxResult.success(sysDictDataService.findByDictType(dictType));
+    }
 
     @GetMapping("/list")
     @Operation(summary = "分页查询")

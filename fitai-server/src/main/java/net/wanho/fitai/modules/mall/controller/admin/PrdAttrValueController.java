@@ -1,0 +1,62 @@
+package net.wanho.fitai.modules.mall.controller.admin;
+
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import net.wanho.fitai.infra.result.AjaxResult;
+import net.wanho.fitai.modules.system.log.OperLog;
+import net.wanho.fitai.modules.mall.model.dto.PrdAttrValueAddDTO;
+import net.wanho.fitai.modules.mall.model.dto.PrdAttrValueQueryDTO;
+import net.wanho.fitai.modules.mall.model.dto.PrdAttrValueUpdateDTO;
+import net.wanho.fitai.modules.mall.model.vo.PrdAttrValueVO;
+import net.wanho.fitai.modules.mall.service.PrdAttrValueServiceI;
+import org.springframework.web.bind.annotation.*;
+
+@RestController("AdminPrdAttrValueController")
+@RequestMapping("/admin/product/attr-value")
+@RequiredArgsConstructor
+@Tag(name = "商品属性值接口")
+public class PrdAttrValueController {
+
+    private final PrdAttrValueServiceI prdattrvalueService;
+
+    @GetMapping("/list")
+    @Operation(summary = "分页查询")
+    public AjaxResult<IPage<PrdAttrValueVO>> findByPage(PrdAttrValueQueryDTO queryDto) {
+        return AjaxResult.success(prdattrvalueService.findByPage(queryDto));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "查询")
+    public AjaxResult<PrdAttrValueVO> findById(@PathVariable("id") Long id) {
+        return AjaxResult.success(prdattrvalueService.findById(id));
+    }
+
+    @PostMapping
+    @Operation(summary = "添加")
+    @OperLog(title = "添加商品属性值")
+    public AjaxResult<Void> add(@Valid @RequestBody PrdAttrValueAddDTO addDto) {
+        prdattrvalueService.add(addDto);
+        return AjaxResult.success();
+    }
+
+    @PutMapping
+    @Operation(summary = "修改")
+    @OperLog(title = "修改商品属性值")
+    public AjaxResult<Void> update(@Valid @RequestBody PrdAttrValueUpdateDTO updateDto) {
+        prdattrvalueService.update(updateDto);
+        return AjaxResult.success();
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除")
+    @OperLog(title = "删除商品属性值")
+    public AjaxResult<Void> delete(@PathVariable("id") String id) {
+        prdattrvalueService.delete(id);
+        return AjaxResult.success();
+    }
+
+}

@@ -4,23 +4,23 @@
     <div class="search-form mb-4">
       <el-form :model="searchForm" inline>
         <el-form-item label="教练">
-          <el-select v-model="searchForm.coachId" placeholder="请选择" filterable clearable style="width: 160px">
-            <el-option v-for="item in coachOptions" :key="item.id" :label="item.name" :value="item.id" />
+          <el-select v-model="searchForm.coachName" placeholder="请选择" filterable clearable style="width: 160px">
+            <el-option v-for="item in coachOptions" :key="item.coachId" :label="item.coachName" :value="item.coachName" />
           </el-select>
         </el-form-item>
         <el-form-item label="用户ID">
-          <el-input v-model="searchForm.userId" placeholder="请输入用户ID" clearable class="w-40" />
+          <el-input v-model="searchForm.customerId" placeholder="请输入用户ID" clearable class="w-40" />
         </el-form-item>
         <el-form-item label="绑定类型">
           <el-select v-model="searchForm.bindType" placeholder="请选择" clearable style="width: 120px">
-            <el-option label="跟练" :value="1" />
-            <el-option label="私教" :value="2" />
+            <el-option label="跟练" value="1" />
+            <el-option label="私教" value="2" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="searchForm.status" placeholder="请选择" clearable style="width: 120px">
-            <el-option label="有效" :value="1" />
-            <el-option label="已解绑" :value="0" />
+            <el-option label="有效" value="0" />
+            <el-option label="已解绑" value="1" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -32,26 +32,22 @@
 
     <!-- 表格 -->
     <vxe-grid ref="xGrid" v-bind="gridOptions">
-      <!-- 工具栏按钮 -->
       <template #toolbar_buttons>
         <el-button type="primary" :icon="Plus" @click="handleAdd">新增绑定</el-button>
         <el-button :icon="Refresh" @click="loadData">刷新</el-button>
       </template>
 
-      <!-- 绑定类型列 -->
       <template #bindType="{ row }">
-        <el-tag v-if="row.bindType === 1" type="primary">跟练</el-tag>
-        <el-tag v-else-if="row.bindType === 2" type="warning">私教</el-tag>
+        <el-tag v-if="String(row.bindType) === '1'" type="primary">跟练</el-tag>
+        <el-tag v-else-if="String(row.bindType) === '2'" type="warning">私教</el-tag>
         <el-tag v-else type="info">未知</el-tag>
       </template>
 
-      <!-- 状态列 -->
       <template #status="{ row }">
-        <el-tag v-if="row.status === 1" type="success">有效</el-tag>
+        <el-tag v-if="String(row.status) === '0'" type="success">有效</el-tag>
         <el-tag v-else type="info">已解绑</el-tag>
       </template>
 
-      <!-- 时间列 -->
       <template #startTime="{ row }">
         <span>{{ row.startTime ? dayjs(row.startTime).format("YYYY-MM-DD HH:mm") : "-" }}</span>
       </template>
@@ -61,14 +57,12 @@
         <span v-else class="text-gray-400">-</span>
       </template>
 
-      <!-- 操作列 -->
       <template #action="{ row }">
-        <el-button v-if="row.status === 1" type="danger" link :icon="Close" @click="handleUnbind(row)">解绑</el-button>
+        <el-button v-if="String(row.status) === '0'" type="danger" link :icon="Close" @click="handleUnbind(row)">解绑</el-button>
         <span v-else class="text-gray-400">-</span>
       </template>
     </vxe-grid>
 
-    <!-- 分页 -->
     <div class="pagination-container">
       <el-pagination
         v-model:current-page="pageConfig.currentPage"
@@ -82,21 +76,20 @@
       />
     </div>
 
-    <!-- 新增绑定弹窗 -->
     <el-dialog v-model="dialogVisible" title="新增学员绑定" width="500px" destroy-on-close>
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
-        <el-form-item label="用户ID" prop="userId">
-          <el-input v-model="formData.userId" placeholder="请输入用户ID" />
+        <el-form-item label="用户ID" prop="customerId">
+          <el-input v-model="formData.customerId" placeholder="请输入用户ID" />
         </el-form-item>
         <el-form-item label="教练" prop="coachId">
           <el-select v-model="formData.coachId" placeholder="请选择教练" filterable style="width: 100%">
-            <el-option v-for="item in coachOptions" :key="item.id" :label="item.name" :value="item.id" />
+            <el-option v-for="item in coachOptions" :key="item.coachId" :label="item.coachName" :value="item.coachId" />
           </el-select>
         </el-form-item>
         <el-form-item label="绑定类型" prop="bindType">
           <el-radio-group v-model="formData.bindType">
-            <el-radio :value="1">跟练</el-radio>
-            <el-radio :value="2">私教</el-radio>
+            <el-radio value="1">跟练</el-radio>
+            <el-radio value="2">私教</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -122,20 +115,20 @@ const submitLoading = ref(false);
 const coachOptions = ref([]);
 
 const searchForm = ref({
-  coachId: null,
-  userId: "",
+  coachName: null,
+  customerId: "",
   bindType: null,
   status: null
 });
 
 const formData = reactive({
-  userId: "",
+  customerId: "",
   coachId: null,
-  bindType: 1
+  bindType: "1"
 });
 
 const formRules = {
-  userId: [{ required: true, message: "请输入用户ID", trigger: "blur" }],
+  customerId: [{ required: true, message: "请输入用户ID", trigger: "blur" }],
   coachId: [{ required: true, message: "请选择教练", trigger: "change" }],
   bindType: [{ required: true, message: "请选择绑定类型", trigger: "change" }]
 };
@@ -148,14 +141,16 @@ const pageConfig = reactive({
 
 const tableData = ref([]);
 
-// 加载数据（必须在 gridOptions 之前定义，因为 toolbarConfig.refresh.queryMethod 引用它）
 const loadData = async () => {
   gridOptions.loading = true;
   try {
     const params = {
       pageNum: pageConfig.currentPage,
       pageSize: pageConfig.pageSize,
-      ...searchForm.value
+      coachName: searchForm.value.coachName || undefined,
+      customerId: searchForm.value.customerId ? Number(searchForm.value.customerId) : undefined,
+      bindType: searchForm.value.bindType || undefined,
+      status: searchForm.value.status !== null && searchForm.value.status !== "" ? searchForm.value.status : undefined
     };
     const res = await getCoachBindPageApi(params);
     tableData.value = res.data?.records || [];
@@ -174,7 +169,7 @@ const gridOptions = reactive({
   showOverflow: true,
   height: 560,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "bindId", isHover: true },
   columnConfig: { resizable: true },
   toolbarConfig: {
     slots: { buttons: "toolbar_buttons" },
@@ -189,8 +184,8 @@ const gridOptions = reactive({
   },
   columns: [
     { type: "seq", title: "序号", width: 60 },
-    { field: "id", title: "绑定ID", width: 90 },
-    { field: "userId", title: "用户ID", width: 100 },
+    { field: "bindId", title: "绑定ID", width: 90 },
+    { field: "customerId", title: "用户ID", width: 100 },
     { field: "coachId", title: "教练ID", width: 100 },
     { field: "coachName", title: "教练姓名", minWidth: 120 },
     { field: "bindType", title: "绑定类型", width: 100, slots: { default: "bindType" } },
@@ -203,7 +198,6 @@ const gridOptions = reactive({
   data: tableData
 });
 
-// 加载教练下拉
 const loadCoachOptions = async () => {
   try {
     const res = await getCoachListApi();
@@ -220,7 +214,7 @@ const handleSearch = () => {
 };
 
 const handleReset = () => {
-  searchForm.value = { coachId: null, userId: "", bindType: null, status: null };
+  searchForm.value = { coachName: null, customerId: "", bindType: null, status: null };
   pageConfig.currentPage = 1;
   loadData();
 };
@@ -236,25 +230,26 @@ const handleCurrentChange = page => {
   loadData();
 };
 
-// 新增绑定
 const handleAdd = () => {
   Object.assign(formData, {
-    userId: "",
+    customerId: "",
     coachId: null,
-    bindType: 1
+    bindType: "1"
   });
   dialogVisible.value = true;
 };
 
-// 提交
 const handleSubmit = async () => {
   try {
     await formRef.value.validate();
     submitLoading.value = true;
+    const coach = coachOptions.value.find(c => c.coachId === formData.coachId);
     await createCoachBindApi({
-      userId: formData.userId,
+      customerId: Number(formData.customerId),
       coachId: formData.coachId,
-      bindType: formData.bindType
+      coachName: coach?.coachName,
+      bindType: formData.bindType,
+      status: "0"
     });
     ElMessage.success("绑定成功");
     dialogVisible.value = false;
@@ -264,13 +259,12 @@ const handleSubmit = async () => {
   }
 };
 
-// 解绑
 const handleUnbind = row => {
-  ElMessageBox.confirm(`确定解绑用户「${row.userId}」与教练「${row.coachName || row.coachId}」的关系吗？`, "提示", {
+  ElMessageBox.confirm(`确定解绑用户「${row.customerId}」与教练「${row.coachName || row.coachId}」的关系吗？`, "提示", {
     type: "warning"
   })
     .then(async () => {
-      await unbindCoachBindApi(row.id);
+      await unbindCoachBindApi(row.bindId);
       ElMessage.success("已解绑");
       loadData();
     })

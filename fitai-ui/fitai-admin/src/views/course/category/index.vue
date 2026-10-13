@@ -17,8 +17,8 @@
       <template #status="{ row }">
         <el-switch
           v-model="row.status"
-          :active-value="1"
-          :inactive-value="0"
+          active-value="0"
+          inactive-value="1"
           @change="handleStatusChange(row)"
         />
       </template>
@@ -38,20 +38,20 @@
           <el-cascader
             v-model="formData.parentId"
             :options="categoryTree"
-            :props="{ value: 'id', label: 'name', checkStrictly: true, emitPath: false }"
+            :props="{ value: 'categoryId', label: 'categoryName', children: 'children', checkStrictly: true, emitPath: false }"
             placeholder="无（顶级分类）"
             clearable
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="分类名称" prop="name">
-          <el-input v-model="formData.name" placeholder="请输入分类名称" />
+        <el-form-item label="分类名称" prop="categoryName">
+          <el-input v-model="formData.categoryName" placeholder="请输入分类名称" />
         </el-form-item>
         <el-form-item label="分类图标">
           <el-input v-model="formData.icon" placeholder="Element Plus 图标名称" />
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="formData.sortOrder" :min="0" style="width: 100%" />
+          <el-input-number v-model="formData.orderNum" :min="0" style="width: 100%" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -76,17 +76,18 @@ const isEdit = ref(false);
 const submitLoading = ref(false);
 const categoryTree = ref([]);
 
-// 表单数据
+// 表单字段与后端 CrsCategoryAddDTO / UpdateDTO 保持一致
 const formData = reactive({
-  id: null,
+  categoryId: null,
   parentId: 0,
-  name: "",
+  categoryName: "",
   icon: "",
-  sortOrder: 0
+  orderNum: 0,
+  status: "0"
 });
 
 const formRules = {
-  name: [{ required: true, message: "请输入分类名称", trigger: "blur" }]
+  categoryName: [{ required: true, message: "请输入分类名称", trigger: "blur" }]
 };
 
 const dialogTitle = computed(() => {
@@ -94,16 +95,15 @@ const dialogTitle = computed(() => {
   return formData.parentId ? "新增子分类" : "新增分类";
 });
 
-// 表格配置
 const gridOptions = reactive({
   border: true,
   showOverflow: true,
   height: 645,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "categoryId", isHover: true },
   columnConfig: { resizable: true },
   treeConfig: {
-    rowField: "id",
+    rowField: "categoryId",
     parentField: "parentId",
     childrenField: "children",
     expandAll: true
@@ -134,109 +134,127 @@ const gridOptions = reactive({
     }
   },
   columns: [
-    { field: "name", title: "分类名称", minWidth: 200, treeNode: true },
+    { field: "categoryName", title: "分类名称", minWidth: 200, treeNode: true },
     { field: "icon", title: "图标", width: 100, slots: { default: "icon" } },
-    { field: "sortOrder", title: "排序", width: 100 },
+    { field: "orderNum", title: "排序", width: 100 },
     { field: "status", title: "状态", width: 100, slots: { default: "status" } },
     { title: "操作", width: 280, fixed: "right", slots: { default: "action" } }
   ]
 });
 
-// 刷新
 const handleRefresh = () => {
   xGrid.value.commitProxy("query");
 };
 
-// 状态变更
 const handleStatusChange = async row => {
+  const prev = row.status === "0" ? "1" : "0";
   try {
-    await updateCourseCategoryApi(row.id, { status: row.status });
-    ElMessage.success(row.status === 1 ? "已启用" : "已禁用");
+    await updateCourseCategoryApi({
+      categoryId: row.categoryId,
+      status: row.status
+    });
+    ElMessage.success(row.status === "0" ? "已启用" : "已停用");
   } catch {
-    row.status = row.status === 1 ? 0 : 1;
+    row.status = prev;
   }
 };
 
-// 新增
+const resetForm = () => {
+  Object.assign(formData, {
+    categoryId: null,
+    parentId: 0,
+    categoryName: "",
+    icon: "",
+    orderNum: 0,
+    status: "0"
+  });
+};
+
 const handleAdd = () => {
   isEdit.value = false;
-  Object.assign(formData, {
-    id: null,
-    parentId: 0,
-    name: "",
-    icon: "",
-    sortOrder: 0
-  });
+  resetForm();
   dialogVisible.value = true;
 };
 
-// 新增子级
 const handleAddChild = row => {
   isEdit.value = false;
   Object.assign(formData, {
-    id: null,
-    parentId: row.id,
-    name: "",
+    categoryId: null,
+    parentId: row.categoryId,
+    categoryName: "",
     icon: "",
-    sortOrder: 0
+    orderNum: 0,
+    status: "0"
   });
   dialogVisible.value = true;
 };
 
-// 编辑
 const handleEdit = row => {
   isEdit.value = true;
   Object.assign(formData, {
-    id: row.id,
-    parentId: row.parentId,
-    name: row.name,
-    icon: row.icon,
-    sortOrder: row.sortOrder
+    categoryId: row.categoryId,
+    parentId: row.parentId ?? 0,
+    categoryName: row.categoryName || "",
+    icon: row.icon || "",
+    orderNum: row.orderNum ?? 0,
+    status: row.status ?? "0"
   });
   dialogVisible.value = true;
 };
 
-// 提交
+const buildPayload = () => {
+  const parentId = formData.parentId == null ? 0 : formData.parentId;
+  return {
+    categoryId: formData.categoryId,
+    parentId,
+    categoryName: formData.categoryName.trim(),
+    icon: formData.icon || undefined,
+    orderNum: formData.orderNum ?? 0,
+    status: formData.status || "0"
+  };
+};
+
 const handleSubmit = async () => {
   try {
     await formRef.value.validate();
     submitLoading.value = true;
-    
+    const payload = buildPayload();
+
     if (isEdit.value) {
-      await updateCourseCategoryApi(formData.id, formData);
+      await updateCourseCategoryApi(payload);
     } else {
-      await addCourseCategoryApi(formData);
+      const { categoryId, ...addPayload } = payload;
+      await addCourseCategoryApi(addPayload);
     }
-    
+
     ElMessage.success(isEdit.value ? "编辑成功" : "新增成功");
     dialogVisible.value = false;
     handleRefresh();
   } catch (error) {
     console.error("提交失败:", error);
-    ElMessage.error("操作失败，请重试");
   } finally {
     submitLoading.value = false;
   }
 };
 
-// 删除
 const handleDelete = row => {
-  if (row.children?.length > 0) {
-    ElMessage.warning("请先删除子分类");
-    return;
-  }
-  ElMessageBox.confirm("确定要删除该分类吗？", "提示", {
-    type: "warning"
-  }).then(async () => {
-    try {
-      await deleteCourseCategoryApi(row.id);
-      ElMessage.success("删除成功");
-      handleRefresh();
-    } catch (error) {
-      console.error("删除失败:", error);
-      ElMessage.error("删除失败，请重试");
-    }
-  });
+  ElMessageBox.confirm(`确定删除分类「${row.categoryName}」吗？`, "提示", {
+    type: "warning",
+    confirmButtonText: "确定",
+    cancelButtonText: "取消"
+  })
+    .then(async () => {
+      try {
+        // 是否有子分类由后端校验并返回业务错误，前端不再本地拦截
+        await deleteCourseCategoryApi(row.categoryId);
+        ElMessage.success("删除成功");
+        handleRefresh();
+      } catch (error) {
+        // 全局拦截器已弹出后端错误信息（如存在子分类）
+        console.error("删除失败:", error);
+      }
+    })
+    .catch(() => {});
 };
 </script>
 

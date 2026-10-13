@@ -28,6 +28,8 @@ public interface SysUserServiceI extends MPJBaseService<SysUser> {
     /** 全部角色 key（超级管理员） */
     List<String> getAllRoleKeys();
 
+
+
     IPage<SysUserVO> findByPage(SysUserQueryDTO queryDto);
 
     void add(SysUserAddDTO addDto);

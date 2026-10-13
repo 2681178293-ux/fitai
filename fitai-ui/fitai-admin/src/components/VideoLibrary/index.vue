@@ -217,7 +217,7 @@
           </template>
         </el-upload>
       </el-form-item>
-      <el-form-item label="所属分类">
+      <el-form-item label="所属分类" required>
         <el-select v-model="uploadForm.categoryId" placeholder="请选择分类" clearable style="width: 100%">
           <el-option v-for="cat in categories.slice(1)" :key="cat.id" :label="cat.name" :value="cat.id" />
         </el-select>
@@ -279,11 +279,8 @@
 import { ref, reactive, computed, watch, onBeforeUnmount } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Search, Refresh, Upload, Delete, VideoCamera, VideoPlay, Check, Folder, UploadFilled, Edit, Plus, Close, Loading } from "@element-plus/icons-vue";
-import { getVideoPageApi, deleteVideoApi, getUploadCredentialApi, uploadCompleteApi, getPlayUrlApi, updateVideoApi, syncVideoBatchApi, getVideoCategoryListApi, addVideoCategoryApi, deleteVideoCategoryApi } from "@/api/modules/video";
-import { uploadCover } from "@/api/modules/upload";
-import axios from "axios";
-import { uploadToAliyunVod, isAliyunVodCredential, isMinioCredential } from "@/utils/aliyunVodUpload";
-import { captureVideoFrame } from "@/utils/videoCapture";
+import { getVideoPageApi, deleteVideoApi, getPlayUrlApi, updateVideoApi, syncVideoBatchApi, getVideoCategoryListApi, addVideoCategoryApi, deleteVideoCategoryApi, uploadMediaVodDirectApi } from "@/api/modules/video";
+import { getMediaVodStreamUrl } from "@/api/modules/media";
 
 const props = defineProps({
   multiple: { type: Boolean, default: false }
@@ -432,20 +429,18 @@ const loadVideos = async (autoSync = true) => {
   loading.value = true;
   stopVideoPoll();
   try {
-    const res = await getVideoPageApi({ pageNum: 1, pageSize: 500 });
+    const res = await getVideoPageApi(
+      {
+        pageNum: 1,
+        pageSize: 500,
+        categoryId: currentCategory.value || undefined,
+        keyword: searchKeyword.value || undefined
+      },
+      { loading: false }
+    );
     videoList.value = res.data?.records || [];
     updateCategoryCount();
-
-    // 自动同步：未就绪的视频 或 没有封面的视频（首次 await，避免与 loading 竞态）
-    if (autoSync) {
-      const needSyncVideos = videoList.value.filter(v => v.status === 0 || v.status === 1 || !v.coverUrl);
-      if (needSyncVideos.length > 0) {
-        await syncPendingVideos();
-      }
-    }
-    if (hasPendingVideos(videoList.value)) {
-      startVideoPollIfNeeded();
-    }
+    // 媒体中心靠阿里云回调补封面，无需旧 sync 接口
   } catch (error) {
     console.error("加载视频列表失败:", error);
     ElMessage.error("加载视频列表失败");
@@ -454,7 +449,7 @@ const loadVideos = async (autoSync = true) => {
   }
 };
 
-// 同步未就绪的视频状态（静默执行，不显示提示）
+// 同步未就绪的视频状态（媒体中心无此接口，保留空实现兼容）
 const syncPendingVideos = async () => {
   try {
     await syncVideoBatchApi(silentRequest);
@@ -501,6 +496,7 @@ const updateCategoryCount = () => {
 const selectCategory = id => {
   currentCategory.value = id;
   selectedIds.value = [];
+  loadVideos(false);
 };
 
 // 新建分类
@@ -703,6 +699,10 @@ const handleUploadSubmit = async () => {
     ElMessage.warning("请选择视频文件");
     return;
   }
+  if (!uploadForm.categoryId) {
+    ElMessage.warning("请选择所属分类");
+    return;
+  }
 
   try {
     await uploadFormRef.value.validate();
@@ -714,64 +714,18 @@ const handleUploadSubmit = async () => {
   uploadProgress.value = 0;
 
   try {
-    // 1. 获取上传凭证
-    const credentialRes = await getUploadCredentialApi({
-      filename: uploadForm.file.name,
-      title: uploadForm.title
-    });
-    const credential = credentialRes.data;
-    const { videoId } = credential;
+    const formData = new FormData();
+    formData.append("file", uploadForm.file);
+    formData.append("categoryId", uploadForm.categoryId);
+    await uploadMediaVodDirectApi(formData);
+    uploadProgress.value = 100;
 
-    // 2. 上传视频
-    if (isMinioCredential(credential)) {
-      await axios.put(credential.uploadUrl, uploadForm.file, {
-        headers: { "Content-Type": uploadForm.file.type || "video/mp4" },
-        onUploadProgress: e => {
-          uploadProgress.value = Math.round((e.loaded / e.total) * 100);
-        }
-      });
-    } else if (isAliyunVodCredential(credential)) {
-      await uploadToAliyunVod(credential, uploadForm.file, percent => {
-        uploadProgress.value = percent;
-      });
-    } else {
-      throw new Error("无效的上传凭证");
-    }
-
-    // 3. MinIO 环境：截取封面并上传；阿里云 VOD 自动生成封面
-    let coverUrl = null;
-    let duration = null;
-    if (isMinioCredential(credential)) {
-      try {
-        const { coverBlob, duration: d } = await captureVideoFrame(uploadForm.file);
-        duration = d;
-        const formData = new FormData();
-        formData.append("file", coverBlob, `cover-${videoId}.jpg`);
-        const coverRes = await uploadCover(formData);
-        coverUrl = coverRes.data;
-      } catch (e) {
-        console.warn("视频封面截取失败，将使用默认占位", e);
-      }
-    }
-
-    // 4. 通知后端上传完成
-    await uploadCompleteApi(videoId, {
-      categoryId: uploadForm.categoryId,
-      description: uploadForm.description,
-      size: uploadForm.file.size,
-      duration,
-      coverUrl
-    });
-
-    ElMessage.success(coverUrl ? "上传成功" : "上传成功，封面正在自动生成中...");
+    ElMessage.success("上传成功，封面生成中可稍后刷新");
     showUploadDialog.value = false;
-
-    // 重置表单
     Object.assign(uploadForm, { title: "", file: null, categoryId: null, description: "" });
     uploadProgress.value = 0;
-
-    // 刷新列表
-    loadVideos();
+    await loadCategories();
+    await loadVideos(false);
   } catch (error) {
     console.error("上传失败:", error);
     ElMessage.error(error.message || "上传失败，请重试");
@@ -782,13 +736,14 @@ const handleUploadSubmit = async () => {
 
 // ==================== 预览 ====================
 const handlePreview = async video => {
-  if (video.status !== 2) {
+  if (!video?.id) {
     ElMessage.warning("视频尚未就绪");
     return;
   }
   try {
-    const res = await getPlayUrlApi(video.id);
-    previewUrl.value = res.data;
+    // 先校验能取到播放地址，再用同源代理避免 OSS 直连黑屏
+    await getPlayUrlApi(video.id);
+    previewUrl.value = getMediaVodStreamUrl(video.id);
     previewVideo.value = video;
     showPreview.value = true;
   } catch (error) {

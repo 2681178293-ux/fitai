@@ -28,8 +28,8 @@
             <el-tag type="warning">{{ row.continuousDays ?? 0 }} 天</el-tag>
           </template>
 
-          <template #points="{ row }">
-            <span class="text-green-500 font-medium">+{{ row.points ?? 0 }}</span>
+          <template #pointsEarned="{ row }">
+            <span class="text-green-500 font-medium">+{{ row.pointsEarned ?? 0 }}</span>
           </template>
 
           <template #action="{ row }">
@@ -84,7 +84,7 @@ const checkinGridOptions = reactive({
   showOverflow: true,
   height: 520,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "checkinId", isHover: true },
   columnConfig: { resizable: true },
   checkboxConfig: { highlight: true },
   toolbarConfig: {
@@ -99,7 +99,12 @@ const checkinGridOptions = reactive({
   },
   formConfig: {
     items: [
-      { field: "userId", title: "用户ID", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
+      {
+        field: "customerId",
+        title: "用户ID",
+        span: 6,
+        itemRender: { name: "$input", props: { placeholder: "customerId", clearable: true } }
+      },
       {
         field: "startDate",
         title: "开始日期",
@@ -140,7 +145,7 @@ const checkinGridOptions = reactive({
           const res = await getCheckinPageApi({
             pageNum: page.currentPage,
             pageSize: page.pageSize,
-            userId: form.userId ? Number(form.userId) : undefined,
+            customerId: form.customerId ? Number(form.customerId) : undefined,
             startDate: formatDate(form.startDate),
             endDate: formatDate(form.endDate)
           });
@@ -156,11 +161,11 @@ const checkinGridOptions = reactive({
   columns: [
     { type: "checkbox", width: 50 },
     { type: "seq", title: "序号", width: 60 },
-    { field: "userId", title: "用户ID", width: 100 },
-    { field: "userNickname", title: "昵称", minWidth: 130 },
+    { field: "customerId", title: "用户ID", width: 100 },
+    { field: "nickName", title: "昵称", minWidth: 130 },
     { field: "checkinDate", title: "签到日期", width: 140 },
     { field: "continuousDays", title: "连续天数", width: 110, slots: { default: "continuousDays" } },
-    { field: "points", title: "获得积分", width: 110, slots: { default: "points" } },
+    { field: "pointsEarned", title: "获得积分", width: 110, slots: { default: "pointsEarned" } },
     { field: "createTime", title: "签到时间", minWidth: 170 },
     { title: "操作", width: 100, fixed: "right", slots: { default: "action" } }
   ]
@@ -279,7 +284,7 @@ const handleTabChange = name => {
 const handleDelete = row => {
   ElMessageBox.confirm(`确定删除该条签到记录吗？`, "提示", { type: "warning" })
     .then(async () => {
-      await deleteCheckinApi(row.id);
+      await deleteCheckinApi(row.checkinId);
       ElMessage.success("已删除");
       handleRefreshCheckin();
     })
@@ -292,7 +297,7 @@ const handleBatchDelete = () => {
     ElMessage.warning("请选择要删除的数据");
     return;
   }
-  const ids = records.map(r => r.id).join(",");
+  const ids = records.map(r => r.checkinId).join(",");
   ElMessageBox.confirm(`确定删除选中的 ${records.length} 条签到记录吗？`, "提示", { type: "warning" })
     .then(async () => {
       await deleteCheckinApi(ids);

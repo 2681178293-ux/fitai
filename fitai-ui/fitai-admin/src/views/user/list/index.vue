@@ -23,36 +23,28 @@
         </div>
       </template>
 
-      <!-- 性别列 -->
+      <!-- 性别列：0男 1女 2未知 -->
       <template #gender="{ row }">
-        <el-tag v-if="row.gender === 1" type="primary">男</el-tag>
-        <el-tag v-else-if="row.gender === 2" type="danger">女</el-tag>
+        <el-tag v-if="String(row.gender) === '0'" type="primary">男</el-tag>
+        <el-tag v-else-if="String(row.gender) === '1'" type="danger">女</el-tag>
         <el-tag v-else type="info">未知</el-tag>
-      </template>
-
-      <!-- VIP等级列 -->
-      <template #vipLevel="{ row }">
-        <el-tag v-if="row.vipLevel === 0" type="info">普通用户</el-tag>
-        <el-tag v-else-if="row.vipLevel === 1" type="warning">月卡会员</el-tag>
-        <el-tag v-else-if="row.vipLevel === 2" type="success">季卡会员</el-tag>
-        <el-tag v-else-if="row.vipLevel === 3" type="danger">年卡会员</el-tag>
       </template>
 
       <!-- 健身目标列 -->
       <template #fitnessGoal="{ row }">
-        <span v-if="row.fitnessGoal === 1">减脂</span>
-        <span v-else-if="row.fitnessGoal === 2">增肌</span>
-        <span v-else-if="row.fitnessGoal === 3">塑形</span>
-        <span v-else-if="row.fitnessGoal === 4">保持健康</span>
+        <span v-if="String(row.fitnessGoal) === '1'">减脂</span>
+        <span v-else-if="String(row.fitnessGoal) === '2'">增肌</span>
+        <span v-else-if="String(row.fitnessGoal) === '3'">塑形</span>
+        <span v-else-if="String(row.fitnessGoal) === '4'">保持健康</span>
         <span v-else>-</span>
       </template>
 
-      <!-- 状态列 -->
+      <!-- 状态列：0正常 1冻结 -->
       <template #status="{ row }">
         <el-switch
             v-model="row.status"
-            :active-value="1"
-            :inactive-value="0"
+            active-value="0"
+            inactive-value="1"
             @change="handleStatusChange(row)"
         />
       </template>
@@ -65,7 +57,6 @@
 
     <!-- 用户详情弹窗 -->
     <el-dialog v-model="detailVisible" title="用户详情" width="600px">
-      <!-- 头像展示 -->
       <div class="flex justify-center mb-6">
         <el-image
             :src="currentUser.avatar || defaultAvatar"
@@ -80,29 +71,26 @@
         </el-image>
       </div>
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="用户ID">{{ currentUser.id }}</el-descriptions-item>
-        <el-descriptions-item label="手机号">{{ currentUser.phone }}</el-descriptions-item>
-        <el-descriptions-item label="昵称">{{ currentUser.nickname }}</el-descriptions-item>
+        <el-descriptions-item label="用户ID">{{ currentUser.customerId }}</el-descriptions-item>
+        <el-descriptions-item label="手机号">{{ currentUser.mobile }}</el-descriptions-item>
+        <el-descriptions-item label="昵称">{{ currentUser.nickName }}</el-descriptions-item>
         <el-descriptions-item label="性别">
-          {{ currentUser.gender === 1 ? '男' : currentUser.gender === 2 ? '女' : '未知' }}
+          {{ String(currentUser.gender) === '0' ? '男' : String(currentUser.gender) === '1' ? '女' : '未知' }}
         </el-descriptions-item>
-        <el-descriptions-item label="身高">{{
-            currentUser.height ? currentUser.height + ' cm' : '-'
-          }}
+        <el-descriptions-item label="身高">
+          {{ currentUser.heightCm != null ? currentUser.heightCm + ' cm' : '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="体重">{{
-            currentUser.weight ? currentUser.weight + ' kg' : '-'
-          }}
+        <el-descriptions-item label="体重">
+          {{ currentUser.weightKg != null ? currentUser.weightKg + ' kg' : '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="体脂率">{{
-            currentUser.bodyFat ? currentUser.bodyFat + '%' : '-'
-          }}
+        <el-descriptions-item label="体脂率">
+          {{ currentUser.bodyFatPct != null ? currentUser.bodyFatPct + '%' : '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="VIP等级">
-          {{ ['普通用户', '月卡会员', '季卡会员', '年卡会员'][currentUser.vipLevel] || '普通用户' }}
+        <el-descriptions-item label="会员等级">
+          {{ currentUser.memberLevelName || '普通用户' }}
         </el-descriptions-item>
-        <el-descriptions-item label="VIP到期时间">{{ currentUser.vipExpireTime || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="注册时间">{{ currentUser.createTime }}</el-descriptions-item>
+        <el-descriptions-item label="积分余额">{{ currentUser.pointsBalance ?? '-' }}</el-descriptions-item>
+        <el-descriptions-item label="最后登录">{{ currentUser.lastLoginTime || '-' }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>
@@ -110,7 +98,7 @@
 
 <script setup name="userList">
 import {ref, reactive} from "vue";
-import {ElMessage, ElMessageBox} from "element-plus";
+import {ElMessage} from "element-plus";
 import {Refresh, View} from "@element-plus/icons-vue";
 import {getUserPageApi, updateUserStatusApi} from "@/api/modules/user";
 
@@ -120,13 +108,12 @@ const xGrid = ref();
 const detailVisible = ref(false);
 const currentUser = ref({});
 
-// 表格配置
 const gridOptions = reactive({
   border: true,
   showOverflow: true,
   height: 600,
   loading: false,
-  rowConfig: {keyField: "id", isHover: true},
+  rowConfig: {keyField: "customerId", isHover: true},
   columnConfig: {resizable: true},
   pagerConfig: {
     pageSize: 10,
@@ -144,23 +131,34 @@ const gridOptions = reactive({
   },
   formConfig: {
     items: [
-      {field: "keyword", title: "关键词", span: 8, itemRender: {name: "$input", props: {placeholder: "手机号/昵称"}}},
+      {
+        field: "nickName",
+        title: "昵称",
+        span: 6,
+        itemRender: {name: "$input", props: {placeholder: "昵称", clearable: true}}
+      },
+      {
+        field: "mobile",
+        title: "手机号",
+        span: 6,
+        itemRender: {name: "$input", props: {placeholder: "手机号", clearable: true}}
+      },
       {
         field: "status",
         title: "状态",
-        span: 8,
+        span: 6,
         itemRender: {
           name: "$select",
           options: [
             {label: "全部", value: ""},
-            {label: "正常", value: 1},
-            {label: "禁用", value: 0}
+            {label: "正常", value: "0"},
+            {label: "冻结", value: "1"}
           ],
-          props: {placeholder: "请选择状态"}
+          props: {placeholder: "请选择状态", clearable: true}
         }
       },
       {
-        span: 8,
+        span: 6,
         align: "center",
         itemRender: {
           name: "$buttons",
@@ -181,7 +179,9 @@ const gridOptions = reactive({
         const params = {
           pageNum: page.currentPage,
           pageSize: page.pageSize,
-          ...form
+          nickName: form.nickName || undefined,
+          mobile: form.mobile || undefined,
+          status: form.status === "" || form.status == null ? undefined : String(form.status)
         };
         try {
           const res = await getUserPageApi(params);
@@ -196,36 +196,34 @@ const gridOptions = reactive({
   columns: [
     {type: "seq", width: 60, title: "序号"},
     {field: "avatar", title: "头像", width: 80, slots: {default: "avatar"}},
-    {field: "phone", title: "手机号", width: 130},
-    {field: "nickname", title: "昵称", minWidth: 120},
+    {field: "mobile", title: "手机号", width: 130},
+    {field: "nickName", title: "昵称", minWidth: 120},
     {field: "gender", title: "性别", width: 80, slots: {default: "gender"}},
-    {field: "height", title: "身高(cm)", width: 100},
-    {field: "weight", title: "体重(kg)", width: 100},
+    {field: "heightCm", title: "身高(cm)", width: 100},
+    {field: "weightKg", title: "体重(kg)", width: 100},
     {field: "fitnessGoal", title: "健身目标", width: 100, slots: {default: "fitnessGoal"}},
-    {field: "vipLevel", title: "VIP等级", width: 120, slots: {default: "vipLevel"}},
-    {field: "status", title: "状态", width: 80, slots: {default: "status"}},
-    {field: "createTime", title: "注册时间", width: 170},
+    {field: "memberLevelName", title: "会员等级", width: 120},
+    {field: "status", title: "状态", width: 90, slots: {default: "status"}},
+    {field: "lastLoginTime", title: "最后登录", width: 170},
     {title: "操作", width: 100, fixed: "right", slots: {default: "action"}}
   ]
 });
 
-// 刷新
 const handleRefresh = () => {
   xGrid.value.commitProxy("query");
 };
 
-// 状态变更
 const handleStatusChange = async row => {
+  const prev = row.status === "0" ? "1" : "0";
   try {
-    await updateUserStatusApi(row.id, row.status);
-    ElMessage.success(row.status === 1 ? "已启用" : "已禁用");
+    await updateUserStatusApi(row.customerId, row.status);
+    ElMessage.success(row.status === "0" ? "已启用" : "已冻结");
   } catch {
-    row.status = row.status === 1 ? 0 : 1;
+    row.status = prev;
     ElMessage.error("状态更新失败");
   }
 };
 
-// 查看详情
 const handleView = row => {
   currentUser.value = row;
   detailVisible.value = true;

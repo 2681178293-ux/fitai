@@ -21,8 +21,11 @@
         <span>{{ row.dailyLimit ? row.dailyLimit : "不限" }}</span>
       </template>
 
+      <!-- 后端：0正常 1停用 -->
       <template #status="{ row }">
-        <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? "启用" : "停用" }}</el-tag>
+        <el-tag :type="String(row.status) === '0' ? 'success' : 'info'">
+          {{ String(row.status) === '0' ? '正常' : '停用' }}
+        </el-tag>
       </template>
 
       <template #action="{ row }">
@@ -33,11 +36,11 @@
 
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑积分规则' : '新增积分规则'" width="640px" destroy-on-close>
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="110px">
-        <el-form-item label="规则名称" prop="name">
-          <el-input v-model="formData.name" placeholder="如：每日签到奖励" />
+        <el-form-item label="规则名称" prop="ruleName">
+          <el-input v-model="formData.ruleName" placeholder="如：每日签到奖励" />
         </el-form-item>
-        <el-form-item label="规则编码" prop="code">
-          <el-input v-model="formData.code" placeholder="如：DAILY_CHECKIN" />
+        <el-form-item label="规则编码" prop="ruleCode">
+          <el-input v-model="formData.ruleCode" placeholder="如：daily_sign" />
         </el-form-item>
         <el-form-item label="事件类型" prop="eventType">
           <el-select v-model="formData.eventType" filterable placeholder="请选择事件类型" style="width: 100%">
@@ -50,13 +53,10 @@
         <el-form-item label="每日上限">
           <el-input-number v-model="formData.dailyLimit" :min="0" style="width: 100%" placeholder="0 表示不限" />
         </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="formData.remark" type="textarea" :rows="3" placeholder="规则说明" />
-        </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="formData.status">
-            <el-radio :value="1">启用</el-radio>
-            <el-radio :value="0">停用</el-radio>
+            <el-radio value="0">正常</el-radio>
+            <el-radio value="1">停用</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -85,24 +85,30 @@ const formRef = ref();
 const dialogVisible = ref(false);
 const isEdit = ref(false);
 const submitLoading = ref(false);
-const eventOptions = ref([]);
+
+const defaultEventOptions = [
+  { value: "sign", label: "签到" },
+  { value: "train", label: "训练" },
+  { value: "order", label: "订单" },
+  { value: "review", label: "评价" }
+];
+const eventOptions = ref([...defaultEventOptions]);
 
 const defaultForm = {
-  id: null,
-  name: "",
-  code: "",
+  ruleId: null,
+  ruleName: "",
+  ruleCode: "",
   eventType: "",
   points: 0,
   dailyLimit: 0,
-  remark: "",
-  status: 1
+  status: "0"
 };
 
 const formData = reactive({ ...defaultForm });
 
 const formRules = {
-  name: [{ required: true, message: "请输入规则名称", trigger: "blur" }],
-  code: [{ required: true, message: "请输入规则编码", trigger: "blur" }],
+  ruleName: [{ required: true, message: "请输入规则名称", trigger: "blur" }],
+  ruleCode: [{ required: true, message: "请输入规则编码", trigger: "blur" }],
   eventType: [{ required: true, message: "请选择事件类型", trigger: "change" }],
   points: [{ required: true, message: "请输入积分值", trigger: "blur" }]
 };
@@ -117,7 +123,7 @@ const gridOptions = reactive({
   showOverflow: true,
   height: 600,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "ruleId", isHover: true },
   columnConfig: { resizable: true },
   checkboxConfig: { highlight: true },
   toolbarConfig: {
@@ -132,12 +138,27 @@ const gridOptions = reactive({
   },
   formConfig: {
     items: [
-      { field: "name", title: "规则名称", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
+      {
+        field: "ruleName",
+        title: "规则名称",
+        span: 6,
+        itemRender: { name: "$input", props: { placeholder: "可选", clearable: true } }
+      },
       {
         field: "eventType",
         title: "事件类型",
         span: 6,
-        itemRender: { name: "$input", props: { placeholder: "可选" } }
+        itemRender: {
+          name: "$select",
+          options: [
+            { label: "全部", value: "" },
+            { label: "签到", value: "sign" },
+            { label: "训练", value: "train" },
+            { label: "订单", value: "order" },
+            { label: "评价", value: "review" }
+          ],
+          props: { placeholder: "全部", clearable: true }
+        }
       },
       {
         field: "status",
@@ -147,10 +168,10 @@ const gridOptions = reactive({
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "启用", value: 1 },
-            { label: "停用", value: 0 }
+            { label: "正常", value: "0" },
+            { label: "停用", value: "1" }
           ],
-          props: { placeholder: "全部" }
+          props: { placeholder: "全部", clearable: true }
         }
       },
       {
@@ -181,9 +202,9 @@ const gridOptions = reactive({
           const res = await getPointsRulePageApi({
             pageNum: page.currentPage,
             pageSize: page.pageSize,
-            name: form.name || undefined,
+            ruleName: form.ruleName || undefined,
             eventType: form.eventType || undefined,
-            status: form.status !== "" && form.status !== undefined && form.status !== null ? form.status : undefined
+            status: form.status === "" || form.status == null ? undefined : String(form.status)
           });
           const pageData = res.data || {};
           return { list: pageData.records || [], total: pageData.total || 0 };
@@ -197,12 +218,11 @@ const gridOptions = reactive({
   columns: [
     { type: "checkbox", width: 50 },
     { type: "seq", title: "序号", width: 60 },
-    { field: "name", title: "规则名称", minWidth: 160 },
-    { field: "code", title: "规则编码", minWidth: 150 },
+    { field: "ruleName", title: "规则名称", minWidth: 160 },
+    { field: "ruleCode", title: "规则编码", minWidth: 150 },
     { field: "eventType", title: "事件类型", width: 150, slots: { default: "eventType" } },
     { field: "points", title: "积分值", width: 100, slots: { default: "points" } },
     { field: "dailyLimit", title: "每日上限", width: 110, slots: { default: "dailyLimit" } },
-    { field: "remark", title: "备注", minWidth: 180 },
     { field: "status", title: "状态", width: 90, slots: { default: "status" } },
     { title: "操作", width: 150, fixed: "right", slots: { default: "action" } }
   ]
@@ -215,10 +235,10 @@ const handleRefresh = () => {
 const loadEventOptions = async () => {
   try {
     const res = await getPointsRuleEventsApi();
-    eventOptions.value = Array.isArray(res?.data) ? res.data : [];
+    eventOptions.value = Array.isArray(res?.data) && res.data.length ? res.data : [...defaultEventOptions];
   } catch (e) {
     console.error(e);
-    eventOptions.value = [];
+    eventOptions.value = [...defaultEventOptions];
   }
 };
 
@@ -231,14 +251,13 @@ const handleAdd = () => {
 const handleEdit = row => {
   isEdit.value = true;
   Object.assign(formData, {
-    id: row.id,
-    name: row.name || "",
-    code: row.code || "",
+    ruleId: row.ruleId,
+    ruleName: row.ruleName || "",
+    ruleCode: row.ruleCode || "",
     eventType: row.eventType || "",
     points: row.points ?? 0,
     dailyLimit: row.dailyLimit ?? 0,
-    remark: row.remark || "",
-    status: row.status ?? 1
+    status: row.status != null ? String(row.status) : "0"
   });
   dialogVisible.value = true;
 };
@@ -248,16 +267,15 @@ const handleSubmit = async () => {
     await formRef.value.validate();
     submitLoading.value = true;
     const payload = {
-      name: formData.name,
-      code: formData.code,
+      ruleName: formData.ruleName,
+      ruleCode: formData.ruleCode,
       eventType: formData.eventType,
       points: formData.points,
       dailyLimit: formData.dailyLimit,
-      remark: formData.remark,
-      status: formData.status
+      status: String(formData.status)
     };
     if (isEdit.value) {
-      await updatePointsRuleApi(formData.id, payload);
+      await updatePointsRuleApi({ ...payload, ruleId: formData.ruleId });
       ElMessage.success("更新成功");
     } else {
       await createPointsRuleApi(payload);
@@ -271,9 +289,9 @@ const handleSubmit = async () => {
 };
 
 const handleDelete = row => {
-  ElMessageBox.confirm(`确定删除规则「${row.name}」吗？`, "提示", { type: "warning" })
+  ElMessageBox.confirm(`确定删除规则「${row.ruleName}」吗？`, "提示", { type: "warning" })
     .then(async () => {
-      await deletePointsRuleApi(row.id);
+      await deletePointsRuleApi(row.ruleId);
       ElMessage.success("已删除");
       handleRefresh();
     })
@@ -286,7 +304,7 @@ const handleBatchDelete = () => {
     ElMessage.warning("请选择要删除的数据");
     return;
   }
-  const ids = records.map(r => r.id).join(",");
+  const ids = records.map(r => r.ruleId).join(",");
   ElMessageBox.confirm(`确定删除选中的 ${records.length} 条规则吗？`, "提示", { type: "warning" })
     .then(async () => {
       await deletePointsRuleApi(ids);

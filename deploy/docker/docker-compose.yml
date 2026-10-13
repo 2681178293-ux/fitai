@@ -1,0 +1,75 @@
+services:
+  mysql:
+    image: docker.1ms.run/mysql:9.7.2
+    container_name: mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - /docker/mysql/conf:/etc/mysql/conf.d
+      - /docker/mysql/logs:/logs
+      - /docker/mysql/data:/var/lib/mysql
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: dinghao
+      MYSQL_ROOT_HOST: "%"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pdinghao"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  redis:
+    image: docker.1ms.run/redis:8.8.2
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - /docker/redis/data:/data
+    command: redis-server --appendonly yes --requirepass 123456
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "123456", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  nginx:
+    image: docker.1ms.run/nginx:1.30.4
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /docker/nginx/conf.d:/etc/nginx/conf.d
+      - /docker/nginx/html:/usr/share/nginx/html
+      - /docker/nginx/logs:/var/log/nginx
+    environment:
+      TZ: Asia/Shanghai
+    depends_on:
+      - fitai
+
+  fitai:
+    image: wanho/fitai-server:1.0.0
+    container_name: fitai
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: 123456
+      SPRING_DATA_REDIS_DATABASE: 6
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fitai_all?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: dinghao
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

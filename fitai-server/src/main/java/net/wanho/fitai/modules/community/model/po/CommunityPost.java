@@ -1,0 +1,27 @@
+package net.wanho.fitai.modules.community.model.po;
+
+
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import lombok.Data;
+import java.time.LocalDateTime;
+import java.io.Serializable;
+
+@Data
+public class CommunityPost implements Serializable {
+
+    @TableId
+    private Long id;
+    private Long userId;
+    private String content;
+    private String images;
+    private String type;
+    private Long trainingPlanId;
+    private Integer likeCount;
+    private Integer commentCount;
+    private String status;
+    private String delFlag;
+    @TableField(fill = FieldFill.INSERT)
+    private LocalDateTime createTime;
+}

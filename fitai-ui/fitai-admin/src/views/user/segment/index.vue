@@ -12,7 +12,7 @@
       </template>
 
       <template #status="{ row }">
-        <el-tag v-if="row.status === 1" type="success">启用</el-tag>
+        <el-tag v-if="row.status == 0" type="success">启用</el-tag>
         <el-tag v-else type="info">停用</el-tag>
       </template>
 
@@ -26,14 +26,11 @@
     <!-- 新增/编辑分群 -->
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑分群' : '新增分群'" width="640px" destroy-on-close>
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="110px">
-        <el-form-item label="分群名称" prop="name">
-          <el-input v-model="formData.name" placeholder="如：高活跃减脂用户" />
+        <el-form-item label="分群名称" prop="segmentName">
+          <el-input v-model="formData.segmentName" placeholder="如：高活跃减脂用户" />
         </el-form-item>
-        <el-form-item label="分群编码" prop="code">
-          <el-input v-model="formData.code" placeholder="如：high_active_fat_loss" :disabled="isEdit" />
-        </el-form-item>
-        <el-form-item label="分群说明">
-          <el-input v-model="formData.description" type="textarea" :rows="2" placeholder="分群用途说明" />
+        <el-form-item label="分群编码" prop="segmentCode">
+          <el-input v-model="formData.segmentCode" placeholder="如：high_active_fat_loss" :disabled="isEdit" />
         </el-form-item>
         <el-form-item label="规则JSON">
           <el-input
@@ -45,8 +42,8 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="formData.status">
-            <el-radio :value="1">启用</el-radio>
-            <el-radio :value="0">停用</el-radio>
+            <el-radio value="0">启用</el-radio>
+            <el-radio value="1">停用</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -57,7 +54,7 @@
     </el-dialog>
 
     <!-- 分群用户抽屉 -->
-    <el-drawer v-model="userDrawerVisible" :title="`分群用户 - ${currentSegment.name || ''}`" size="900px" destroy-on-close>
+    <el-drawer v-model="userDrawerVisible" :title="`分群用户 - ${currentSegment.segmentName || ''}`" size="900px" destroy-on-close>
       <div class="mb-4 flex flex-wrap items-center gap-3">
         <el-input v-model="joinUserIds" placeholder="输入用户ID，多个用英文逗号分隔" style="width: 320px" clearable />
         <el-button type="primary" :icon="Plus" :loading="joinLoading" @click="handleJoinUser">批量加入</el-button>
@@ -70,7 +67,7 @@
         :data="userList"
         border
         height="560"
-        row-key="userId"
+        row-key="segmentRelId"
       >
         <el-table-column type="selection" width="50" reserve-selection />
         <el-table-column label="头像" width="80">
@@ -78,11 +75,11 @@
             <el-avatar :size="36" :src="row.avatar || defaultAvatar" />
           </template>
         </el-table-column>
-        <el-table-column prop="userId" label="用户ID" width="110" />
+        <el-table-column prop="customerId" label="用户ID" width="110" />
         <el-table-column prop="nickname" label="昵称" min-width="140" />
         <el-table-column prop="phone" label="手机号" width="140" />
         <el-table-column label="加入时间" width="180">
-          <template #default="{ row }">{{ formatTime(row.joinTime) }}</template>
+          <template #default="{ row }">{{ formatTime(row.createTime) }}</template>
         </el-table-column>
       </el-table>
       <div class="mt-4 flex justify-end">
@@ -133,17 +130,16 @@ const currentSegment = ref({});
 const userPage = reactive({ pageNum: 1, pageSize: 10, total: 0 });
 
 const formData = reactive({
-  id: null,
-  name: "",
-  code: "",
-  description: "",
+  segmentId: null,
+  segmentName: "",
+  segmentCode: "",
   ruleJson: "",
-  status: 1
+  status: "0"
 });
 
 const formRules = {
-  name: [{ required: true, message: "请输入分群名称", trigger: "blur" }],
-  code: [
+  segmentName: [{ required: true, message: "请输入分群名称", trigger: "blur" }],
+  segmentCode: [
     { required: true, message: "请输入分群编码", trigger: "blur" },
     { pattern: /^[A-Za-z0-9_-]+$/, message: "编码仅支持字母、数字、下划线和中划线", trigger: "blur" }
   ]
@@ -156,7 +152,7 @@ const gridOptions = reactive({
   showOverflow: true,
   height: 600,
   loading: false,
-  rowConfig: { keyField: "id", isHover: true },
+  rowConfig: { keyField: "segmentId", isHover: true },
   columnConfig: { resizable: true },
   checkboxConfig: { highlight: true },
   toolbarConfig: {
@@ -171,8 +167,8 @@ const gridOptions = reactive({
   },
   formConfig: {
     items: [
-      { field: "name", title: "分群名称", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
-      { field: "code", title: "分群编码", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
+      { field: "segmentName", title: "分群名称", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
+      { field: "segmentCode", title: "分群编码", span: 6, itemRender: { name: "$input", props: { placeholder: "可选" } } },
       {
         field: "status",
         title: "状态",
@@ -181,8 +177,8 @@ const gridOptions = reactive({
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "启用", value: 1 },
-            { label: "停用", value: 0 }
+            { label: "启用", value: "0" },
+            { label: "停用", value: "1" }
           ],
           props: { placeholder: "全部" }
         }
@@ -215,8 +211,8 @@ const gridOptions = reactive({
           const params = {
             pageNum: page.currentPage,
             pageSize: page.pageSize,
-            name: form.name || undefined,
-            code: form.code || undefined,
+            segmentName: form.segmentName || undefined,
+            segmentCode: form.segmentCode || undefined,
             status: form.status !== "" && form.status !== undefined && form.status !== null ? form.status : undefined
           };
           const res = await getUserSegmentPageApi(params);
@@ -231,9 +227,9 @@ const gridOptions = reactive({
   columns: [
     { type: "checkbox", width: 50 },
     { type: "seq", title: "序号", width: 60 },
-    { field: "name", title: "分群名称", minWidth: 160 },
-    { field: "code", title: "分群编码", minWidth: 160 },
-    { field: "description", title: "分群说明", minWidth: 200 },
+    { field: "segmentName", title: "分群名称", minWidth: 160 },
+    { field: "segmentCode", title: "分群编码", minWidth: 160 },
+    { field: "ruleJson", title: "规则JSON", minWidth: 200 },
     { field: "userCount", title: "用户数", width: 100, slots: { default: "userCount" } },
     { field: "status", title: "状态", width: 90, slots: { default: "status" } },
     { title: "操作", width: 240, fixed: "right", slots: { default: "action" } }
@@ -246,12 +242,11 @@ const handleRefresh = () => {
 
 const resetForm = () => {
   Object.assign(formData, {
-    id: null,
-    name: "",
-    code: "",
-    description: "",
+    segmentId: null,
+    segmentName: "",
+    segmentCode: "",
     ruleJson: "",
-    status: 1
+    status: "0"
   });
 };
 
@@ -264,12 +259,11 @@ const handleAdd = () => {
 const handleEdit = row => {
   isEdit.value = true;
   Object.assign(formData, {
-    id: row.id,
-    name: row.name || "",
-    code: row.code || "",
-    description: row.description || "",
+    segmentId: row.segmentId,
+    segmentName: row.segmentName || "",
+    segmentCode: row.segmentCode || "",
     ruleJson: row.ruleJson || "",
-    status: row.status ?? 1
+    status: row.status != null ? String(row.status) : "0"
   });
   dialogVisible.value = true;
 };
@@ -287,14 +281,13 @@ const handleSubmit = async () => {
   try {
     submitLoading.value = true;
     const payload = {
-      name: formData.name,
-      code: formData.code,
-      description: formData.description,
+      segmentName: formData.segmentName,
+      segmentCode: formData.segmentCode,
       ruleJson: formData.ruleJson,
       status: formData.status
     };
     if (isEdit.value) {
-      await updateUserSegmentApi(formData.id, payload);
+      await updateUserSegmentApi({ ...payload, segmentId: formData.segmentId });
       ElMessage.success("更新成功");
     } else {
       await createUserSegmentApi(payload);
@@ -308,9 +301,9 @@ const handleSubmit = async () => {
 };
 
 const handleDelete = row => {
-  ElMessageBox.confirm(`确定删除分群「${row.name}」吗？删除后关联用户关系一并移除。`, "提示", { type: "warning" })
+  ElMessageBox.confirm(`确定删除分群「${row.segmentName}」吗？删除后关联用户关系一并移除。`, "提示", { type: "warning" })
     .then(async () => {
-      await deleteUserSegmentApi(row.id);
+      await deleteUserSegmentApi(row.segmentId);
       ElMessage.success("删除成功");
       handleRefresh();
     })
@@ -325,7 +318,7 @@ const handleBatchDelete = () => {
   }
   ElMessageBox.confirm(`确定删除选中的 ${records.length} 个分群吗？`, "提示", { type: "warning" })
     .then(async () => {
-      await deleteUserSegmentApi(records.map(r => r.id).join(","));
+      await deleteUserSegmentApi(records.map(r => r.segmentId).join(","));
       ElMessage.success("批量删除成功");
       handleRefresh();
     })
@@ -333,10 +326,10 @@ const handleBatchDelete = () => {
 };
 
 const loadSegmentUser = async () => {
-  if (!currentSegment.value.id) return;
+  if (!currentSegment.value.segmentId) return;
   try {
     userLoading.value = true;
-    const res = await getUserSegmentUserPageApi(currentSegment.value.id, {
+    const res = await getUserSegmentUserPageApi(currentSegment.value.segmentId, {
       pageNum: userPage.pageNum,
       pageSize: userPage.pageSize
     });
@@ -376,7 +369,7 @@ const handleJoinUser = async () => {
   }
   try {
     joinLoading.value = true;
-    await addUserSegmentUserApi(currentSegment.value.id, ids.map(Number));
+    await addUserSegmentUserApi(currentSegment.value.segmentId, ids.map(Number));
     ElMessage.success(`已加入 ${ids.length} 个用户`);
     joinUserIds.value = "";
     userPage.pageNum = 1;
@@ -395,7 +388,7 @@ const handleRemoveUser = () => {
   }
   ElMessageBox.confirm(`确定将选中的 ${rows.length} 个用户移出该分群吗？`, "提示", { type: "warning" })
     .then(async () => {
-      await removeUserSegmentUserApi(currentSegment.value.id, rows.map(r => r.userId).join(","));
+      await removeUserSegmentUserApi(currentSegment.value.segmentId, rows.map(r => r.segmentRelId).join(","));
       ElMessage.success("移出成功");
       userTableRef.value?.clearSelection();
       loadSegmentUser();

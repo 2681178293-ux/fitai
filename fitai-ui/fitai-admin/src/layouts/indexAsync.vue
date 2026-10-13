@@ -18,6 +18,7 @@ import { computed, defineAsyncComponent, reactive, watch } from "vue";
 import { useGlobalStore } from "@/stores/modules/global";
 import Loading from "@/components/Loading/index.vue";
 import ThemeDrawer from "./components/ThemeDrawer/index.vue";
+import { useNoticeSse } from "@/hooks/useNoticeSse";
 
 const LayoutComponents = {
   vertical: defineAsyncComponent(() => import("./LayoutVertical/index.vue")),
@@ -27,7 +28,7 @@ const LayoutComponents = {
 };
 
 const globalStore = useGlobalStore();
-
+useNoticeSse();
 const isDark = computed(() => globalStore.isDark);
 const layout = computed(() => globalStore.layout);
 const watermark = computed(() => globalStore.watermark);

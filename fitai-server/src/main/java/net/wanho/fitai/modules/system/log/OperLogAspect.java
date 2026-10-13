@@ -71,6 +71,7 @@ public class OperLogAspect {
         } catch (Exception e) {
             sysOperLog.setStatus("1");
             sysOperLog.setErrorMsg(e.getMessage());
+            throw  e;
         }
         sysOperLog.setCostTime(costTime);
         sysOperLogService.recordOperLog(sysOperLog);

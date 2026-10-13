@@ -6,6 +6,9 @@ import net.wanho.fitai.infra.exception.ExceptionResult;
  * 电商模块错误码 6001-6999
  */
 public enum MallCode implements ExceptionResult {
+    //无效的categoryId
+    INVALID_CATEGORY_ID(6013, "无效的categoryId"),
+    CATEGORY_HAS_CHILD(6000, "请先删除子节点"),
     PRODUCT_NOT_FOUND(6001, "商品不存在"),
     SKU_NOT_FOUND(6002, "SKU不存在"),
     STOCK_NOT_ENOUGH(6003, "库存不足"),
@@ -20,7 +23,10 @@ public enum MallCode implements ExceptionResult {
     NOT_FOUND(6012, "资源不存在"),
     /** 已开启商城 ES 时，C 端搜索仅走 ES；ES 不可用或查询失败时返回，不回落 MySQL */
     PRODUCT_SEARCH_UNAVAILABLE(6013, "商品搜索服务暂不可用，请稍后重试"),
-    CATEGORY_HAS_CHILDREN(6014, "存在子分类，无法删除");
+    SKU_EXISTS_REFER(6014, "商品已引用，不能删除属性"),
+    SKU_EXISTS(6015, "商品已存在");
+    /** 已开启商城 ES 时，C 端搜索仅走 ES；ES 不可用或查询失败时返回，不回落 MySQL */
+
 
     private final int code;
     private final String msg;

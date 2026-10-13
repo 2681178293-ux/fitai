@@ -6,7 +6,7 @@
         <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
       </template>
       <template #attrType="{ row }">
-        <el-tag :type="row.attrType === 1 ? 'success' : 'info'">
+        <el-tag :type="String(row.attrType) === '1' ? 'success' : 'info'">
           {{ attrTypeMap[row.attrType] || row.attrType }}
         </el-tag>
       </template>
@@ -15,12 +15,14 @@
       </template>
       <template #values="{ row }">
         <template v-if="row.values?.length">
-          <el-tag v-for="v in row.values" :key="v.id" size="small" class="mr-1 mb-1">{{ v.attrValue }}</el-tag>
+          <el-tag v-for="v in row.values" :key="v.valueId" size="small" class="mr-1 mb-1">{{ v.attrValue }}</el-tag>
         </template>
         <span v-else class="text-gray-400">-</span>
       </template>
       <template #status="{ row }">
-        <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '正常' : '停用' }}</el-tag>
+        <el-tag :type="String(row.status) === '0' ? 'success' : 'info'">
+          {{ String(row.status) === '0' ? '正常' : '停用' }}
+        </el-tag>
       </template>
       <template #action="{ row }">
         <el-button type="primary" link :icon="Edit" @click="handleEdit(row)">编辑</el-button>
@@ -35,28 +37,28 @@
         </el-form-item>
         <el-form-item label="属性类型">
           <el-select v-model="formData.attrType" style="width: 100%">
-            <el-option label="销售属性" :value="1" />
-            <el-option label="基本属性" :value="2" />
+            <el-option label="销售属性" value="1" />
+            <el-option label="基本属性" value="2" />
           </el-select>
         </el-form-item>
         <el-form-item label="录入方式">
           <el-select v-model="formData.selectType" style="width: 100%">
-            <el-option label="单选" :value="1" />
-            <el-option label="多选" :value="2" />
-            <el-option label="手工输入" :value="3" />
+            <el-option label="单选" value="1" />
+            <el-option label="多选" value="2" />
+            <el-option label="手工输入" value="3" />
           </el-select>
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="formData.sortOrder" :min="0" style="width: 100%" />
+          <el-input-number v-model="formData.orderNum" :min="0" style="width: 100%" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-switch v-model="formData.status" :active-value="1" :inactive-value="0" />
+          <el-switch v-model="formData.status" active-value="0" inactive-value="1" />
         </el-form-item>
         <el-form-item label="属性值">
           <div class="w-full">
             <div v-for="(v, idx) in formData.values" :key="idx" class="value-row">
               <el-input v-model="v.attrValue" placeholder="属性值" style="width: 200px" />
-              <el-input-number v-model="v.sortOrder" :min="0" placeholder="排序" style="width: 120px" />
+              <el-input-number v-model="v.orderNum" :min="0" placeholder="排序" style="width: 120px" />
               <el-button type="danger" link :icon="Delete" @click="removeValue(idx)">删除</el-button>
             </div>
             <el-button type="primary" plain :icon="Plus" size="small" @click="addValue">添加属性值</el-button>
@@ -95,10 +97,10 @@ const selectTypeMap = { 1: "单选", 2: "多选", 3: "手工输入" };
 const formData = reactive({
   id: null,
   attrName: "",
-  attrType: 1,
-  selectType: 1,
-  sortOrder: 0,
-  status: 1,
+  attrType: "1",
+  selectType: "1",
+  orderNum: 0,
+  status: "0",
   values: []
 });
 
@@ -111,12 +113,12 @@ const gridOptions = reactive({
   showOverflow: true,
   height: 600,
   loading: false,
-  rowConfig: { keyField: "id" },
+  rowConfig: { keyField: "attrId" },
   toolbarConfig: { slots: { buttons: "toolbar_buttons" }, refresh: true, zoom: false },
   pagerConfig: { enabled: true, pageSize: 10, pageSizes: [10, 20, 50, 100] },
   formConfig: {
     items: [
-      { field: "keyword", title: "属性名称", span: 6, itemRender: { name: "$input", props: { placeholder: "属性名称" } } },
+      { field: "attrName", title: "属性名称", span: 6, itemRender: { name: "$input", props: { placeholder: "属性名称" } } },
       {
         field: "attrType",
         title: "属性类型",
@@ -125,8 +127,8 @@ const gridOptions = reactive({
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "销售属性", value: 1 },
-            { label: "基本属性", value: 2 }
+            { label: "销售属性", value: "1" },
+            { label: "基本属性", value: "2" }
           ],
           props: { placeholder: "请选择" }
         }
@@ -139,8 +141,8 @@ const gridOptions = reactive({
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "正常", value: 1 },
-            { label: "停用", value: 0 }
+            { label: "正常", value: "0" },
+            { label: "停用", value: "1" }
           ],
           props: { placeholder: "请选择" }
         }
@@ -180,7 +182,7 @@ const gridOptions = reactive({
     { field: "attrType", title: "属性类型", width: 110, slots: { default: "attrType" } },
     { field: "selectType", title: "录入方式", width: 100, slots: { default: "selectType" } },
     { field: "values", title: "属性值", minWidth: 240, slots: { default: "values" } },
-    { field: "sortOrder", title: "排序", width: 80 },
+    { field: "orderNum", title: "排序", width: 80 },
     { field: "status", title: "状态", width: 90, slots: { default: "status" } },
     { title: "操作", width: 150, fixed: "right", slots: { default: "action" } }
   ]
@@ -188,7 +190,7 @@ const gridOptions = reactive({
 
 const handleRefresh = () => xGrid.value?.commitProxy("query");
 
-const addValue = () => formData.values.push({ valueId: null, attrValue: "", sortOrder: 0, status: 1 });
+const addValue = () => formData.values.push({ valueId: null, attrValue: "", orderNum: 0, status: "0" });
 const removeValue = idx => formData.values.splice(idx, 1);
 
 const handleAdd = () => {
@@ -196,10 +198,10 @@ const handleAdd = () => {
   Object.assign(formData, {
     id: null,
     attrName: "",
-    attrType: 1,
-    selectType: 1,
-    sortOrder: 0,
-    status: 1,
+    attrType: "1",
+    selectType: "1",
+    orderNum: 0,
+    status: "0",
     values: []
   });
   dialogVisible.value = true;
@@ -209,23 +211,23 @@ const handleEdit = async row => {
   isEdit.value = true;
   let full = row;
   try {
-    const res = await getAttrDetailApi(row.id);
+    const res = await getAttrDetailApi(row.attrId ?? row.id);
     full = res.data || row;
   } catch (e) {
     /* 用行数据兜底 */
   }
   Object.assign(formData, {
-    id: full.id,
+    id: full.attrId ?? full.id,
     attrName: full.attrName,
-    attrType: full.attrType ?? 1,
-    selectType: full.selectType ?? 1,
-    sortOrder: full.sortOrder ?? 0,
-    status: full.status ?? 1,
+    attrType: String(full.attrType ?? "1"),
+    selectType: String(full.selectType ?? "1"),
+    orderNum: full.orderNum ?? 0,
+    status: String(full.status ?? "0"),
     values: (full.values || []).map(v => ({
-      valueId: v.id ?? v.valueId ?? null,
+      valueId: v.valueId ?? null,
       attrValue: v.attrValue,
-      sortOrder: v.sortOrder ?? 0,
-      status: v.status ?? 1
+      orderNum: v.orderNum ?? 0,
+      status: String(v.status ?? "0")
     }))
   });
   dialogVisible.value = true;
@@ -236,11 +238,11 @@ const handleSubmit = async () => {
     await formRef.value.validate();
     submitLoading.value = true;
     const payload = {
-      id: formData.id,
+      attrId: formData.id,
       attrName: formData.attrName,
       attrType: formData.attrType,
       selectType: formData.selectType,
-      sortOrder: formData.sortOrder,
+      orderNum: formData.orderNum,
       status: formData.status,
       values: formData.values.filter(v => v.attrValue?.trim())
     };
@@ -264,7 +266,7 @@ const handleSubmit = async () => {
 const handleDelete = row => {
   ElMessageBox.confirm(`确定删除属性「${row.attrName}」？`, "提示", { type: "warning" }).then(async () => {
     try {
-      await deleteAttrApi(row.id);
+      await deleteAttrApi(row.attrId ?? row.id);
       ElMessage.success("删除成功");
       handleRefresh();
     } catch (e) {

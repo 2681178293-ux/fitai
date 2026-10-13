@@ -33,12 +33,12 @@
         </div>
       </template>
 
-      <!-- 状态列 -->
+      <!-- 状态列：后端 0上架 1下架 -->
       <template #status="{ row }">
         <el-switch
           v-model="row.status"
-          :active-value="1"
-          :inactive-value="0"
+          active-value="0"
+          inactive-value="1"
           @change="handleStatusChange(row)"
         />
       </template>
@@ -63,7 +63,7 @@
               <el-cascader
                 v-model="formData.categoryId"
                 :options="categoryOptions"
-                :props="{ value: 'id', label: 'name', checkStrictly: true }"
+                :props="{ value: 'categoryId', label: 'categoryName', children: 'children', checkStrictly: true, emitPath: false }"
                 placeholder="请选择分类"
                 clearable
                 style="width: 100%"
@@ -74,13 +74,17 @@
             <el-form-item label="品牌">
               <el-select
                 v-model="formData.brand"
-                placeholder="请选择或输入品牌"
+                placeholder="请选择品牌"
                 filterable
-                allow-create
                 clearable
                 style="width: 100%"
               >
-                <el-option v-for="brand in brandOptions" :key="brand.id" :label="brand.name" :value="brand.name" />
+                <el-option
+                  v-for="brand in brandOptions"
+                  :key="brand.brandId"
+                  :label="brand.brandName"
+                  :value="brand.brandId"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -127,25 +131,34 @@
       </template>
     </el-dialog>
 
-    <!-- SKU管理弹窗 -->
+    <!-- SKU管理弹窗：规格来自分类销售属性勾选 → 笛卡尔积生成 -->
     <el-dialog v-model="skuVisible" title="SKU管理" width="1100px" class="sku-manage-dialog">
       <div class="sku-matrix-section">
-        <div class="sku-matrix-title">规格维度（笛卡尔积）</div>
+        <div class="sku-matrix-title">规格维度（分类销售属性）</div>
         <p class="sku-matrix-hint">
-          每一行一个属性：左侧为属性名（如 颜色、尺码），右侧为取值，多个值用英文或中文逗号分隔。点击「生成 SKU 行」将生成全部组合并合并到下方表格（已存在的组合会保留价格、库存与图片）。
+          规格来自商品「{{ currentSpuName || "当前商品" }}」分类销售属性（接口 /sale-attr），勾选取值后点击生成笛卡尔积。已存在的规格组合会保留价格、库存与图片。
         </p>
-        <div v-for="(dim, di) in specDimensions" :key="di" class="sku-dim-row">
-          <el-input v-model="dim.name" placeholder="属性名，如 颜色" class="sku-dim-name" clearable />
-          <el-input v-model="dim.valuesInput" placeholder="取值，如 红,黄,蓝 或 M,L,XL" class="sku-dim-values" clearable />
-          <el-button type="danger" link @click="removeSpecDimension(di)">删除</el-button>
-        </div>
-        <div class="sku-matrix-actions">
-          <el-button :icon="Plus" @click="addSpecDimension">添加规格维度</el-button>
-          <el-button type="primary" @click="generateSkuFromMatrix">生成 SKU 行（笛卡尔积）</el-button>
+        <div v-loading="specDimsLoading">
+          <el-empty
+            v-if="!specDimsLoading && categorySpecDims.length === 0"
+            description="当前商品未获取到销售属性，请先在「商品分类」中关联销售属性"
+            :image-size="72"
+          />
+          <div v-for="dim in categorySpecDims" :key="dim.attrId" class="sku-dim-row">
+            <span class="sku-dim-label">{{ dim.attrName }}</span>
+            <el-checkbox-group v-model="dim.selected" class="sku-dim-checks">
+              <el-checkbox v-for="v in dim.values" :key="v.valueId" :value="v.attrValue">
+                {{ v.attrValue }}
+              </el-checkbox>
+            </el-checkbox-group>
+            <el-button type="success" link @click="selectAllDimValues(dim)">全选</el-button>
+          </div>
+          <div v-if="categorySpecDims.length" class="sku-matrix-actions">
+            <el-button type="primary" @click="generateSkuFromMatrix">生成 SKU 行（笛卡尔积）</el-button>
+          </div>
         </div>
       </div>
-      <div class="mb-4 flex justify-between">
-        <el-button type="primary" :icon="Plus" @click="handleAddSku">新增单行 SKU</el-button>
+      <div class="mb-4 flex justify-end">
         <el-button type="success" :loading="batchSaving" @click="handleBatchSaveSku">批量保存</el-button>
       </div>
       <el-table :data="skuList" border>
@@ -165,32 +178,44 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="SKU名称" min-width="150">
+        <el-table-column label="SKU名称" min-width="160">
           <template #default="{ row }">
             <el-input v-model="row.skuName" size="small" placeholder="请输入SKU名称" />
           </template>
         </el-table-column>
-        <el-table-column label="规格" width="220">
+        <el-table-column label="规格" min-width="200">
           <template #default="{ row }">
-            <el-input v-model="row.specsText" size="small" placeholder="如 颜色:红,尺码:M" />
+            <template v-if="skuSpecsEntries(row).length">
+              <el-tag
+                v-for="[k, v] in skuSpecsEntries(row)"
+                :key="k"
+                size="small"
+                type="success"
+                class="mr-1 mb-1"
+                effect="plain"
+              >
+                {{ k }}: {{ v }}
+              </el-tag>
+            </template>
+            <span v-else class="text-gray-400">-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="price" label="价格" width="120">
+        <el-table-column prop="price" label="价格" width="130">
           <template #default="{ row }">
             <el-input-number v-model="row.price" :min="0" :precision="2" size="small" controls-position="right" />
           </template>
         </el-table-column>
-        <el-table-column prop="stock" label="库存" width="100">
+        <el-table-column prop="stock" label="库存" width="110">
           <template #default="{ row }">
             <el-input-number v-model="row.stock" :min="0" size="small" controls-position="right" />
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80">
+        <el-table-column prop="status" label="状态" width="90">
           <template #default="{ row }">
-            <el-switch v-model="row.status" :active-value="1" :inactive-value="0" />
+            <el-switch v-model="row.status" active-value="0" inactive-value="1" />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120">
+        <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row, $index }">
             <el-button type="primary" link @click="handleSaveSku(row)">保存</el-button>
             <el-button type="danger" link @click="handleDeleteSku(row, $index)">删除</el-button>
@@ -274,7 +299,21 @@
 import { ref, reactive, computed, watch, shallowRef, onBeforeUnmount } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus, Refresh, Edit, Delete, List, Folder, Upload, Check } from "@element-plus/icons-vue";
-import { getProductPageApi, addProductApi, updateProductApi, deleteProductApi, getProductSkuListApi, updateSkuApi, addSkuApi, deleteSkuApi, getProductCategoryTreeApi, getProductBrandListApi } from "@/api/modules/product";
+import {
+  getProductPageApi,
+  getProductDetailApi,
+  addProductApi,
+  updateProductApi,
+  updateProductStatusApi,
+  deleteProductApi,
+  getSaleAttrApi,
+  getProductSkuListApi,
+  updateSkuApi,
+  addSkuApi,
+  deleteSkuApi,
+  getProductCategoryTreeApi,
+  getProductBrandListApi
+} from "@/api/modules/product";
 import { getImageLibrary, getImageFolders } from "@/api/modules/upload";
 import { useUserStore } from "@/stores/modules/user";
 import "@wangeditor/editor/dist/css/style.css";
@@ -338,8 +377,14 @@ const brandOptions = ref([]);
 const skuList = ref([]);
 const currentSpuId = ref(null); // 当前管理SKU的商品ID
 const currentSpuName = ref("");
-/** 规格矩阵：每行 { name: 属性名, valuesInput: 逗号分隔的取值 } */
-const specDimensions = ref([{ name: "", valuesInput: "" }]);
+const currentCategoryId = ref(null);
+const currentCategoryName = ref("");
+const specDimsLoading = ref(false);
+/**
+ * 分类销售属性维度：
+ * { attrId, attrName, attrType, values:[{valueId,attrValue}], selected: string[] }
+ */
+const categorySpecDims = ref([]);
 
 // 表单数据
 const formData = reactive({
@@ -381,8 +426,18 @@ const gridOptions = reactive({
   },
   formConfig: {
     items: [
-      { field: "name", title: "商品名称", span: 6, itemRender: { name: "$input", props: { placeholder: "请输入名称" } } },
-      { field: "brand", title: "品牌", span: 6, itemRender: { name: "$input", props: { placeholder: "请输入品牌" } } },
+      {
+        field: "spuName",
+        title: "商品名称",
+        span: 6,
+        itemRender: { name: "$input", props: { placeholder: "请输入商品名称" } }
+      },
+      {
+        field: "brandName",
+        title: "品牌",
+        span: 6,
+        itemRender: { name: "$input", props: { placeholder: "请输入品牌" } }
+      },
       {
         field: "status",
         title: "状态",
@@ -391,10 +446,10 @@ const gridOptions = reactive({
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "上架", value: 1 },
-            { label: "下架", value: 0 }
+            { label: "上架", value: "0" },
+            { label: "下架", value: "1" }
           ],
-          props: { placeholder: "请选择状态" }
+          props: { placeholder: "请选择" }
         }
       },
       {
@@ -419,11 +474,15 @@ const gridOptions = reactive({
         const params = {
           pageNum: page.currentPage,
           pageSize: page.pageSize,
-          ...form
+          spuName: form.spuName || undefined,
+          brandName: form.brandName || undefined,
+          status: form.status === "" || form.status == null ? undefined : String(form.status)
         };
         try {
           const res = await getProductPageApi(params);
-          return { list: res.data?.records || [], total: res.data?.total || 0 };
+          const records = res.data?.records || [];
+          const list = records.map(row => normalizeSpuRow(row));
+          return { list, total: res.data?.total || 0 };
         } catch (error) {
           console.error("获取商品列表失败:", error);
           return { list: [], total: 0 };
@@ -446,6 +505,30 @@ const gridOptions = reactive({
   ]
 });
 
+/** 扁平化分类树，便于按 id 取名称 */
+const flattenCategories = (nodes, map = {}) => {
+  (nodes || []).forEach(n => {
+    if (n?.categoryId != null) map[n.categoryId] = n.categoryName;
+    if (n?.children?.length) flattenCategories(n.children, map);
+  });
+  return map;
+};
+
+/** 后端 AdminProductVO → 页面展示字段 */
+const normalizeSpuRow = row => {
+  const categoryMap = flattenCategories(categoryOptions.value);
+  const brand = (brandOptions.value || []).find(b => String(b.brandId) === String(row.brandId));
+  return {
+    ...row,
+    id: row.spuId,
+    name: row.spuName,
+    brand: row.brandName || brand?.brandName || "",
+    categoryName: row.categoryName || categoryMap[row.categoryId] || "",
+    coverImage: row.coverUrl || row.coverImage || "",
+    status: row.status == null ? "0" : String(row.status),
+    stockWarning: row.stockWarning ?? ((row.totalStock ?? 0) > 0 && (row.totalStock ?? 0) < 20)
+  };
+};
 // 加载分类
 const loadCategories = async () => {
   try {
@@ -471,12 +554,21 @@ const loadBrands = async () => {
 loadCategories();
 loadBrands();
 
-/** 规格对象 → 与批量保存解析一致的逗号分隔串（键值中勿含英文逗号） */
+/** 规格对象 / SkuSpecItemVO 列表 → 逗号分隔串 */
 const formatSpecsFromObj = specs => {
-  if (!specs || typeof specs !== "object") return "";
-  return Object.entries(specs)
-    .map(([k, v]) => `${k}:${v}`)
-    .join(",");
+  if (!specs) return "";
+  if (Array.isArray(specs)) {
+    return specs
+      .filter(s => s?.attrName && s?.attrValue != null)
+      .map(s => `${s.attrName}:${s.attrValue}`)
+      .join(",");
+  }
+  if (typeof specs === "object") {
+    return Object.entries(specs)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(",");
+  }
+  return "";
 };
 
 /** 解析规格文本为对象（支持逗号分隔或空格分隔的旧数据） */
@@ -496,13 +588,47 @@ const parseSpecsTextToObj = text => {
   return specsObj;
 };
 
-const splitSpecValues = input => {
-  if (!input) return [];
-  return String(input)
-    .split(/[,，]/)
-    .map(s => s.trim())
-    .filter(Boolean);
+/** 统一为 Map：attrName → attrValue（展示 / 笛卡尔积签名用） */
+const resolveSkuSpecs = sku => {
+  if (Array.isArray(sku?.specs)) {
+    const obj = {};
+    sku.specs.forEach(s => {
+      if (s?.attrName) obj[s.attrName] = s.attrValue;
+    });
+    return obj;
+  }
+  if (sku?.specs && typeof sku.specs === "object") return sku.specs;
+  return parseSpecsTextToObj(sku?.specsText || sku?.skuSpecs);
 };
+
+/** 统一为 SkuSpecItemVO 列表（提交 SkuAddDTO.specs） */
+const resolveSkuSpecItems = sku => {
+  if (Array.isArray(sku?.specItems) && sku.specItems.length) return sku.specItems;
+  if (Array.isArray(sku?.specs) && sku.specs.length && sku.specs[0]?.attrName != null) {
+    return sku.specs.map(s => ({
+      attrId: s.attrId,
+      attrName: s.attrName,
+      valueId: s.valueId,
+      attrValue: s.attrValue
+    }));
+  }
+  // 从勾选维度回填 attrId / valueId
+  const map = resolveSkuSpecs(sku);
+  const items = [];
+  Object.entries(map || {}).forEach(([attrName, attrValue]) => {
+    const dim = categorySpecDims.value.find(d => d.attrName === attrName);
+    const val = dim?.values?.find(v => String(v.attrValue) === String(attrValue));
+    items.push({
+      attrId: dim?.attrId ?? null,
+      attrName,
+      valueId: val?.valueId ?? null,
+      attrValue
+    });
+  });
+  return items;
+};
+
+const skuSpecsEntries = row => Object.entries(resolveSkuSpecs(row) || {});
 
 /** 多规格笛卡尔积：[[a,b],[1,2]] → [[a,1],[a,2],[b,1],[b,2]] */
 const cartesianArrays = arrays => {
@@ -520,76 +646,84 @@ const specsSignature = specs =>
     .map(k => `${k}=${specs[k]}`)
     .join("&");
 
-/** 从当前 SKU 列表反推规格维度，便于再次编辑矩阵 */
-const inferDimensionsFromSkuList = list => {
-  const keyToSet = new Map();
+/** 根据已有 SKU 规格，预勾选分类属性取值 */
+const preselectDimsFromSkuList = (dims, list) => {
+  const used = new Map();
   (list || []).forEach(sku => {
-    const specs =
-      sku.specs && typeof sku.specs === "object" && !Array.isArray(sku.specs)
-        ? sku.specs
-        : parseSpecsTextToObj(sku.specsText);
-    if (!specs || !Object.keys(specs).length) return;
-    Object.entries(specs).forEach(([k, v]) => {
-      if (!keyToSet.has(k)) keyToSet.set(k, new Set());
-      if (v != null && String(v)) keyToSet.get(k).add(String(v));
+    const specs = resolveSkuSpecs(sku);
+    Object.entries(specs || {}).forEach(([k, v]) => {
+      if (!used.has(k)) used.set(k, new Set());
+      if (v != null && String(v)) used.get(k).add(String(v));
     });
   });
-  if (keyToSet.size === 0) {
-    return [{ name: "", valuesInput: "" }];
-  }
-  return Array.from(keyToSet.entries()).map(([name, set]) => ({
-    name,
-    valuesInput: Array.from(set).join(",")
-  }));
+  dims.forEach(dim => {
+    const set = used.get(dim.attrName);
+    if (!set) {
+      dim.selected = [];
+      return;
+    }
+    dim.selected = dim.values.map(v => v.attrValue).filter(val => set.has(val));
+  });
 };
 
-const addSpecDimension = () => {
-  specDimensions.value.push({ name: "", valuesInput: "" });
+const selectAllDimValues = dim => {
+  dim.selected = (dim.values || []).map(v => v.attrValue);
 };
 
-const removeSpecDimension = di => {
-  if (specDimensions.value.length <= 1) {
-    specDimensions.value = [{ name: "", valuesInput: "" }];
-    return;
+/** 加载 SPU 销售属性维度 GET /admin/product/{spuId}/sale-attr */
+const loadCategorySalesAttrDims = async spuId => {
+  categorySpecDims.value = [];
+  if (!spuId) return;
+
+  specDimsLoading.value = true;
+  try {
+    const res = await getSaleAttrApi(spuId);
+    const attrs = Array.isArray(res.data) ? res.data : [];
+    categorySpecDims.value = attrs
+      .filter(attr => attr && (attr.attrType == null || String(attr.attrType) === "1"))
+      .map(attr => {
+        const values = (attr.values || attr.value || [])
+          .filter(v => v && (v.status == null || String(v.status) === "0"))
+          .map(v => ({
+            valueId: v.valueId ?? v.id,
+            attrValue: v.attrValue
+          }))
+          .filter(v => v.attrValue);
+        return {
+          attrId: attr.attrId,
+          attrName: attr.attrName || `属性${attr.attrId}`,
+          attrType: String(attr.attrType ?? "1"),
+          values,
+          selected: []
+        };
+      })
+      .filter(dim => dim.values.length > 0);
+  } catch (e) {
+    console.error("加载销售属性失败", e);
+    categorySpecDims.value = [];
+  } finally {
+    specDimsLoading.value = false;
   }
-  specDimensions.value.splice(di, 1);
 };
 
 const generateSkuFromMatrix = () => {
-  const dims = specDimensions.value
-    .map(d => ({
-      name: (d.name || "").trim(),
-      values: splitSpecValues(d.valuesInput)
-    }))
-    .filter(d => d.name && d.values.length > 0);
-
+  const dims = categorySpecDims.value.filter(d => (d.selected || []).length > 0);
   if (dims.length === 0) {
-    ElMessage.warning("请至少填写一行规格：属性名 + 取值（多个用逗号分隔）");
+    ElMessage.warning("请至少勾选一个规格取值");
     return;
   }
-  const names = new Set();
-  for (const d of dims) {
-    if (names.has(d.name)) {
-      ElMessage.warning(`属性名「${d.name}」重复，请合并为一行`);
-      return;
-    }
-    names.add(d.name);
-  }
 
-  const dimNames = dims.map(d => d.name);
-  const valueArrays = dims.map(d => d.values);
+  const dimNames = dims.map(d => d.attrName);
+  const valueArrays = dims.map(d => d.selected);
   const tuples = cartesianArrays(valueArrays);
   if (tuples.length === 0) {
-    ElMessage.warning("无法生成组合，请检查各属性取值是否为空");
+    ElMessage.warning("无法生成组合，请检查勾选取值");
     return;
   }
 
   const existingMap = new Map();
   skuList.value.forEach(row => {
-    const specs =
-      row.specs && typeof row.specs === "object" && !Array.isArray(row.specs)
-        ? row.specs
-        : parseSpecsTextToObj(row.specsText);
+    const specs = resolveSkuSpecs(row);
     if (specs && Object.keys(specs).length) {
       existingMap.set(specsSignature(specs), row);
     }
@@ -602,8 +736,18 @@ const generateSkuFromMatrix = () => {
   const nextList = [];
   tuples.forEach(tuple => {
     const specs = {};
+    const specItems = [];
     dimNames.forEach((n, i) => {
-      specs[n] = tuple[i];
+      const attrValue = tuple[i];
+      specs[n] = attrValue;
+      const dim = dims.find(d => d.attrName === n);
+      const val = dim?.values?.find(v => String(v.attrValue) === String(attrValue));
+      specItems.push({
+        attrId: dim?.attrId ?? null,
+        attrName: n,
+        valueId: val?.valueId ?? null,
+        attrValue
+      });
     });
     const sig = specsSignature(specs);
     const specsText = formatSpecsFromObj(specs);
@@ -611,6 +755,7 @@ const generateSkuFromMatrix = () => {
     if (existed) {
       existed.specsText = specsText;
       existed.specs = specs;
+      existed.specItems = specItems;
       nextList.push(existed);
     } else {
       const skuName = currentSpuName.value
@@ -618,14 +763,16 @@ const generateSkuFromMatrix = () => {
         : tuple.join("-");
       nextList.push({
         id: null,
+        skuId: null,
         spuId: currentSpuId.value,
         skuName,
         image: "",
         specsText,
         specs,
+        specItems,
         price: defaultPrice,
         stock: defaultStock,
-        status: 1
+        status: "0"
       });
     }
   });
@@ -639,13 +786,15 @@ const handleRefresh = () => {
   xGrid.value.commitProxy("query");
 };
 
-// 状态变更
+// 状态变更（AdminProduct 更新接口不含 status，走 spu 更新）
 const handleStatusChange = async row => {
+  const next = String(row.status);
+  const prev = next === "0" ? "1" : "0";
   try {
-    await updateProductApi(row.id, { status: row.status });
-    ElMessage.success(row.status === 1 ? "已上架" : "已下架");
+    await updateProductStatusApi(row.spuId ?? row.id, { spuId: row.spuId ?? row.id, status: next });
+    ElMessage.success(next === "0" ? "已上架" : "已下架");
   } catch {
-    row.status = row.status === 1 ? 0 : 1;
+    row.status = prev;
   }
 };
 
@@ -659,44 +808,79 @@ const handleAdd = () => {
     brand: "",
     coverImage: "",
     description: "",
-    detailHtml: ""
+    detailHtml: "",
+    spuSn: "",
+    subtitle: "",
+    unit: "件",
+    status: "0"
   });
-  // 清空图片列表
   productImages.value = [];
-  // 初始化编辑器内容
   valueHtml.value = "";
   dialogVisible.value = true;
 };
 
-// 编辑
-const handleEdit = row => {
+const handleEdit = async row => {
   isEdit.value = true;
-  Object.assign(formData, { ...row });
-  // 初始化图片列表
-  productImages.value = row.images || [];
-  // 初始化编辑器内容
-  valueHtml.value = row.detailHtml || "";
+  const spuId = row.spuId ?? row.id;
+  try {
+    const res = await getProductDetailApi(spuId);
+    const detail = res.data || row;
+    Object.assign(formData, {
+      ...detail,
+      id: detail.spuId ?? spuId,
+      name: detail.spuName || detail.name || row.name,
+      brand: detail.brandId ?? row.brandId ?? row.brand,
+      coverImage: detail.coverUrl || detail.coverImage || row.coverImage || "",
+      description: detail.description || "",
+      status: detail.status == null ? "0" : String(detail.status)
+    });
+    const album = detail.images || [];
+    productImages.value = Array.isArray(album)
+      ? album.map(img => (typeof img === "string" ? img : img?.imageUrl)).filter(Boolean)
+      : [];
+    valueHtml.value = detail.detailHtml || "";
+  } catch (e) {
+    Object.assign(formData, {
+      ...row,
+      id: spuId,
+      name: row.spuName || row.name,
+      brand: row.brandId ?? row.brand,
+      coverImage: row.coverUrl || row.coverImage || "",
+      status: row.status == null ? "0" : String(row.status)
+    });
+    productImages.value = row.images || [];
+    valueHtml.value = row.detailHtml || "";
+  }
   dialogVisible.value = true;
 };
 
-// 提交
 const handleSubmit = async () => {
   try {
     await formRef.value.validate();
     submitLoading.value = true;
-    
-    const submitData = {
-      ...formData,
-      detailHtml: valueHtml.value, // 使用编辑器的内容
-      images: productImages.value
+
+    const brandId =
+      typeof formData.brand === "number" || /^\d+$/.test(String(formData.brand || ""))
+        ? Number(formData.brand)
+        : (brandOptions.value || []).find(b => b.brandName === formData.brand)?.brandId;
+
+    // 对齐 ProductAddDTO / ProductUpdateDTO
+    const payload = {
+      spuName: formData.name,
+      categoryId: formData.categoryId,
+      brandId: brandId || null,
+      coverUrl: formData.coverImage || null,
+      description: formData.description || null,
+      detailHtml: valueHtml.value || formData.detailHtml || null,
+      images: (productImages.value || []).filter(Boolean)
     };
-    
+
     if (isEdit.value) {
-      await updateProductApi(formData.id, submitData);
+      await updateProductApi(formData.id, { ...payload, spuId: formData.id });
     } else {
-      await addProductApi(submitData);
+      await addProductApi(payload);
     }
-    
+
     ElMessage.success(isEdit.value ? "编辑成功" : "新增成功");
     dialogVisible.value = false;
     handleRefresh();
@@ -708,13 +892,12 @@ const handleSubmit = async () => {
   }
 };
 
-// 删除
 const handleDelete = row => {
   ElMessageBox.confirm("确定要删除该商品吗？", "提示", {
     type: "warning"
   }).then(async () => {
     try {
-      await deleteProductApi(row.id);
+      await deleteProductApi(row.spuId ?? row.id);
       ElMessage.success("删除成功");
       handleRefresh();
     } catch (error) {
@@ -724,41 +907,88 @@ const handleDelete = row => {
   });
 };
 
-// SKU管理
 const handleSku = async row => {
-  currentSpuId.value = row.id;
-  currentSpuName.value = row.name || "";
+  currentSpuId.value = row.spuId ?? row.id;
+  currentSpuName.value = row.spuName || row.name || "";
+  currentCategoryId.value = row.categoryId ?? null;
+  currentCategoryName.value = row.categoryName || "";
   try {
-    const res = await getProductSkuListApi(row.id);
-    skuList.value = (res.data || []).map(sku => ({
-      ...sku,
-      specsText: formatSpecsFromObj(sku.specs || parseSpecsTextToObj(sku.specsText))
-    }));
+    const res = await getProductSkuListApi(currentSpuId.value);
+    const list = Array.isArray(res.data) ? res.data : res.data?.records || [];
+    skuList.value = list.map(sku => {
+      const specItems = Array.isArray(sku.specs) ? sku.specs : [];
+      const specs = resolveSkuSpecs({ ...sku, specs: specItems.length ? specItems : sku.specs });
+      return {
+        ...sku,
+        id: sku.skuId,
+        name: sku.skuName,
+        image: sku.coverUrl || sku.image || "",
+        stock: sku.quantity ?? sku.stock ?? 0,
+        specs,
+        specItems,
+        specsText: formatSpecsFromObj(specItems.length ? specItems : specs),
+        status: sku.status == null ? "0" : String(sku.status)
+      };
+    });
   } catch (error) {
     console.error("获取SKU列表失败:", error);
     skuList.value = [];
   }
-  specDimensions.value = inferDimensionsFromSkuList(skuList.value);
+  await loadCategorySalesAttrDims(currentSpuId.value);
+  preselectDimsFromSkuList(categorySpecDims.value, skuList.value);
   skuVisible.value = true;
 };
 
-// 新增SKU
-const handleAddSku = () => {
-  skuList.value.push({
-    id: null,
+/** 对齐 SkuAddDTO：skuName / coverUrl / skuSpecs / specs / price / quantity / status */
+const toSkuPayload = (sku, isUpdate) => {
+  const specsMap = resolveSkuSpecs(sku);
+  const specItems = resolveSkuSpecItems(sku);
+  const specsText = formatSpecsFromObj(specItems.length ? specItems : specsMap);
+  sku.specs = specsMap;
+  sku.specItems = specItems;
+  sku.specsText = specsText;
+  const payload = {
     spuId: currentSpuId.value,
-    skuName: "",
-    image: "",
-    specsText: "",
-    specs: null,
-    price: 0,
-    stock: 0,
-    status: 1
-  });
+    skuName: sku.skuName || sku.name || "默认SKU",
+    coverUrl: sku.image || sku.coverUrl || null,
+    skuSpecs: specsText || null,
+    specs: specItems,
+    price: sku.price ?? 0,
+    quantity: sku.stock ?? sku.quantity ?? 0,
+    status: sku.status != null ? String(sku.status) : "0"
+  };
+  if (isUpdate) payload.skuId = sku.skuId ?? sku.id;
+  return payload;
 };
 
 // 批量保存SKU
 const batchSaving = ref(false);
+const reloadSkuList = async () => {
+  if (!currentSpuId.value) return;
+  try {
+    const res = await getProductSkuListApi(currentSpuId.value);
+    const list = Array.isArray(res.data) ? res.data : res.data?.records || [];
+    skuList.value = list.map(sku => {
+      const specItems = Array.isArray(sku.specs) ? sku.specs : [];
+      const specs = resolveSkuSpecs({ ...sku, specs: specItems.length ? specItems : sku.specs });
+      return {
+        ...sku,
+        id: sku.skuId,
+        name: sku.skuName,
+        image: sku.coverUrl || sku.image || "",
+        stock: sku.quantity ?? sku.stock ?? 0,
+        specs,
+        specItems,
+        specsText: formatSpecsFromObj(specItems.length ? specItems : specs),
+        status: sku.status == null ? "0" : String(sku.status)
+      };
+    });
+    preselectDimsFromSkuList(categorySpecDims.value, skuList.value);
+  } catch (e) {
+    console.error("刷新SKU列表失败:", e);
+  }
+};
+
 const handleBatchSaveSku = async () => {
   if (skuList.value.length === 0) {
     ElMessage.warning("暂无SKU可保存");
@@ -770,16 +1000,10 @@ const handleBatchSaveSku = async () => {
   try {
     for (const sku of skuList.value) {
       try {
-        if (sku.specsText && String(sku.specsText).trim()) {
-          sku.specs = parseSpecsTextToObj(sku.specsText);
+        if (sku.id || sku.skuId) {
+          await updateSkuApi(sku.skuId ?? sku.id, toSkuPayload(sku, true));
         } else {
-          sku.specs = null;
-        }
-        if (sku.id) {
-          await updateSkuApi(sku.id, sku);
-        } else {
-          const res = await addSkuApi(currentSpuId.value, sku);
-          sku.id = res.data;
+          await addSkuApi(currentSpuId.value, toSkuPayload(sku, false));
         }
         successCount++;
       } catch (e) {
@@ -789,6 +1013,7 @@ const handleBatchSaveSku = async () => {
     }
     if (failCount === 0) {
       ElMessage.success(`成功保存 ${successCount} 个SKU`);
+      await reloadSkuList();
     } else {
       ElMessage.warning(`保存完成：成功 ${successCount} 个，失败 ${failCount} 个`);
     }
@@ -800,19 +1025,13 @@ const handleBatchSaveSku = async () => {
 // 保存SKU
 const handleSaveSku = async sku => {
   try {
-    if (sku.specsText && String(sku.specsText).trim()) {
-      sku.specs = parseSpecsTextToObj(sku.specsText);
+    if (sku.id || sku.skuId) {
+      await updateSkuApi(sku.skuId ?? sku.id, toSkuPayload(sku, true));
     } else {
-      sku.specs = null;
-    }
-
-    if (sku.id) {
-      await updateSkuApi(sku.id, sku);
-    } else {
-      const res = await addSkuApi(currentSpuId.value, sku);
-      sku.id = res.data;
+      await addSkuApi(currentSpuId.value, toSkuPayload(sku, false));
     }
     ElMessage.success("保存成功");
+    await reloadSkuList();
   } catch (error) {
     console.error("保存SKU失败:", error);
     ElMessage.error("保存失败，请重试");
@@ -821,10 +1040,10 @@ const handleSaveSku = async sku => {
 
 // 删除SKU
 const handleDeleteSku = async (sku, index) => {
-  if (sku.id) {
+  if (sku.id || sku.skuId) {
     try {
       await ElMessageBox.confirm("确定删除该SKU吗？", "提示", { type: "warning" });
-      await deleteSkuApi(sku.id);
+      await deleteSkuApi(sku.skuId ?? sku.id);
       ElMessage.success("删除成功");
     } catch (error) {
       if (error !== "cancel") {
@@ -942,7 +1161,7 @@ watch(dialogVisible, val => {
   overflow-y: auto;
 }
 
-/* SKU 规格矩阵 */
+/* SKU 规格矩阵（分类销售属性勾选） */
 .sku-matrix-section {
   margin-bottom: 16px;
   padding: 12px 14px;
@@ -963,23 +1182,34 @@ watch(dialogVisible, val => {
 }
 .sku-dim-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--el-border-color-lighter);
 }
-.sku-dim-name {
-  width: 140px;
+.sku-dim-row:last-of-type {
+  border-bottom: none;
+}
+.sku-dim-label {
+  width: 72px;
   flex-shrink: 0;
+  padding-top: 4px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
 }
-.sku-dim-values {
+.sku-dim-checks {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
 }
 .sku-matrix-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 /* SKU 图片单元格 */

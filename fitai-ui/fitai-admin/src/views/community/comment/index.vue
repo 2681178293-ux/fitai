@@ -10,29 +10,30 @@
         <div class="max-w-xs truncate" :title="row.content">{{ row.content || "-" }}</div>
       </template>
 
-      <template #top="{ row }">
-        <el-tag v-if="row.isTop === 1" type="warning" size="small">置顶</el-tag>
+      <!-- 勿用 #top：与 vxe-grid 内置顶部插槽冲突，会导致整页空白 -->
+      <template #topFlag="{ row }">
+        <el-tag v-if="Number(row.top) === 1" type="warning" size="small">置顶</el-tag>
         <span v-else class="text-gray-400">-</span>
       </template>
 
       <template #status="{ row }">
-        <el-tag v-if="row.status === 1" type="success" size="small">正常</el-tag>
+        <el-tag v-if="Number(row.status) === 1" type="success" size="small">正常</el-tag>
         <el-tag v-else type="info" size="small">已删除</el-tag>
       </template>
 
       <template #action="{ row }">
         <el-button
-          v-if="row.isTop === 1"
+          v-if="Number(row.top) === 1"
           type="info"
           link
-          :icon="Bottom"
+          :icon="BottomIcon"
           @click="handleTop(row, 0)"
         >
           取消置顶
         </el-button>
-        <el-button v-else type="warning" link :icon="Top" @click="handleTop(row, 1)">置顶</el-button>
+        <el-button v-else type="warning" link :icon="TopIcon" @click="handleTop(row, 1)">置顶</el-button>
         <el-button
-          v-if="row.status === 1"
+          v-if="Number(row.status) === 1"
           type="danger"
           link
           :icon="Delete"
@@ -48,7 +49,7 @@
 <script setup name="communityComment">
 import { ref, reactive } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Refresh, Delete, Top, Bottom } from "@element-plus/icons-vue";
+import { Refresh, Delete, Top as TopIcon, Bottom as BottomIcon } from "@element-plus/icons-vue";
 import {
   getCommentPageApi,
   deleteCommentApi,
@@ -71,12 +72,25 @@ const gridOptions = reactive({
     response: { result: "list", total: "total" },
     ajax: {
       query: async ({ page, form }) => {
-        const params = { pageNum: page.currentPage, pageSize: page.pageSize, ...form };
+        const params = {
+          pageNum: page.currentPage,
+          pageSize: page.pageSize,
+          keyword: form.keyword || undefined,
+          postId: form.postId || undefined,
+          userId: form.userId || undefined,
+          status: form.status !== "" && form.status != null ? form.status : undefined
+        };
         try {
           const res = await getCommentPageApi(params);
           const data = res.data || {};
-          return { list: data.records || [], total: data.total || 0 };
+          // 后端 id 以字符串返回；这里再兜底转成 string，避免大整数精度丢失
+          const list = (data.records || []).map(row => ({
+            ...row,
+            id: row.id != null ? String(row.id) : row.id
+          }));
+          return { list, total: data.total || 0 };
         } catch (e) {
+          console.error("获取社区评论列表失败:", e);
           return { list: [], total: 0 };
         }
       }
@@ -114,16 +128,15 @@ const gridOptions = reactive({
       }
     ]
   },
-  pagerConfig: { enabled: true },
+  pagerConfig: { enabled: true, pageSize: 10, pageSizes: [10, 20, 50] },
   columns: [
     { type: "checkbox", width: 50 },
     { type: "seq", width: 60 },
     { field: "id", title: "ID", width: 90 },
-    { field: "userNickname", title: "评论人", width: 120 },
-    { field: "postExcerpt", title: "所属动态", minWidth: 160 },
+    { field: "nickname", title: "评论人", width: 120 },
     { field: "content", title: "评论内容", minWidth: 200, slots: { default: "content" } },
     { field: "likeCount", title: "点赞", width: 80 },
-    { field: "isTop", title: "置顶", width: 80, slots: { default: "top" } },
+    { field: "top", title: "置顶", width: 80, slots: { default: "topFlag" } },
     { field: "status", title: "状态", width: 90, slots: { default: "status" } },
     { field: "createTime", title: "评论时间", width: 170 },
     { title: "操作", width: 180, fixed: "right", slots: { default: "action" } }
@@ -133,7 +146,7 @@ const gridOptions = reactive({
 const handleRefresh = () => xGrid.value?.commitProxy("query");
 
 const handleTop = (row, top) => {
-  setCommentTopApi(row.id, top)
+  setCommentTopApi(String(row.id), top)
     .then(() => {
       ElMessage.success(top === 1 ? "已置顶" : "已取消置顶");
       handleRefresh();
@@ -144,7 +157,7 @@ const handleTop = (row, top) => {
 const handleDelete = row => {
   ElMessageBox.confirm("确定删除该评论？", "提示", { type: "warning" }).then(async () => {
     try {
-      await deleteCommentApi(row.id);
+      await deleteCommentApi(String(row.id));
       ElMessage.success("删除成功");
       handleRefresh();
     } catch (e) {
@@ -159,7 +172,7 @@ const handleBatchDelete = () => {
     ElMessage.warning("请先勾选要删除的评论");
     return;
   }
-  const ids = rows.map(r => r.id);
+  const ids = rows.map(r => String(r.id));
   ElMessageBox.confirm(`确定删除选中的 ${ids.length} 条评论？`, "提示", { type: "warning" }).then(
     async () => {
       try {

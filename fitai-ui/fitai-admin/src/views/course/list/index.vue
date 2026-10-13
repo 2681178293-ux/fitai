@@ -10,26 +10,35 @@
       <!-- 封面列 -->
       <template #cover="{ row }">
         <div class="table-thumb-cell">
-          <el-image :src="row.coverImage" :preview-src-list="[row.coverImage]" fit="contain" class="table-thumb-cover" />
+          <el-image
+            v-if="row.coverImage"
+            :src="row.coverImage"
+            :preview-src-list="[row.coverImage]"
+            fit="contain"
+            class="table-thumb-cover"
+          />
+          <span v-else class="text-gray-400">-</span>
         </div>
       </template>
 
-      <!-- 难度列 -->
+      <!-- 难度列（后端 difficulty 为字符串 "1"/"2"/"3"） -->
       <template #difficulty="{ row }">
-        <el-tag v-if="row.difficulty === 1" type="success">入门</el-tag>
-        <el-tag v-else-if="row.difficulty === 2" type="warning">进阶</el-tag>
-        <el-tag v-else-if="row.difficulty === 3" type="danger">高级</el-tag>
+        <el-tag v-if="Number(row.difficulty) === 1" type="success">入门</el-tag>
+        <el-tag v-else-if="Number(row.difficulty) === 2" type="warning">进阶</el-tag>
+        <el-tag v-else-if="Number(row.difficulty) === 3" type="danger">高级</el-tag>
+        <span v-else>{{ row.difficulty || "-" }}</span>
       </template>
 
-      <!-- 免费列 -->
+      <!-- 免费列（后端 isFree：0否 1是） -->
       <template #isFree="{ row }">
-        <el-tag v-if="row.isFree" type="success">免费</el-tag>
-        <el-tag v-else type="warning">¥{{ row.price }}</el-tag>
+        <el-tag v-if="row.isFree === true || row.isFree === '1' || row.isFree === 1" type="success">免费</el-tag>
+        <el-tag v-else type="warning">¥{{ row.price ?? 0 }}</el-tag>
       </template>
 
-      <!-- 状态列 -->
+      <!-- 状态列（后端 status：0上架 1下架 2草稿） -->
       <template #status="{ row }">
-        <el-tag v-if="row.status === 1" type="success">已上架</el-tag>
+        <el-tag v-if="row.status === '0' || row.status === 0" type="success">已上架</el-tag>
+        <el-tag v-else-if="row.status === '2' || row.status === 2" type="warning">草稿</el-tag>
         <el-tag v-else type="info">已下架</el-tag>
       </template>
 
@@ -50,7 +59,13 @@
           <el-cascader
             v-model="formData.categoryId"
             :options="categoryOptions"
-            :props="{ value: 'id', label: 'name', checkStrictly: true, emitPath: false }"
+            :props="{
+              value: 'categoryId',
+              label: 'categoryName',
+              children: 'children',
+              checkStrictly: true,
+              emitPath: false
+            }"
             placeholder="请选择分类"
             clearable
             style="width: 100%"
@@ -197,20 +212,75 @@ const categoryOptions = ref([]);
 const videoLibraryRef = ref();
 const selectedVideo = ref(null);
 
+/** 在分类树中按 categoryId 查找分类名 */
+const findCategoryName = (nodes, categoryId) => {
+  if (!categoryId || !Array.isArray(nodes)) return "";
+  for (const node of nodes) {
+    if (node.categoryId === categoryId) return node.categoryName || "";
+    const childName = findCategoryName(node.children, categoryId);
+    if (childName) return childName;
+  }
+  return "";
+};
+
+/**
+ * 后端 CrsCourseVO → 前端列表/表单字段
+ * courseTitle/coverUrl/durationMin/summary/courseId ↔ title/coverImage/duration/description/id
+ */
+const normalizeCourseRow = row => {
+  if (!row) return row;
+  return {
+    ...row,
+    id: row.courseId ?? row.id,
+    title: row.courseTitle ?? row.title ?? "",
+    coverImage: row.coverUrl ?? row.coverImage ?? "",
+    duration: row.durationMin ?? row.duration ?? 0,
+    description: row.summary ?? row.description ?? "",
+    // 表单里 isFree 用布尔；列表展示同时兼容字符串
+    isFree: row.isFree === true || row.isFree === "1" || row.isFree === 1,
+    difficulty: row.difficulty != null && row.difficulty !== "" ? Number(row.difficulty) : 1
+  };
+};
+
+/**
+ * 前端表单 → 后端 AddDTO / UpdateDTO 字段名与类型
+ */
+const buildCoursePayload = (form, { isEdit = false } = {}) => {
+  const payload = {
+    categoryId: form.categoryId,
+    categoryName: findCategoryName(categoryOptions.value, form.categoryId) || form.categoryName || undefined,
+    courseTitle: form.title,
+    coverUrl: form.coverImage || undefined,
+    coverOssId: form.coverOssId || undefined,
+    difficulty: form.difficulty != null ? String(form.difficulty) : undefined,
+    durationMin: form.duration,
+    calories: form.calories,
+    equipment: form.equipment || undefined,
+    isFree: form.isFree ? "1" : "0",
+    price: form.isFree ? 0 : form.price ?? 0,
+    videoId: form.videoId || undefined,
+    summary: form.description || undefined
+  };
+  if (isEdit) {
+    payload.courseId = form.id ?? form.courseId;
+  }
+  return payload;
+};
+
 // 监听弹窗关闭时清理状态
 watch(dialogVisible, val => {
   if (!val) {
-    // 弹窗关闭时清空编辑器内容（destroy-on-close 会自动销毁 DOM）
     descriptionHtml.value = "";
     editorRef.value = null;
   }
 });
 
-// 表单数据
+// 表单数据（页面内部仍用友好字段名，提交时再映射）
 const formData = reactive({
   id: null,
   title: "",
   categoryId: null,
+  categoryName: "",
   difficulty: 1,
   duration: 30,
   calories: 200,
@@ -219,6 +289,7 @@ const formData = reactive({
   price: 0,
   videoId: null,
   coverImage: "",
+  coverOssId: null,
   description: ""
 });
 
@@ -263,8 +334,9 @@ const gridOptions = reactive({
           name: "$select",
           options: [
             { label: "全部", value: "" },
-            { label: "已上架", value: 1 },
-            { label: "已下架", value: 0 }
+            // 与后端一致：0上架 1下架
+            { label: "已上架", value: "0" },
+            { label: "已下架", value: "1" }
           ],
           props: { placeholder: "请选择状态" }
         }
@@ -291,11 +363,13 @@ const gridOptions = reactive({
         const params = {
           pageNum: page.currentPage,
           pageSize: page.pageSize,
-          ...form
+          keyword: form.keyword || undefined,
+          status: form.status !== "" && form.status != null ? String(form.status) : undefined
         };
         try {
           const res = await getCoursePageApi(params);
-          return { list: res.data?.records || [], total: res.data?.total || 0 };
+          const list = (res.data?.records || []).map(normalizeCourseRow);
+          return { list, total: res.data?.total || 0 };
         } catch (error) {
           console.error("获取课程列表失败:", error);
           return { list: [], total: 0 };
@@ -346,6 +420,7 @@ const handleAdd = () => {
     id: null,
     title: "",
     categoryId: null,
+    categoryName: "",
     difficulty: 1,
     duration: 30,
     calories: 200,
@@ -354,6 +429,7 @@ const handleAdd = () => {
     price: 0,
     videoId: null,
     coverImage: "",
+    coverOssId: null,
     description: ""
   });
   dialogVisible.value = true;
@@ -362,12 +438,27 @@ const handleAdd = () => {
 // 编辑
 const handleEdit = row => {
   isEdit.value = true;
-  Object.assign(formData, row);
-  descriptionHtml.value = row.description || "";
-  // 关联视频：列表接口已联表返回 videoTitle、videoCoverUrl，用于缩略图与标题
-  if (row.videoId) {
+  const normalized = normalizeCourseRow(row);
+  Object.assign(formData, {
+    id: normalized.id,
+    title: normalized.title,
+    categoryId: normalized.categoryId,
+    categoryName: normalized.categoryName || "",
+    difficulty: normalized.difficulty,
+    duration: normalized.duration,
+    calories: normalized.calories ?? 0,
+    equipment: normalized.equipment || "",
+    isFree: normalized.isFree,
+    price: Number(normalized.price) || 0,
+    videoId: normalized.videoId || null,
+    coverImage: normalized.coverImage,
+    coverOssId: normalized.coverOssId || null,
+    description: normalized.description
+  });
+  descriptionHtml.value = normalized.description || "";
+  if (normalized.videoId) {
     selectedVideo.value = {
-      id: row.videoId,
+      id: normalized.videoId,
       title: row.videoTitle || "已关联视频",
       coverUrl: row.videoCoverUrl || null
     };
@@ -382,22 +473,22 @@ const handleSubmit = async () => {
   try {
     await formRef.value.validate();
     submitLoading.value = true;
-    
-    // 同步富文本内容到表单
+
     formData.description = descriptionHtml.value;
-    
+    const payload = buildCoursePayload(formData, { isEdit: isEdit.value });
+
     if (isEdit.value) {
-      await updateCourseApi(formData.id, formData);
+      await updateCourseApi(payload);
     } else {
-      await addCourseApi(formData);
+      await addCourseApi(payload);
     }
-    
+
     ElMessage.success(isEdit.value ? "编辑成功" : "新增成功");
     dialogVisible.value = false;
     handleRefresh();
   } catch (error) {
     console.error("提交失败:", error);
-    ElMessage.error("操作失败，请重试");
+    if (error !== false) ElMessage.error(error?.msg || "操作失败，请重试");
   } finally {
     submitLoading.value = false;
   }
@@ -409,7 +500,7 @@ const handleDelete = row => {
     type: "warning"
   }).then(async () => {
     try {
-      await deleteCourseApi(row.id);
+      await deleteCourseApi(row.id ?? row.courseId);
       ElMessage.success("删除成功");
       handleRefresh();
     } catch (error) {

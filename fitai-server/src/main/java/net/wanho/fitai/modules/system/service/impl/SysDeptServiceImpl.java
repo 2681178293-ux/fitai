@@ -70,8 +70,6 @@ public class SysDeptServiceImpl extends MPJBaseServiceImpl<SysDeptMapper, SysDep
         }).toList();
         this.updateBatchById( list);
 
-
-
     }
 
     @Override
@@ -98,9 +96,11 @@ public class SysDeptServiceImpl extends MPJBaseServiceImpl<SysDeptMapper, SysDep
         LambdaQueryWrapper<SysDept> wrapper = new LambdaQueryWrapper<>();
      /*
      *  select * from sys_dept where
+
 		 (FIND_IN_SET
 		(dept_id,(select ancestors FROM sys_dept where dept_name like '%运营%'))
 		or  dept_name like '%运营%' )
+
 		and status=0*/
         String deptName = queryDto.getDeptName();
         String sql = " ( FIND_IN_SET ( dept_id, " +
