@@ -26,6 +26,8 @@ spring:
   mvc:
     async:
       request-timeout: -1 # 异步超时取消
+    pathmatch:  #Swagger文档
+      matching-strategy: ant_path_matcher # 用于解决SpringBoot2.6+版本与Swagger的兼容性问题
 
 # mybatis-plus
 mybatis-plus:
